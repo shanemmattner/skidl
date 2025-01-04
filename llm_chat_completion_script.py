@@ -10,21 +10,26 @@ ROOT_DIRECTORY = "/Users/shanemattner/Desktop/skidl"
 # Where to save the combined output
 OUTPUT_FILE = "collected_code.txt"
 
-# What files to collect (add or remove filenames as needed)
-TARGET_FILES = {
-    'gen_schematic.py': ['kicad5', 'kicad6', 'kicad7', 'kicad8'],
-    'kicad_sch_writer.py': None,
-    's-expressions.md': None,
-    'Schematic_File_Format.md': None,
-}
+# What files to collect - specify full relative paths from ROOT_DIRECTORY
+TARGET_FILES = [
+    'src/skidl/tools/kicad5/gen_schematic.py',
+    'src/skidl/tools/kicad6/gen_schematic.py',
+    'src/skidl/tools/kicad7/gen_schematic.py',
+    'src/skidl/tools/kicad8/gen_schematic.py',
+    'shane_docs/kicad_sch_writer.py',
+    # 'shane_docs/s-expressions.md',
+    # 'shane_docs/Schematic_File_Format.md',
+]
 
 # Message to add at the start of the output file
 INTRO_MESSAGE = """
 Help me develop code for generating KiCad schematics from SKiDL scripts for KiCAD 8.  SKiDL is a Python package that allows you to design electronic circuits using Python code. 
+Schematic generation for Kicad 5 and 6 is complete. But KiCAD 7 and 8 do not have their logic implemented.  Follow the patterns used in gen_schematic.py for kicad 5 and 6 to generate the gen_schematic.py for kicad 8.  
+Generate the entire file for gen_schematic.py for kicad 8
 
 File Descriptions:
-- gen_schematic.py: Python files used to generate a KiCad schematic from a SKiDL script. Only KiCAD version 6 and 5 are supported. Please reference KiCAD 6 for building new logic
-- kicad_sch_writer.py: Python module to write KiCad schematic files
+- gen_schematic.py: Python files used to generate a KiCad schematic from a SKiDL script. These files are used to generate schematics for KiCAD 5, 6, and 7.  The logic in these files is used to generate a schematic file that can be opened in KiCAD.
+- kicad_sch_writer.py: Python file used to generate KiCAD 8 schematic files with a different python library.  This logic works well for making basic schematics with unconnected parts. Perhaps there is logic to re-use here.
 - s-expressions.md: Documentation on the S-expression format used in KiCad files
 - Schematic_File_Format.md: Documentation on the KiCad schematic file format
 """
@@ -34,7 +39,7 @@ File Descriptions:
 #==============================================================================
 
 import os
-from typing import Dict, List, Optional
+from typing import List
 from dataclasses import dataclass
 
 @dataclass
@@ -42,7 +47,7 @@ class FileCollectorConfig:
     """Configuration class to store all script parameters"""
     root_directory: str
     output_filename: str
-    target_files: Dict[str, Optional[List[str]]]
+    target_files: List[str]
     intro_message: str
 
 def create_config_from_settings() -> FileCollectorConfig:
@@ -54,35 +59,32 @@ def create_config_from_settings() -> FileCollectorConfig:
         intro_message=INTRO_MESSAGE
     )
 
-def is_target_file(filepath: str, target_files: Dict[str, Optional[List[str]]]) -> bool:
+def normalize_path(path: str) -> str:
+    """Normalize a path by replacing backslashes with forward slashes"""
+    return path.replace('\\', '/')
+
+def is_target_file(filepath: str, root_dir: str, target_files: List[str]) -> bool:
     """
     Check if a filepath matches our target criteria.
     
     Args:
         filepath: Full path of the file to check
-        target_files: Dictionary of target filenames and their optional subdirectory constraints
+        root_dir: Root directory for relative path calculation
+        target_files: List of target relative paths
     """
-    filename = os.path.basename(filepath)
-    
-    # Debug print
-    print(f"Checking file: {filepath}")
-    
-    if filename not in target_files:
+    # Convert the full path to a relative path from root_dir
+    try:
+        rel_path = os.path.relpath(filepath, root_dir)
+        rel_path = normalize_path(rel_path)
+        
+        # Debug print
+        print(f"Checking file: {rel_path}")
+        
+        # Check if this relative path matches any target path
+        return rel_path in target_files
+    except ValueError:
+        # This can happen if filepath is on a different drive than root_dir
         return False
-        
-    # If no subdirectory constraints, accept the file
-    if target_files[filename] is None:
-        print(f"Found unconstrained target file: {filepath}")
-        return True
-        
-    # Check if file is in any of the specified subdirectories
-    filepath_parts = filepath.split(os.sep)
-    for subdir in target_files[filename]:
-        if subdir in filepath_parts:
-            print(f"Found constrained target file: {filepath} (matches {subdir})")
-            return True
-            
-    return False
 
 def find_target_files(config: FileCollectorConfig) -> List[str]:
     """
@@ -97,17 +99,18 @@ def find_target_files(config: FileCollectorConfig) -> List[str]:
     collected_files = []
     
     print(f"\nSearching in root directory: {config.root_directory}")
-    print(f"Looking for files: {list(config.target_files.keys())}\n")
+    print(f"Looking for files with these relative paths:")
+    for target in config.target_files:
+        print(f"- {target}")
+    print()
     
     # Walk through the directory tree
     for dirpath, dirnames, filenames in os.walk(config.root_directory):
         print(f"\nExamining directory: {dirpath}")
-        print(f"Contains directories: {dirnames}")
-        print(f"Contains files: {filenames}")
         
         for filename in filenames:
             full_path = os.path.join(dirpath, filename)
-            if os.path.isfile(full_path) and is_target_file(full_path, config.target_files):
+            if os.path.isfile(full_path) and is_target_file(full_path, config.root_directory, config.target_files):
                 collected_files.append(full_path)
                 print(f"Added to collection: {full_path}")
     
@@ -132,8 +135,8 @@ def write_combined_file(collected_files: List[str], config: FileCollectorConfig)
                 # Read and write each file's contents with clear separation
                 with open(file_path, 'r') as input_file:
                     content = input_file.read()
-                    filename = os.path.basename(file_path)
                     relative_path = os.path.relpath(file_path, config.root_directory)
+                    relative_path = normalize_path(relative_path)
                     
                     # Add clear separators around file content
                     out_file.write(f"\n/* Begin of file: {relative_path} */\n")
