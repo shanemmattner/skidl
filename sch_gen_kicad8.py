@@ -25,9 +25,23 @@ r_10k.parse()
 from skidl.tools.kicad8.gen_schematic import load_symbol_drawing_data
 syminfo = load_symbol_drawing_data('/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym')
 
-# Convert drawing data to expected format 
+# Convert drawing data to expected format
 # The code expects drawing data per unit as a list
 r_10k.draw = [syminfo['R']]  # Wrap in list since R has one unit
+
+# Ensure pin orientations are set correctly
+for pin in r_10k.pins:
+    # Convert numeric angles to cardinal directions
+    if hasattr(pin, 'angle'):
+        angle = float(pin.angle) % 360
+        if angle == 0:
+            pin.orientation = 'R'
+        elif angle == 90:
+            pin.orientation = 'U'
+        elif angle == 180:
+            pin.orientation = 'L'
+        elif angle == 270:
+            pin.orientation = 'D'
 
 # Connect resistor
 r_10k[1] += vcc

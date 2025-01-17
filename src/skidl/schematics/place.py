@@ -236,16 +236,17 @@ def add_anchor_pull_pins(parts, nets, **options):
 
         pin.route_pt = pin.pt  # For drawing of nets during debugging.
         pin.place_pt = Point(pin.pt.x, pin.pt.y)
-        if pin.orientation == "U":
+        if pin.orientation == "U" or pin.orientation == 0:
             pin.place_pt.y = part.place_bbox.min.y
-        elif pin.orientation == "D":
+        elif pin.orientation == "D" or pin.orientation == 180:
             pin.place_pt.y = part.place_bbox.max.y
-        elif pin.orientation == "L":
+        elif pin.orientation == "L" or pin.orientation == 270:
             pin.place_pt.x = part.place_bbox.max.x
-        elif pin.orientation == "R":
+        elif pin.orientation == "R" or pin.orientation == 90:
             pin.place_pt.x = part.place_bbox.min.x
         else:
-            raise RuntimeError("Unknown pin orientation.")
+            print(f"Unknown pin orientation: {pin.orientation} for pin {pin.name} on part {pin.part.ref}")
+            raise RuntimeError(f"Unknown pin orientation: {pin.orientation}")
 
     # Remove any existing anchor and pull pins before making new ones.
     rmv_attr(parts, ("anchor_pins", "pull_pins"))
