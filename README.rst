@@ -180,3 +180,12 @@ create the physical PCB::
         (node (ref Q1) (pin 3))
         (node (ref Q2) (pin 3))))
   )
+
+
+## Note
+Note: to generate PCB require you to run the python installed with Kicad.  For Mac that is at
+/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3
+
+So to run this script you would do:
+/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3 skidl_llm_test.py
+This will generate a netlist file and a pcb file in the same directory as this script
