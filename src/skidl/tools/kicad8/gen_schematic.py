@@ -315,9 +315,40 @@ def calc_sheet_tx(bbox):
     move_tx = Tx(d=-1).move(move_to_ctr)
     return move_tx
 
+def angle_to_dir(angle):
+    """Convert angle in degrees to cardinal direction.
+    
+    Args:
+        angle: Angle in degrees (0, 90, 180, 270)
+        
+    Returns:
+        str: Cardinal direction ('R', 'U', 'L', 'D')
+    """
+    angle = int(angle) % 360
+    return {
+        0: 'R',    # Right
+        90: 'U',   # Up 
+        180: 'L',  # Left
+        270: 'D'   # Down
+    }[angle]
 
 def calc_pin_dir(pin):
     """Calculate pin direction accounting for part transformation matrix."""
+
+    # If pin has numeric angle orientation, convert it
+    if hasattr(pin, 'angle'):
+        return angle_to_dir(pin.angle)
+        
+    # If pin has string orientation, use it directly
+    if hasattr(pin, 'orientation'):
+        if pin.orientation in ('U', 'D', 'L', 'R'):
+            return pin.orientation
+        try:
+            # Try converting numeric string to angle
+            angle = float(pin.orientation)
+            return angle_to_dir(angle)
+        except (ValueError, TypeError):
+            pass
 
     # Copy the part trans. matrix, but remove the translation vector, leaving only scaling/rotation stuff.
     tx = pin.part.tx
@@ -344,7 +375,6 @@ def calc_pin_dir(pin):
         (-1, 0): "L",
         (1, 0): "R",
     }[pin_vector]
-
 
 @export_to_all
 def pin_label_to_eeschema(pin, tx):
@@ -526,9 +556,11 @@ Generate a KiCad EESCHEMA schematic from a Circuit object.
 
 # TODO: Handle symio attribute.
 
-
 def preprocess_circuit(circuit, **options):
     """Add stuff to parts & nets for doing placement and routing of schematics."""
+    from collections import Counter
+    from skidl.geometry import BBox, Point, Tx, Vector
+    from .bboxes import calc_symbol_bbox, calc_hier_label_bbox
 
     def units(part):
         if len(part.unit) == 0:
@@ -626,7 +658,7 @@ def preprocess_circuit(circuit, **options):
         # Find part/unit bounding boxes excluding any net labels on pins.
         calc_symbol_bbox(part)
 
-        for part_unit in part.unit.values():
+        for part_unit in units(part):
             # Expand the bounding box if it's too small in either dimension.
             resize_wh = Vector(0, 0)
             if part_unit.bbox.w < 100:
@@ -655,12 +687,11 @@ def preprocess_circuit(circuit, **options):
         # Initialize part attributes used for generating schematics.
         initialize(part)
 
-        # Rotate parts.  Power pins should face up. GND pins should face down.
+        # Rotate parts. Power pins should face up. GND pins should face down.
         rotate_power_pins(part)
 
         # Compute bounding boxes around parts
         calc_part_bbox(part)
-
 
 def finalize_parts_and_nets(circuit, **options):
     """Restore parts and nets after place & route is done."""
@@ -676,98 +707,632 @@ def finalize_parts_and_nets(circuit, **options):
     # Remove some stuff added to parts during schematic generation process.
     rmv_attr(circuit.parts, ("force", "bbox", "lbl_bbox", "tx"))
 
+# -*- coding: utf-8 -*-
+
+# The MIT License (MIT) - Copyright (c) Dave Vandenbout.
+
+import datetime
+import os.path
+import re
+import time
+import uuid
+from collections import OrderedDict
+
+from skidl.utilities import export_to_all
+from .constants import BLK_INT_PAD, BOX_LABEL_FONT_SIZE, GRID, PIN_LABEL_FONT_SIZE
+
+def generate_uuid():
+    """Generate a UUID v4 string."""
+    return str(uuid.uuid4())
+
+def create_s_expr_file(
+    filename,
+    contents,
+    version="20231120", # KiCad 8.0 schema version
+    generator="skidl",
+    title="SKiDL-Generated Schematic",
+    company="",
+    rev="",
+    date=None,
+    comment1="",
+    comment2="",
+    comment3="",
+    comment4="",
+    paper_size="A4",
+    **kwargs
+):
+    """Create a KiCad 8 schematic file using s-expressions.
+    
+    Args:
+        filename: Output filename
+        contents: Schematic contents as s-expressions
+        version: Schema version 
+        generator: Generator name
+        title: Schematic title
+        company: Company name
+        rev: Revision
+        date: Date string (YYYY-MM-DD)
+        comment1-4: Comments
+        paper_size: Paper size (A4, A3, etc)
+    """
+    if date is None:
+        date = datetime.date.today().strftime("%Y-%m-%d")
+
+    # Main schematic structure
+    schematic = f"""(kicad_sch
+  (version {version})
+  (generator {generator})
+  (uuid {generate_uuid()})
+  (paper {paper_size})
+  (title_block
+    (title "{title}")
+    (date "{date}")
+    (rev "{rev}")
+    (company "{company}")
+    (comment1 "{comment1}")
+    (comment2 "{comment2}")  
+    (comment3 "{comment3}")
+    (comment4 "{comment4}")
+  )
+  
+{contents}
+)
+"""
+    with open(filename, "w") as f:
+        f.write(schematic)
+
+def symbol_to_s_expr(symbol, tx):
+    """Convert a schematic symbol to s-expressions.
+    
+    Args:
+        symbol: Symbol object
+        tx: Transform matrix
+    
+    Returns:
+        String of s-expressions
+    """
+    uuid_str = generate_uuid()
+    pos = (symbol.pt * tx).round()
+    
+    s_expr = f"""(symbol
+    (lib_id "{symbol.lib}:{symbol.name}")
+    (at {pos.x} {pos.y} {tx.angle})
+    (unit {getattr(symbol, 'unit', 1)})
+    (in_bom yes)
+    (on_board yes)
+    (uuid {uuid_str})
+    (property "Reference" "{symbol.ref}"
+      (at {pos.x} {pos.y - 100} 0)
+      (effects (font (size 1.27 1.27)))
+    )
+    (property "Value" "{symbol.value}"
+      (at {pos.x} {pos.y + 100} 0) 
+      (effects (font (size 1.27 1.27)))
+    )
+    (property "Footprint" "{symbol.footprint}"
+      (at {pos.x} {pos.y} 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+"""
+
+    # Add pins
+    for pin in symbol.pins:
+        pin_pos = (pin.pt * tx).round()
+        s_expr += f"""    (pin "{pin.num}" (uuid {generate_uuid()})
+      (at {pin_pos.x} {pin_pos.y} {pin.angle})
+    )
+"""
+        
+    s_expr += ")\n"
+    return s_expr
+
+def wire_to_s_expr(wire, tx):
+    """Convert a wire segment to s-expressions.
+    
+    Args:
+        wire: Wire segment object
+        tx: Transform matrix
+    
+    Returns: 
+        String of s-expressions
+    """
+    start = (wire.p1 * tx).round()
+    end = (wire.p2 * tx).round()
+    
+    return f"""(wire
+    (pts
+      (xy {start.x} {start.y})
+      (xy {end.x} {end.y})
+    )
+    (stroke (width 0) (type default))
+    (uuid {generate_uuid()})
+  )
+"""
+
+def junction_to_s_expr(junction, tx):
+    """Convert a junction to s-expressions.
+    
+    Args:
+        junction: Junction point
+        tx: Transform matrix
+    
+    Returns:
+        String of s-expressions
+    """
+    pos = (junction * tx).round()
+    
+    return f"""(junction
+    (at {pos.x} {pos.y})
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid {generate_uuid()})
+  )
+"""
+
+def no_connect_to_s_expr(no_connect, tx):
+    """Convert a no-connect marker to s-expressions.
+    
+    Args:
+        no_connect: No connect point
+        tx: Transform matrix
+        
+    Returns:
+        String of s-expressions
+    """
+    pos = (no_connect * tx).round()
+    
+    return f"""(no_connect
+    (at {pos.x} {pos.y})
+    (uuid {generate_uuid()})
+  )
+"""
+
+def hierarchical_sheet_to_s_expr(sheet, tx):
+    """Convert a hierarchical sheet to s-expressions.
+    
+    Args:
+        sheet: Sheet object
+        tx: Transform matrix
+        
+    Returns:
+        String of s-expressions
+    """
+    pos = (sheet.pt * tx).round()
+    size = sheet.size.round()
+    
+    s_expr = f"""(sheet
+    (at {pos.x} {pos.y})
+    (size {size.x} {size.y})
+    (stroke (width 0) (type solid))
+    (fill (type none))
+    (uuid {generate_uuid()})
+    (property "Sheet name" "{sheet.name}"
+      (at {pos.x} {pos.y - 50} 0)
+      (effects (font (size 1.27 1.27)))
+    )
+    (property "Sheet file" "{sheet.filename}"
+      (at {pos.x} {pos.y + 50} 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+"""
+
+    # Add hierarchical pins
+    for pin in sheet.pins:
+        pin_pos = (pin.pt * tx).round()
+        s_expr += f"""    (pin "{pin.name}" {pin.direction}
+      (at {pin_pos.x} {pin_pos.y} {pin.angle})
+      (effects (font (size 1.27 1.27)))
+      (uuid {generate_uuid()})
+    )
+"""
+
+    s_expr += ")\n"
+    return s_expr
 
 @export_to_all
+def node_to_s_expr(node, sheet_tx=None):
+    """Convert node circuitry to s-expressions for KiCad 8 schematic.
+    
+    Args:
+        node: Node object containing circuit elements
+        sheet_tx: Transform matrix for sheet placement
+        
+    Returns:
+        String of s-expressions for schematic
+    """
+    if sheet_tx is None:
+        sheet_tx = Tx()
+        
+    # Build up schematic contents
+    contents = []
+    
+    # Add library symbols section if any are used
+    if node.lib_symbols:
+        contents.append("(lib_symbols")
+        for symbol in node.lib_symbols:
+            contents.append(symbol_to_s_expr(symbol, sheet_tx))
+        contents.append(")")
+            
+    # Add junctions
+    for net, junctions in node.junctions.items():
+        for junction in junctions:
+            contents.append(junction_to_s_expr(junction, sheet_tx))
+            
+    # Add no connects
+    for no_connect in node.no_connects:
+        contents.append(no_connect_to_s_expr(no_connect, sheet_tx))
+        
+    # Add wires
+    for net, wires in node.wires.items():
+        for wire in wires:
+            contents.append(wire_to_s_expr(wire, sheet_tx))
+            
+    # Add symbols
+    for symbol in node.symbols:
+        contents.append(symbol_to_s_expr(symbol, sheet_tx))
+        
+    # Add hierarchical sheets 
+    for sheet in node.sheets:
+        contents.append(hierarchical_sheet_to_s_expr(sheet, sheet_tx))
+
+    return "\n".join(contents)
+
+
+from skidl.utilities import export_to_all
+from skidl.geometry import BBox, Point, tx_rot_0, tx_rot_90, tx_rot_180, tx_rot_270
+
+@export_to_all
+def calc_hier_label_bbox(label, dir):
+    """Calculate the bounding box for a hierarchical label.
+    
+    Args:
+        label (str): String for the label.
+        dir (str): Orientation ("U", "D", "L", "R").
+        
+    Returns:
+        BBox: Bounding box for the label and hierarchical terminal.
+    """
+    # Rotation matrices for each direction.
+    lbl_tx = {
+        "U": tx_rot_90,    # Pin on bottom pointing upwards.
+        "D": tx_rot_270,   # Pin on top pointing down.
+        "L": tx_rot_180,   # Pin on right pointing left.
+        "R": tx_rot_0,     # Pin on left pointing right.
+    }
+
+    # Calculate length and height of label + hierarchical marker.
+    # For KiCad 8, we'll use the same proportions but scale them appropriately
+    # These values may need adjustment based on KiCad 8's default scaling
+    PIN_LABEL_FONT_SIZE = 50  # Default KiCad 8 font size
+    HIER_TERM_SIZE = 100      # Size of hierarchical terminal marker
+
+    lbl_len = len(label) * PIN_LABEL_FONT_SIZE + HIER_TERM_SIZE
+    lbl_hgt = max(PIN_LABEL_FONT_SIZE, HIER_TERM_SIZE)
+
+    # Create bbox for label on left followed by marker on right.
+    # Note: In KiCad 8, the coordinate system remains consistent with KiCad 5
+    bbox = BBox(Point(0, lbl_hgt / 2), Point(-lbl_len, -lbl_hgt / 2))
+
+    # Rotate the bbox in the given direction.
+    bbox *= lbl_tx[dir]
+
+    return bbox
+
+
+# -*- coding: utf-8 -*-
+
+from skidl.utilities import export_to_all
+import sexpdata
+
+def convert_sexp(sexp):
+    """Convert s-expression data to Python objects."""
+    if isinstance(sexp, list):
+        return [convert_sexp(item) for item in sexp]
+    elif isinstance(sexp, sexpdata.Symbol):
+        return str(sexp)
+    else:
+        return sexp
+
+def process_pin(pin_data):
+    """Process pin data from symbol file."""
+    pin = {
+        'type': 'pin',
+        'name': '~',
+        'number': '',
+        'orientation': 'R',
+        'length': 0,
+        'x': 0,
+        'y': 0
+    }
+    
+    # Extract basic pin data
+    pin['style'] = pin_data[1]  # passive, line etc
+    
+    # Find coordinates and orientation
+    at_idx = next(i for i, x in enumerate(pin_data) if isinstance(x, list) and x[0] == 'at')
+    at_data = pin_data[at_idx]
+    pin['x'] = float(at_data[1])
+    pin['y'] = float(at_data[2])
+    if len(at_data) > 3:
+        angle = float(at_data[3])
+        if angle == 0:
+            pin['orientation'] = 'R'
+        elif angle == 90:
+            pin['orientation'] = 'U'
+        elif angle == 180:
+            pin['orientation'] = 'L' 
+        elif angle == 270:
+            pin['orientation'] = 'D'
+            
+    # Get pin length
+    length_idx = next(i for i, x in enumerate(pin_data) if isinstance(x, list) and x[0] == 'length')
+    pin['length'] = float(pin_data[length_idx][1])
+    
+    # Get pin number
+    num_idx = next(i for i, x in enumerate(pin_data) if isinstance(x, list) and x[0] == 'number')
+    pin['number'] = str(pin_data[num_idx][1])
+    
+    # Get pin name
+    name_idx = next(i for i, x in enumerate(pin_data) if isinstance(x, list) and x[0] == 'name')
+    pin['name'] = str(pin_data[name_idx][1])
+    
+    return pin
+
+def get_stroke_width(shape_data):
+    """Get stroke width from shape data."""
+    stroke_idx = next((i for i, x in enumerate(shape_data) if isinstance(x, list) and x[0] == 'stroke'), None)
+    if stroke_idx is not None:
+        stroke = shape_data[stroke_idx]
+        width_idx = next((i for i, x in enumerate(stroke) if isinstance(x, list) and x[0] == 'width'), None)
+        if width_idx is not None:
+            return float(stroke[width_idx][1])
+    return 0  # Default width if not specified
+
+def process_shape(shape_data):
+    """Process shape data (rectangle, polyline, arc etc) from symbol file."""
+    shape_type = shape_data[0]
+    shape = {
+        'type': shape_type,
+        'points': [],
+        'width': get_stroke_width(shape_data)
+    }
+    
+    if shape_type == 'rectangle':
+        start = shape_data[next(i for i, x in enumerate(shape_data) if x[0] == 'start')]
+        end = shape_data[next(i for i, x in enumerate(shape_data) if x[0] == 'end')]
+        shape['points'] = [
+            (float(start[1]), float(start[2])),
+            (float(end[1]), float(start[2])),
+            (float(end[1]), float(end[2])),
+            (float(start[1]), float(end[2])),
+            (float(start[1]), float(start[2]))
+        ]
+    
+    elif shape_type == 'arc':
+        # Extract arc parameters
+        start = shape_data[next(i for i, x in enumerate(shape_data) if x[0] == 'start')]
+        mid = shape_data[next(i for i, x in enumerate(shape_data) if x[0] == 'mid')]
+        end = shape_data[next(i for i, x in enumerate(shape_data) if x[0] == 'end')]
+        
+        # Store arc points
+        shape['points'] = [
+            (float(start[1]), float(start[2])),
+            (float(mid[1]), float(mid[2])),
+            (float(end[1]), float(end[2]))
+        ]
+            
+    return shape
+
+def process_symbol_unit(unit_data):
+    """Process a single symbol unit's data."""
+    unit = {
+        'drawing': [],
+        'pins': [],
+        'fields': {}
+    }
+    
+    # Process all drawing elements in this unit
+    for element in unit_data[2:]:
+        if isinstance(element, list):
+            if element[0] == 'pin':
+                unit['pins'].append(process_pin(element))
+            elif element[0] in ['rectangle', 'polyline', 'arc', 'circle']:
+                unit['drawing'].append(process_shape(element))
+                
+    return unit
+
+@export_to_all
+def load_symbol_drawing_data(filename):
+    """Load symbol drawing data from a KiCad 8 symbol library file.
+    
+    Args:
+        filename: Path to .kicad_sym file
+        
+    Returns:
+        dict: Dictionary mapping symbol names to their drawing data
+    """
+    with open(filename, 'r') as f:
+        data = convert_sexp(sexpdata.load(f))
+        
+    symbols = {}
+    
+    # Process each symbol in the library
+    for item in data[1:]:
+        if isinstance(item, list) and item[0] == 'symbol':
+            symbol_name = item[1]
+            if '.' not in symbol_name:  # Skip unit symbols like "R_Small_0_1"
+                # Get all units for this symbol
+                units = {}
+                
+                # Find all the symbol unit definitions for this symbol
+                for subitem in item[2:]:
+                    if isinstance(subitem, list) and subitem[0] == 'symbol':
+                        # Extract unit number from the name (e.g., "L_Small_0_1" -> 0)
+                        unit_parts = subitem[1].split('_')
+                        if len(unit_parts) >= 2:
+                            try:
+                                unit_num = int(unit_parts[-2])
+                                if unit_num not in units:
+                                    units[unit_num] = {
+                                        'drawing': [],
+                                        'pins': [],
+                                        'fields': {}
+                                    }
+                                unit_data = process_symbol_unit(subitem)
+                                units[unit_num]['drawing'].extend(unit_data['drawing'])
+                                units[unit_num]['pins'].extend(unit_data['pins'])
+                            except ValueError:
+                                continue
+                
+                # Convert units dict to list ordered by unit number
+                drawing_data = [units[i] for i in sorted(units.keys())]
+                symbols[symbol_name] = drawing_data
+                
+    return symbols
+
+@export_to_all 
 def gen_schematic(
     circuit,
     filepath=".",
-    top_name=get_script_name(),
+    top_name=None,
     title="SKiDL-Generated Schematic",
     flatness=0.0,
     retries=2,
     **options
 ):
-    """Create a schematic file from a Circuit object.
-
+    """Generate a KiCad 8 schematic from a circuit.
+    
     Args:
-        circuit (Circuit): The Circuit object that will have a schematic generated for it.
-        filepath (str, optional): The directory where the schematic files are placed. Defaults to ".".
-        top_name (str, optional): The name for the top of the circuit hierarchy. Defaults to get_script_name().
-        title (str, optional): The title of the schematic. Defaults to "SKiDL-Generated Schematic".
-        flatness (float, optional): Determines how much the hierarchy is flattened in the schematic. Defaults to 0.0 (completely hierarchical).
-        retries (int, optional): Number of times to re-try if routing fails. Defaults to 2.
-        options (dict, optional): Dict of options and values, usually for drawing/debugging.
+        circuit: Circuit object
+        filepath: Output directory
+        top_name: Top sheet name
+        title: Schematic title
+        flatness: Hierarchy flattening factor (0-1)
+        retries: Number of routing retries
+        options: Additional options
     """
-
-    import skidl
     from skidl.logger import active_logger
     from skidl.tools import tool_modules
     from skidl.schematics.node import Node
+    from skidl.schematics.place import PlacementFailure
+    from skidl.schematics.route import RoutingFailure
+    
+    if top_name is None:
+        top_name = get_script_name()
+        
+    # Create node structure
+    node = Node(circuit, tool_modules["kicad8"], filepath, top_name, title, flatness)
 
-    active_logger.warning("Schematic generation is not implemented for KiCad version 8.")
-    return
-
-    tool = options.get("tool", skidl.config.tool)
-
-    # Part placement options that should always be turned on.
-    options["use_push_pull"] = True
-    options["rotate_parts"] = True
-    options["pt_to_pt_mult"] = 5  # HACK: Ad-hoc value.
-    options["pin_normalize"] = True
-
-    # Start with default routing area.
-    expansion_factor = 1.0
-
-    # Try to place & route one or more times.
+    # Try placement and routing
     for _ in range(retries):
-        preprocess_circuit(circuit, **options)
-
-        node = Node(circuit, tool_modules[tool], filepath, top_name, title, flatness)
-
         try:
-            # Place parts.
-            node.place(expansion_factor=expansion_factor, **options)
-
-            # Route parts.
+            # Place parts
+            node.place(**options)
+            
+            # Route connections
             node.route(**options)
-
-        except PlacementFailure:
-            # Placement failed, so clean up ...
-            finalize_parts_and_nets(circuit, **options)
-            # ... and try again.
+            
+            # Generate s-expressions
+            contents = node_to_s_expr(node)
+            
+            # Write schematic file
+            filename = os.path.join(filepath, top_name + ".kicad_sch")
+            create_s_expr_file(filename, contents, title=title)
+            
+            return
+            
+        except (PlacementFailure, RoutingFailure):
             continue
+            
+    raise RoutingFailure("Failed to route schematic after {} attempts".format(retries))
 
-        except RoutingFailure:
-            # Routing failed, so clean up ...
-            finalize_parts_and_nets(circuit, **options)
-            # ... and expand routing area ...
-            expansion_factor *= 1.5  # HACK: Ad-hoc increase of expansion factor.
-            # ... and try again.
-            continue
+# -*- coding: utf-8 -*-
 
-        # Generate EESCHEMA code for the schematic.
-        node_to_eeschema(node)
+# The MIT License (MIT) - Copyright (c) Dave Vandenbout.
 
-        # Append place & route statistics for the schematic to a file.
-        if options.get("collect_stats"):
-            stats = node.collect_stats(**options)
-            with open(options["stats_file"], "a") as f:
-                f.write(stats)
+from skidl.utilities import export_to_all
 
-        # Clean up.
-        finalize_parts_and_nets(circuit, **options)
-
-        # Place & route was successful if we got here, so exit.
-        return
-
-    # Append failed place & route statistics for the schematic to a file.
-    if options.get("collect_stats"):
-        stats = "-1\n"
-        with open(options["stats_file"], "a") as f:
-            f.write(stats)
-
-    # Clean-up after failure.
-    finalize_parts_and_nets(circuit, **options)
-
-    # Exited the loop without successful routing.
-    raise RoutingFailure
+@export_to_all
+def load_symbol_drawing_data(filename):
+    """Load symbol drawing data from a KiCad 8 symbol library file.
+    
+    Args:
+        filename: Path to .kicad_sym file
+        
+    Returns:
+        dict: Dictionary mapping symbol names to their drawing data
+    """
+    import sexpdata
+    
+    with open(filename, 'r') as f:
+        data = sexpdata.load(f)
+        
+    symbols = {}
+    
+    # Skip the first element which is 'kicad_symbol_lib
+    for sym in data[1:]:
+        if isinstance(sym, list) and len(sym) > 1 and sym[0] == sexpdata.Symbol('symbol'):
+            # Get symbol name
+            name = str(sym[1])
+            if '.' in name:  # Handle unit symbols like "R.1"
+                name = name.split('.')[0]
+                
+            # Create drawing data structure
+            drawing = {
+                'draw': [],
+                'fields': {},
+                'pins': []
+            }
+            
+            # Parse all drawing elements in symbol
+            for elem in sym[2:]:
+                if isinstance(elem, list):
+                    if elem[0] == sexpdata.Symbol('polyline'):
+                        points = []
+                        for pt in elem[1][1:]:  # Skip 'pts' symbol
+                            if isinstance(pt, list) and pt[0] == sexpdata.Symbol('xy'):
+                                x = float(str(pt[1]))
+                                y = float(str(pt[2])) 
+                                points.append((x,y))
+                        if points:
+                            drawing['draw'].append({
+                                'type': 'polyline',
+                                'points': points,
+                                'width': 0.254
+                            })
+                    
+                    elif elem[0] == sexpdata.Symbol('pin'):
+                        pin = {
+                            'name': str(elem[1]),
+                            'num': str(elem[2]) if len(elem) > 2 else '',
+                            'pos': (0,0),
+                            'length': 2.54,
+                            'orientation': 'R'  # Default right
+                        }
+                        
+                        # Find position and orientation
+                        for attr in elem:
+                            if isinstance(attr, list):
+                                if attr[0] == sexpdata.Symbol('at'):
+                                    pin['pos'] = (float(str(attr[1])), float(str(attr[2])))
+                                    if len(attr) > 3:
+                                        angle = float(str(attr[3]))
+                                        if angle == 0:
+                                            pin['orientation'] = 'R'
+                                        elif angle == 90:
+                                            pin['orientation'] = 'U' 
+                                        elif angle == 180:
+                                            pin['orientation'] = 'L'
+                                        elif angle == 270:
+                                            pin['orientation'] = 'D'
+                                            
+                        drawing['pins'].append(pin)
+            
+            if name in symbols:
+                # Merge drawing data for multi-unit symbols
+                symbols[name]['draw'].extend(drawing['draw'])
+                symbols[name]['pins'].extend(drawing['pins'])
+            else:
+                symbols[name] = drawing
+                
+    return symbols
