@@ -465,7 +465,7 @@
     "last_paths": {
       "gencad": "",
       "idf": "",
-      "netlist": "../hierarchical_design.net",
+      "netlist": "../../main_circuit.net",
       "plot": "",
       "pos_files": "",
       "specctra_dsn": "",
