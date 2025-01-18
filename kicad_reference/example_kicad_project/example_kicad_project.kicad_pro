@@ -390,6 +390,10 @@
     [
       "bb878e8b-3ef6-45c7-bc17-d62b28e24d94",
       "power2"
+    ],
+    [
+      "7dcd522d-d03d-41f6-bad3-56f1f937b049",
+      "resistor_divider"
     ]
   ],
   "text_variables": {}
