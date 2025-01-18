@@ -345,7 +345,7 @@
 	)
 	(hierarchical_label "R1_2-R2_1"
 		(shape input)
-		(at 121.92 73.66 0)
+		(at 121.92 72.39 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -353,7 +353,7 @@
 			)
 			(justify left)
 		)
-		(uuid "42f43562-3e2f-4200-a45c-3fed7fb4460a")
+		(uuid "3f035352-2ab4-42ad-9b75-06215785f7d8")
 	)
 	(hierarchical_label "R1_2-R2_1"
 		(shape input)
@@ -366,76 +366,6 @@
 			(justify left)
 		)
 		(uuid "5cbe79c9-b1e3-443e-ab8c-7d96e365b971")
-	)
-	(symbol
-		(lib_id "Device:R")
-		(at 121.92 77.47 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "94a80e65-92f0-46b7-a88c-ea92c230dd5c")
-		(property "Reference" "R2"
-			(at 124.46 76.1999 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "R"
-			(at 124.46 78.7399 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
-			(at 120.142 77.47 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 121.92 77.47 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Resistor"
-			(at 121.92 77.47 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "2"
-			(uuid "37966778-ec38-448e-9256-7e946795e013")
-		)
-		(pin "1"
-			(uuid "89fff1a9-c79d-4cc4-8d4f-feabee4e2bbc")
-		)
-		(instances
-			(project "example_kicad_project"
-				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
-					(reference "R2")
-					(unit 1)
-				)
-			)
-		)
 	)
 	(symbol
 		(lib_id "Device:R")
@@ -574,17 +504,87 @@
 		)
 	)
 	(symbol
-		(lib_id "power:GND")
-		(at 121.92 81.28 0)
+		(lib_id "Device:R")
+		(at 121.92 76.2 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
 		(dnp no)
 		(fields_autoplaced yes)
-		(uuid "c4307f57-db72-491f-ab3a-ddd4923d90e1")
+		(uuid "f071cec2-97e5-4b69-b691-653141edb597")
+		(property "Reference" "R2"
+			(at 124.46 74.9299 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "R"
+			(at 124.46 77.4699 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+			(at 120.142 76.2 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 121.92 76.2 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 121.92 76.2 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "26267155-7d12-4faa-a8a6-276bcb6f591d")
+		)
+		(pin "1"
+			(uuid "84e34f07-ef58-41c6-bd78-d8f69d35d1e1")
+		)
+		(instances
+			(project "example_kicad_project"
+				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
+					(reference "R2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 121.92 80.01 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "f1938bfb-8e8e-4c4e-8cc7-7a24c3d207ec")
 		(property "Reference" "#PWR05"
-			(at 121.92 87.63 0)
+			(at 121.92 86.36 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -593,15 +593,16 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 121.92 86.36 0)
+			(at 121.92 85.09 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(hide yes)
 			)
 		)
 		(property "Footprint" ""
-			(at 121.92 81.28 0)
+			(at 121.92 80.01 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -610,7 +611,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 121.92 81.28 0)
+			(at 121.92 80.01 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -619,7 +620,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 121.92 81.28 0)
+			(at 121.92 80.01 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -628,10 +629,10 @@
 			)
 		)
 		(pin "1"
-			(uuid "6516cfff-e543-4e52-8fc9-0db1c3afaa28")
+			(uuid "f401d823-c629-4d1d-afb4-32992c84a123")
 		)
 		(instances
-			(project "example_kicad_project"
+			(project ""
 				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
 					(reference "#PWR05")
 					(unit 1)
