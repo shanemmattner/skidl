@@ -15,7 +15,12 @@ This tool converts KiCad hierarchical schematics into SKiDL Python code. It pars
 
 1. Clone this repository
 2. Ensure you have Python 3.x installed
-3. Install SKiDL:
+3. Create and activate a virtual environment (recommended):
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Unix/macOS
+```
+4. Install SKiDL:
 ```bash
 pip install skidl
 ```
@@ -25,7 +30,47 @@ pip install skidl
 Run the converter on your KiCad schematic:
 
 ```bash
-python main.py path/to/your/schematic.kicad_sch
+python3 main.py <path_to_kicad_sch_file>
+```
+
+For example:
+```bash
+python3 main.py ../example_kicad_project/example_kicad_project.kicad_sch
+
+Found 2 sheets:
+- resistor_divider: resistor_divider.kicad_sch
+- power2: power2.kicad_sch
+
+Creating output directory: .../kicad_to_skidl/generated_subcircuits
+
+Processing sheet: resistor_divider
+
+Components found:
+- R1: Device:R (Resistor_SMD:R_0603_1608Metric)
+- R2: Device:R (Resistor_SMD:R_0603_1608Metric)
+
+Hierarchical labels found:
+- Label(name='R1_2-R2_1', x=121.92, y=72.39)
+Generated SKiDL subcircuit in '.../kicad_to_skidl/generated_subcircuits/resistor_divider_subcircuit.py'
+
+Processing sheet: power2
+
+Components found:
+- U1: Regulator_Linear:NCP1117-3.3_SOT223 (Package_TO_SOT_SMD:SOT-223-3_TabPin2)
+- C2: Device:C (Capacitor_SMD:C_0603_1608Metric)
+- C1: Device:C (Capacitor_SMD:C_0603_1608Metric)
+Generated SKiDL subcircuit in '.../kicad_to_skidl/generated_subcircuits/power2_subcircuit.py'
+
+Generated main circuit in '.../kicad_to_skidl/generated_subcircuits/main_circuit.py'
+
+Successfully processed schematic
+```
+
+After generation, you can run the generated main circuit to create a netlist:
+
+```bash
+python3 generated_subcircuits/main_circuit.py
+INFO: No errors or warnings found while generating netlist.
 ```
 
 The tool will:
@@ -38,56 +83,39 @@ Output files will be created in a `generated_subcircuits` directory:
 - `<sheet_name>_subcircuit.py` for each sheet
 - `main_circuit.py` that imports and connects all subcircuits
 
-## Example
-
-For a schematic with two sheets (resistor_divider and power2):
-
-```python
-# Generated main_circuit.py
-from skidl import *
-
-# Define power nets that will be shared across subcircuits
-gnd = Net('GND')
-gnd.drive = POWER
-gnd.do_erc = False
-
-from resistor_divider_subcircuit import resistor_divider
-from power2_subcircuit import power2
-
-# Instantiate the power nets
-vcc_5v = Net('+5V')
-vcc_5v.drive = POWER
-
-# Instantiate the subcircuits
-net_0 = resistor_divider(vcc_5v)
-final_net = power2(net_0)
-
-# Generate netlist
-generate_netlist()
-```
-
 ## Project Structure
 
 ```
 kicad_to_skidl/
-├── main.py              # Main script
-├── README.md           # This file
-└── parsers/            # Parser modules
-    ├── sheet_parser.py    # Parses sheet names and files
-    └── component_parser.py # Parses components and generates SKiDL code
+├── main.py                 # Main script
+├── config.py              # Configuration settings
+├── schematic_processor.py # Core processing logic
+├── README.md              # This file
+├── parsers/              # Parser modules
+│   ├── __init__.py
+│   ├── base_parser.py     # Base parsing functionality
+│   ├── component_parser.py # Parses components
+│   └── sheet_parser.py    # Parses sheet structure
+├── generators/           # Code generation modules
+│   ├── __init__.py
+│   └── base_generator.py  # Base generation functionality
+└── generated_subcircuits/ # Output directory
+    ├── main_circuit.py    # Generated main circuit
+    └── *_subcircuit.py   # Generated subcircuits
 ```
 
 ## Supported Components
 
-- Resistors
-- Capacitors
-- Voltage Regulators
+- Resistors (Device:R)
+- Capacitors (Device:C)
+- Voltage Regulators (e.g., NCP1117-3.3_SOT223)
 - Power symbols
 - Hierarchical labels
 
 ## Notes
 
-- Component values are currently hardcoded (1K for resistors, 10uF for capacitors)
+- Component footprints are preserved from KiCad (e.g., R_0603_1608Metric)
 - Power nets (GND, VCC) are automatically handled
 - Hierarchical labels are converted to SKiDL nets
 - Special handling for voltage regulators with proper pin connections
+- Generated code includes ERC (Electrical Rules Check) verification

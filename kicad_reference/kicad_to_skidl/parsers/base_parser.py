@@ -12,11 +12,17 @@ class Component:
     value: Optional[str] = None
 
 @dataclass
+class Label:
+    name: str
+    x: float
+    y: float
+
+@dataclass
 class Sheet:
     name: str
     file_path: str
     components: List[Component]
-    labels: List[str]
+    labels: List[Label]
 
 class SchematicParser(ABC):
     """Abstract base class for schematic file parsers."""
@@ -32,8 +38,8 @@ class SchematicParser(ABC):
         pass
 
     @abstractmethod
-    def parse_labels(self, content: str) -> List[str]:
-        """Parse and return hierarchical labels from content."""
+    def parse_labels(self, content: str) -> List[Label]:
+        """Parse and return hierarchical labels with positions from content."""
         pass
 
 class KiCadSchematicParser(SchematicParser):
@@ -86,15 +92,17 @@ class KiCadSchematicParser(SchematicParser):
         
         return components
 
-    def parse_labels(self, content: str) -> List[str]:
-        """Parse KiCad hierarchical labels."""
+    def parse_labels(self, content: str) -> List[Label]:
+        """Parse KiCad hierarchical labels with positions."""
         labels = []
-        label_matches = re.finditer(r'\(hierarchical_label\s+"([^"]+)"', content)
+        label_pattern = r'\(hierarchical_label\s+"([^"]+)".*?\(at\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s+[^)]*\)'
+        label_matches = re.finditer(label_pattern, content, re.DOTALL)
         
         for match in label_matches:
-            label = match.group(1)
-            if label not in labels:
-                labels.append(label)
+            name = match.group(1)
+            x = float(match.group(2))
+            y = float(match.group(3))
+            labels.append(Label(name=name, x=x, y=y))
         
         return labels
 

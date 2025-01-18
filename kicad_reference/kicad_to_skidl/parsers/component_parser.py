@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
 
 import re
+from typing import List
+from .base_parser import Label, KiCadSchematicParser
 
 def extract_components(content):
     """Extract component information from KiCad schematic content."""
     components = []
     
-    # Find all symbol blocks
-    symbol_pattern = r'\(symbol.*?\(lib_id\s+"([^"]+)".*?\(property\s+"Reference"\s+"([^"]+)".*?\(property\s+"Footprint"\s+"([^"]*)".*?\)'
+    # Find all symbol blocks with position
+    symbol_pattern = r'\(symbol\s+\(lib_id\s+"([^"]+)"\).*?\(at\s+(\d+\.?\d*)\s+(\d+\.?\d*)[^)]*\).*?\(property\s+"Reference"\s+"([^"]+)".*?\(property\s+"Footprint"\s+"([^"]*)"'
     symbol_blocks = re.finditer(symbol_pattern, content, re.DOTALL)
     
     for match in symbol_blocks:
         lib_id = match.group(1)
-        reference = match.group(2)
-        footprint = match.group(3)
+        x = float(match.group(2))
+        y = float(match.group(3))
+        reference = match.group(4)
+        footprint = match.group(5)
         
         # Skip power symbols and empty footprints
         if lib_id.startswith("power:") or not footprint:
@@ -24,26 +28,33 @@ def extract_components(content):
             'library': lib_parts[0],
             'symbol': lib_parts[1],
             'reference': reference,
-            'footprint': footprint
+            'footprint': footprint,
+            'x': x,
+            'y': y,
+            'pin1_y': y + 3.81,  # Pin 1 is 3.81 units above center
+            'pin2_y': y - 3.81   # Pin 2 is 3.81 units below center
         })
     
     return components
 
 def extract_hierarchical_labels(content):
-    """Extract hierarchical label information."""
-    labels = []
+    """Extract hierarchical label information with positions."""
+    from .base_parser import Label
     
-    # Find all hierarchical label blocks
-    label_matches = re.finditer(r'\(hierarchical_label\s+"([^"]+)"', content)
+    parser = KiCadSchematicParser()
+    labels = parser.parse_labels(content)
     
-    for match in label_matches:
-        label = match.group(1)
-        if label not in labels:
-            labels.append(label)
+    # Deduplicate labels by name, keeping the first occurrence
+    seen_names = set()
+    unique_labels = []
+    for label in labels:
+        if label.name not in seen_names:
+            seen_names.add(label.name)
+            unique_labels.append(label)
     
-    return labels
+    return unique_labels
 
-def generate_skidl_subcircuit(sheet_name, components, labels):
+def generate_skidl_subcircuit(sheet_name, components, labels: List[Label]):
     """Generate SKiDL subcircuit code."""
     # Convert label to valid Python identifier
     def make_valid_identifier(name):
@@ -99,30 +110,46 @@ def {sheet_name}(pwr_net):
         
     else:  # resistor_divider subcircuit
         code += "    # Create components"
+        # Sort components by y position
+        components.sort(key=lambda x: x['y'])
+        
         # Add resistor definitions
         for comp in components:
             code += f"""
     {comp['reference'].lower()} = Part("{comp['library']}", "{comp['symbol']}", """
             code += f"""value='1K', footprint='{comp['footprint']}')"""
         
-        # Add internal nets
+        # Add internal nets for labels
         if labels:
-            code += "\n\n    # Create internal connection node"
+            code += "\n\n    # Create internal connection nodes"
             for label in labels:
-                valid_name = make_valid_identifier(label)
-                code += f"\n    {valid_name} = Net('{label}')"
+                valid_name = make_valid_identifier(label.name)
+                code += f"\n    {valid_name} = Net('{label.name}')"
         
-        # Add connections
+        # Match labels to pins and create connections
         code += "\n\n    # Connect the components"
+        
+        # Create connections based on y-coordinates
+        code += "\n    # Connect power to first resistor"
+        code += f"\n    pwr_net & {components[0]['reference'].lower()}"
+        
+        # Connect middle point between resistors using label
         if labels:
-            div_net = make_valid_identifier(labels[0])
-            code += f"\n    pwr_net & r1 & {div_net} & r2 & gnd"
+            div_net = make_valid_identifier(labels[0].name)
+            code += f"\n\n    # Connect divider node"
+            code += f"\n    {components[0]['reference'].lower()} & {div_net}"
+            code += f"\n    {div_net} & {components[1]['reference'].lower()}"
         else:
-            code += "\n    pwr_net & r1 & r2 & gnd"
+            # Direct connection if no label
+            code += f" & {components[1]['reference'].lower()}"
+        
+        # Connect to ground
+        code += "\n\n    # Connect to ground"
+        code += f"\n    {components[1]['reference'].lower()} & gnd"
         
         # Add return statement
         if labels:
-            div_net = make_valid_identifier(labels[0])
+            div_net = make_valid_identifier(labels[0].name)
             code += f"\n\n    # Return just the divider node, not all locals\n    return {div_net}"
         else:
             code += "\n\n    return pwr_net"
