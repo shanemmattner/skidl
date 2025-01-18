@@ -14,14 +14,9 @@ def stm32(pwr_net):
 
     # Connect the components
     # Connect MCU power pins
-    u2['VDD', 0] += pwr_net  # Connect first VDD pin
-    u2['VDD', 1] += pwr_net  # Connect second VDD pin 
-    u2['VDD', 2] += pwr_net  # Connect third VDD pin
+    pwr_net += u2['VDD']
     u2['VSS'] += gnd
+    u2['VSSA'] += gnd
     u2['VDDA'] += pwr_net
-    
-    # Connect decoupling capacitor
-    pwr_net += c1[1]
-    c1[2] += gnd
 
     return pwr_net
