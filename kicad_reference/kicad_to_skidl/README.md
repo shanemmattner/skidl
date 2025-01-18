@@ -119,3 +119,12 @@ kicad_to_skidl/
 - Hierarchical labels are converted to SKiDL nets
 - Special handling for voltage regulators with proper pin connections
 - Generated code includes ERC (Electrical Rules Check) verification
+
+
+## Other
+- List pins on part with command:
+```
+shanemattner@Shanes-MacBook-Pro skidl % python3 -c "from skidl import * ; part = Part('MCU_ST_STM32G4', 'STM32G431C6Ux'); print('Available pins:
+', [pin.name for pin in part.pins])"
+Available pins: ['VBAT', 'PA2', 'PA3', 'PA4', 'PA5', 'PA6', 'PA7', 'PC4', 'PB0', 'PB1', 'PB2', 'PC13', 'VREF+', 'VDDA', 'PB10', 'VDD', 'PB11', 'PB12', 'PB13', 'PB14', 'PB15', 'PC6', 'PC14', 'PA8', 'PA9', 'PA10', 'PA11', 'PA12', 'VDD', 'PA13', 'PA14', 'PA15', 'PC10', 'PC15', 'PC11', 'PB3', 'PB4', 'PB5', 'PB6', 'PB7', 'PB8', 'PB9', 'VDD', 'VSS', 'PF0', 'PF1', 'PG10', 'PA0', 'PA1']
+```

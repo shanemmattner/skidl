@@ -72,86 +72,122 @@ def {sheet_name}(pwr_net):
     \"\"\"Create a {sheet_name} subcircuit\"\"\"
 """
     
-    # Handle power2 subcircuit specially
-    if sheet_name == "power2":
+    # Create power nets if this is a power subcircuit
+    if sheet_name.startswith("power"):
         code += """    # Create power nets
     vcc_3v3 = Net('+3V3')
     vcc_3v3.drive = POWER
+    """
     
-    # Create components"""
-        
-        # Add component definitions with proper values
-        for comp in components:
-            ref = comp['reference'].lower()
-            if comp['symbol'] == 'C':
-                code += f"""
-    {ref} = Part("{comp['library']}", "{comp['symbol']}", """
-                code += f"""value='10uF', footprint='{comp['footprint']}')"""
-            else:  # Regulator
-                code += f"""
-    {ref} = Part("{comp['library']}", "{comp['symbol']}", """
-                code += f"""footprint='{comp['footprint']}')"""
-        
-        # Add power2 specific connections
-        code += """
-
-    # Connect power input side
-    pwr_net & c1 & gnd
-    pwr_net += u1['VI']
+    code += "    # Create components"
+    # Sort components by y position
+    components.sort(key=lambda x: x['y'])
     
-    # Connect power output side
-    u1['VO'] += vcc_3v3
-    vcc_3v3 & c2 & gnd
-    
-    # Connect ground
-    u1['GND'] += gnd
-    
-    return vcc_3v3"""
-        
-    else:  # resistor_divider subcircuit
-        code += "    # Create components"
-        # Sort components by y position
-        components.sort(key=lambda x: x['y'])
-        
-        # Add resistor definitions
-        for comp in components:
+    # Add component definitions
+    for comp in components:
+        ref = comp['reference'].lower()
+        if comp['symbol'] == 'C':
             code += f"""
-    {comp['reference'].lower()} = Part("{comp['library']}", "{comp['symbol']}", """
+    {ref} = Part("{comp['library']}", "{comp['symbol']}", """
+            code += f"""value='10uF', footprint='{comp['footprint']}')"""
+        elif comp['symbol'] == 'R':
+            code += f"""
+    {ref} = Part("{comp['library']}", "{comp['symbol']}", """
             code += f"""value='1K', footprint='{comp['footprint']}')"""
-        
-        # Add internal nets for labels
-        if labels:
-            code += "\n\n    # Create internal connection nodes"
-            for label in labels:
-                valid_name = make_valid_identifier(label.name)
-                code += f"\n    {valid_name} = Net('{label.name}')"
-        
-        # Match labels to pins and create connections
-        code += "\n\n    # Connect the components"
-        
-        # Create connections based on y-coordinates
-        code += "\n    # Connect power to first resistor"
-        code += f"\n    pwr_net & {components[0]['reference'].lower()}"
-        
-        # Connect middle point between resistors using label
-        if labels:
-            div_net = make_valid_identifier(labels[0].name)
-            code += f"\n\n    # Connect divider node"
-            code += f"\n    {components[0]['reference'].lower()} & {div_net}"
-            code += f"\n    {div_net} & {components[1]['reference'].lower()}"
         else:
-            # Direct connection if no label
-            code += f" & {components[1]['reference'].lower()}"
+            code += f"""
+    {ref} = Part("{comp['library']}", "{comp['symbol']}", """
+            code += f"""footprint='{comp['footprint']}')"""
+    
+    # Add internal nets for labels if we have multiple components
+    if len(components) > 1 and labels:
+        code += "\n\n    # Create internal connection nodes"
+        for label in labels:
+            valid_name = make_valid_identifier(label.name)
+            code += f"\n    {valid_name} = Net('{label.name}')"
+    
+    # Create component connections based on sheet type
+    code += "\n\n    # Connect the components"
+    
+    # Handle different types of components and their connections
+    if len(components) > 0:
+        # Check for special components
+        regulator = next((c for c in components if c['symbol'].startswith('NCP1117')), None)
+        mcu = next((c for c in components if c['symbol'].startswith('STM32')), None)
+        caps = [c for c in components if c['symbol'] == 'C']
+        resistors = [c for c in components if c['symbol'] == 'R']
         
-        # Connect to ground
-        code += "\n\n    # Connect to ground"
-        code += f"\n    {components[1]['reference'].lower()} & gnd"
-        
-        # Add return statement
-        if labels:
-            div_net = make_valid_identifier(labels[0].name)
-            code += f"\n\n    # Return just the divider node, not all locals\n    return {div_net}"
-        else:
+        if sheet_name.startswith("power") and regulator:
+            # Handle power regulator subcircuit
+            reg_ref = regulator['reference'].lower()
+            code += f"\n    # Connect regulator input"
+            code += f"\n    pwr_net += {reg_ref}['VI']"
+            code += f"\n    {reg_ref}['GND'] += gnd"
+            code += f"\n    {reg_ref}['VO'] += vcc_3v3"
+            
+            # Connect capacitors if present
+            for cap in caps:
+                cap_ref = cap['reference'].lower()
+                if caps.index(cap) == 0:  # Input capacitor
+                    code += f"\n\n    # Connect input capacitor"
+                    code += f"\n    pwr_net & {cap_ref} & gnd"
+                else:  # Output capacitor
+                    code += f"\n\n    # Connect output capacitor"
+                    code += f"\n    vcc_3v3 & {cap_ref} & gnd"
+            
+            code += "\n\n    return vcc_3v3"
+            
+        elif mcu:
+            # Handle microcontroller connections
+            mcu_ref = mcu['reference'].lower()
+            code += f"\n    # Connect MCU power pins"
+            code += f"\n    pwr_net += {mcu_ref}['VDD']"
+            code += f"\n    {mcu_ref}['VSS'] += gnd"
+            code += f"\n    {mcu_ref}['VSSA'] += gnd"
+            code += f"\n    {mcu_ref}['VDDA'] += pwr_net"
+            
             code += "\n\n    return pwr_net"
+            
+        elif resistors:
+            # Handle resistor networks (like voltage dividers)
+            if len(resistors) == 1:
+                # Single resistor
+                code += "\n    # Connect single resistor"
+                code += f"\n    pwr_net & {resistors[0]['reference'].lower()} & gnd"
+            else:
+                # Multiple resistors in series
+                code += "\n    # Connect resistors in series"
+                for i, res in enumerate(resistors):
+                    res_ref = res['reference'].lower()
+                    if i == 0:
+                        # First resistor connects to power
+                        code += f"\n    pwr_net & {res_ref}"
+                    else:
+                        # Use labels if available for intermediate connections
+                        if i-1 < len(labels):
+                            div_net = make_valid_identifier(labels[i-1].name)
+                            code += f" & {div_net}"
+                            code += f"\n    {div_net} & {res_ref}"
+                        else:
+                            code += f" & {res_ref}"
+                
+                # Last resistor connects to ground
+                code += " & gnd"
+            
+            # Return appropriate net
+            if len(resistors) > 1 and labels:
+                div_net = make_valid_identifier(labels[0].name)
+                code += f"\n\n    return {div_net}"
+            else:
+                code += "\n\n    return pwr_net"
+        
+        else:
+            # Generic case for unknown components
+            code += "\n    # No specific handling for these components"
+            code += "\n    return pwr_net"
+    else:
+        # Handle case with no components
+        code += "\n    # No components found"
+        code += "\n    return pwr_net"
     
     return code

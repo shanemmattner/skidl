@@ -586,6 +586,10 @@
     [
       "7dcd522d-d03d-41f6-bad3-56f1f937b049",
       "resistor_divider"
+    ],
+    [
+      "e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0",
+      "stm32"
     ]
   ],
   "text_variables": {}
