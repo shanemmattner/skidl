@@ -1,0 +1,8 @@
+(export (version D)
+  (design
+    (source "/Users/shanemattner/Desktop/skidl/kicad_reference/generated_circuit.py")
+    (date "01/17/2025 07:34 PM")
+    (tool "SKiDL (2.0.1)"))
+  (components)
+  (nets)
+)

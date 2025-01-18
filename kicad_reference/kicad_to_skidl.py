@@ -127,9 +127,13 @@ class KicadSchematicParser:
             
         # Third pass - find sheets and parse them recursively
         debug_print("Parsing hierarchical sheets...")
-        sheet_matches = re.finditer(r'\(sheet\s+.*?^\s*\)', content, re.MULTILINE | re.DOTALL)
-        for match in sheet_matches:
-            self._parse_sheet(match.group(0))
+
+        sheetname_matches = re.finditer(r'\(property "Sheetname" "([^"]+)"', content)
+        sheetfile_matches = re.finditer(r'\(property "Sheetfile" "([^"]+)"', content)
+        
+        for sheetname_match, sheetfile_match in zip(sheetname_matches, sheetfile_matches):
+            sheet_content = sheetname_match.group(0) + sheetfile_match.group(0)
+            self._parse_sheet(sheet_content)
 
         # Fourth pass - parse net connections
         debug_print("Parsing net connections...")
@@ -139,10 +143,10 @@ class KicadSchematicParser:
         """Parse a symbol (component) instance"""
         # Extract basic component information
         lib_id_match = re.search(r'\(lib_id\s+"([^"]+)"', content)
-        footprint_match = re.search(r'\(property\s+"Footprint"\s+"([^"]+)"', content)
-        value_match = re.search(r'\(property\s+"Value"\s+"([^"]+)"', content)
         ref_match = re.search(r'\(property\s+"Reference"\s+"([^"]+)"', content)
-        uuid_match = re.search(r'\(uuid\s+([^\s\)]+)', content)
+        value_match = re.search(r'\(property\s+"Value"\s+"([^"]+)"', content)
+        uuid_match = re.search(r'\(uuid\s+"([^"]+)"', content)
+        footprint_match = re.search(r'\(property\s+"Footprint"\s+"([^"]+)"', content)
         
         if all((lib_id_match, ref_match, uuid_match)):
             lib_id = lib_id_match.group(1)
@@ -153,75 +157,112 @@ class KicadSchematicParser:
             
             debug_print(f"Found part: {reference} ({lib_id}), footprint: {footprint}")
             
-            # Create part instance
-            part = Part(
-                lib_id=lib_id,
-                reference=reference,
-                value=value,
-                footprint=footprint,
-                uuid=uuid,
-                sheet_path=self.sheet_path
-            )
-            
-            # Parse pins if present
-            pin_matches = re.finditer(r'\(pin\s+.*?^\s*\)', content, re.MULTILINE | re.DOTALL)
-            for pin_match in pin_matches:
-                self._parse_pin(pin_match.group(0), part)
-            
-            self.parts[uuid] = part
-
+            # Skip power symbols but process regular parts
+            if not lib_id.startswith("power:"):
+                part = Part(
+                    lib_id=lib_id,
+                    reference=reference,
+                    value=value,
+                    footprint=footprint,
+                    uuid=uuid,
+                    sheet_path=self.sheet_path
+                )
+                
+                # Parse pins
+                pin_matches = re.finditer(r'\(pin\s+([^\s]+)\s+.*?number\s+"([^"]+)".*?\)', content, re.DOTALL)
+                for pin_match in pin_matches:
+                    pin_type = pin_match.group(1)
+                    pin_num = pin_match.group(2)
+                    pin = Pin(
+                        number=pin_num,
+                        name='',  # Could extract if needed
+                        type=pin_type,
+                        uuid=uuid
+                    )
+                    part.pins[pin_num] = pin
+                
+                self.parts[uuid] = part
+                        
     def _parse_sheet(self, content: str):
-        """Parse a hierarchical sheet and its subsheets"""
+        """Parse a hierarchical sheet and create subcircuit"""
         debug_print("\nParsing hierarchical sheet...")
-        name_match = re.search(r'\(property\s+"Sheetname"\s+"([^"]+)"', content)
-        file_match = re.search(r'\(property\s+"Sheetfile"\s+"([^"]+)"', content)
-        uuid_match = re.search(r'\(uuid\s+([^\s\)]+)', content)
+        debug_print("Raw sheet content:")
+        debug_print(content)
+        
+        # Extract sheet properties using the new KiCad v8 format
+        sheetname_match = re.search(r'\(property "Sheetname" "([^"]+)"', content)
+        sheetfile_match = re.search(r'\(property "Sheetfile" "([^"]+)"', content)
 
-        if not all((name_match, file_match, uuid_match)):
-            debug_print("Not a valid hierarchical sheet")
+        # debug_print("\nRegex patterns:")
+        # debug_print(f'Sheetname pattern: property\\s+"Sheetname"\\s+"([^"]+)"')
+        # debug_print(f'Sheetfile pattern: property\\s+"Sheetfile"\\s+"([^"]+)"')
+        
+        debug_print("\nMatches found:")
+        debug_print(f"Sheetname match object: {sheetname_match}")
+        if sheetname_match:
+            debug_print(f"Sheetname groups: {sheetname_match.groups()}")
+        debug_print(f"Sheetfile match object: {sheetfile_match}")
+        if sheetfile_match:
+            debug_print(f"Sheetfile groups: {sheetfile_match.groups()}")
+
+        if not all((sheetname_match, sheetfile_match)):
+            debug_print("\nMissing required sheet properties:")
+            debug_print(f"Sheetname match: {bool(sheetname_match)}")
+            debug_print(f"Sheetfile match: {bool(sheetfile_match)}")
+            debug_print("Failed to parse sheet properties - skipping sheet")
             return
             
-        name = name_match.group(1)
-        filename = file_match.group(1)
-        uuid = uuid_match.group(1)
-        sheet_path = f"{self.sheet_path}{uuid}/"
+        name = sheetname_match.group(1)
+        filename = sheetfile_match.group(1)
         
-        debug_print(f"Found hierarchical sheet: {name} ({filename})")
+        debug_print(f"\nFound hierarchical sheet: {name} ({filename})")
+
+    def generate_subcircuits(self):
+        """Generate SKiDL subcircuits from sheets"""
+        subcircuit_code = []
         
-        # Create sheet instance
-        sheet = Sheet(
-            name=name,
-            filename=filename,
-            uuid=uuid,
-            sheet_path=sheet_path
-        )
-        
-        # Parse sheet pins
-        pin_matches = re.finditer(r'\(pin\s+.*?^\s*\)', content, re.MULTILINE | re.DOTALL)
-        for pin_match in pin_matches:
-            self._parse_sheet_pin(pin_match.group(0), sheet)
-        
-        self.sheets[uuid] = sheet
-        
-        # Parse the subsheet
-        subsheet_file = Path(self.filename).parent / filename
-        if subsheet_file.exists():
-            debug_print(f"Parsing subsheet: {subsheet_file}")
-            subparser = KicadSchematicParser(str(subsheet_file), sheet_path)
+        for sheet_name, sheet in self.sheets.items():
+            # Convert sheet name to valid Python identifier
+            func_name = re.sub(r'\W|^(?=\d)', '_', sheet_name.lower())
             
-            # Store parts in the sheet
-            sheet.parts = subparser.parts
+            code = [
+                f"\n@subcircuit\n",
+                f"def {func_name}("
+            ]
             
-            # Merge power nets
-            self.power_nets.update(subparser.power_nets)
+            # Add input parameters
+            params = []
+            for pin_name in sorted(sheet.input_nets):
+                params.append(pin_name.lower())
+            for pin_name in sorted(sheet.output_nets):
+                params.append(pin_name.lower())
+                
+            code.append(", ".join(params))
+            code.append("):\n")
+            code.append(f'    """{sheet_name} subcircuit"""\n\n')
             
-            # Merge nets
-            for net_name, net in subparser.nets.items():
-                if net_name not in self.nets:
-                    self.nets[net_name] = net
+            # Add parts instantiation
+            for part in sheet.parts.values():
+                code.append(f"    {self._generate_part_instantiation(part, '    ')}\n")
+                
+            # Add connections
+            code.append("\n    # Create connections\n")
+            # Add connection code here based on sheet.nets
+            
+            # Return output nets
+            if sheet.output_nets:
+                code.append("\n    # Return output nets\n")
+                returns = [net.lower() for net in sorted(sheet.output_nets)]
+                if len(returns) == 1:
+                    code.append(f"    return {returns[0]}\n")
                 else:
-                    self.nets[net_name].pins.extend(net.pins)
-        
+                    code.append(f"    return {', '.join(returns)}\n")
+                    
+            subcircuit_code.extend(code)
+            
+        return "".join(subcircuit_code)                        
+
+
     def _parse_sheet_pin(self, content: str, sheet: Sheet):
         """Parse a hierarchical sheet pin"""
         name_match = re.search(r'"([^"]+)"', content)
