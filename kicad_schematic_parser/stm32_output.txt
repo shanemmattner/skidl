@@ -1,0 +1,198 @@
+
+=== Component Pin Positions ===
+
+Component: #PWR02
+  Pin 1 (~):
+    Position: (102.87, 33.02)
+    Type: power_in
+
+Component: J1
+  Pin 1 (Pin_1):
+    Position: (161.29, 45.72)
+    Type: passive
+  Pin 2 (Pin_2):
+    Position: (161.29, 48.26)
+    Type: passive
+  Pin 3 (Pin_3):
+    Position: (161.29, 50.80)
+    Type: passive
+  Pin 4 (Pin_4):
+    Position: (161.29, 53.34)
+    Type: passive
+
+Component: C1
+  Pin 1 (~):
+    Position: (102.87, 25.40)
+    Type: passive
+  Pin 2 (~):
+    Position: (102.87, 33.02)
+    Type: passive
+
+Component: U2
+  Pin 1 (VBAT):
+    Position: (115.57, 36.83)
+    Type: power_in
+  Pin 2 (PC13):
+    Position: (102.87, 69.85)
+    Type: bidirectional
+  Pin 3 (PC14):
+    Position: (102.87, 72.39)
+    Type: bidirectional
+  Pin 4 (PC15):
+    Position: (102.87, 74.93)
+    Type: bidirectional
+  Pin 5 (PF0):
+    Position: (102.87, 52.07)
+    Type: bidirectional
+  Pin 6 (PF1):
+    Position: (102.87, 54.61)
+    Type: bidirectional
+  Pin 7 (PG10):
+    Position: (102.87, 46.99)
+    Type: bidirectional
+  Pin 8 (PA0):
+    Position: (135.89, 41.91)
+    Type: bidirectional
+  Pin 9 (PA1):
+    Position: (135.89, 44.45)
+    Type: bidirectional
+  Pin 10 (PA2):
+    Position: (135.89, 46.99)
+    Type: bidirectional
+  Pin 11 (PA3):
+    Position: (135.89, 49.53)
+    Type: bidirectional
+  Pin 12 (PA4):
+    Position: (135.89, 52.07)
+    Type: bidirectional
+  Pin 13 (PA5):
+    Position: (135.89, 54.61)
+    Type: bidirectional
+  Pin 14 (PA6):
+    Position: (135.89, 57.15)
+    Type: bidirectional
+  Pin 15 (PA7):
+    Position: (135.89, 59.69)
+    Type: bidirectional
+  Pin 16 (PC4):
+    Position: (102.87, 59.69)
+    Type: bidirectional
+  Pin 17 (PB0):
+    Position: (102.87, 80.01)
+    Type: bidirectional
+  Pin 18 (PB1):
+    Position: (102.87, 82.55)
+    Type: bidirectional
+  Pin 19 (PB2):
+    Position: (102.87, 85.09)
+    Type: bidirectional
+  Pin 20 (VREF+):
+    Position: (102.87, 41.91)
+    Type: input
+  Pin 21 (VDDA):
+    Position: (125.73, 36.83)
+    Type: power_in
+  Pin 22 (PB10):
+    Position: (102.87, 105.41)
+    Type: bidirectional
+  Pin 23 (VDD):
+    Position: (118.11, 36.83)
+    Type: power_in
+  Pin 24 (PB11):
+    Position: (102.87, 107.95)
+    Type: bidirectional
+  Pin 25 (PB12):
+    Position: (102.87, 110.49)
+    Type: bidirectional
+  Pin 26 (PB13):
+    Position: (102.87, 113.03)
+    Type: bidirectional
+  Pin 27 (PB14):
+    Position: (102.87, 115.57)
+    Type: bidirectional
+  Pin 28 (PB15):
+    Position: (102.87, 118.11)
+    Type: bidirectional
+  Pin 29 (PC6):
+    Position: (102.87, 62.23)
+    Type: bidirectional
+  Pin 30 (PA8):
+    Position: (135.89, 62.23)
+    Type: bidirectional
+  Pin 31 (PA9):
+    Position: (135.89, 64.77)
+    Type: bidirectional
+  Pin 32 (PA10):
+    Position: (135.89, 67.31)
+    Type: bidirectional
+  Pin 33 (PA11):
+    Position: (135.89, 69.85)
+    Type: bidirectional
+  Pin 34 (PA12):
+    Position: (135.89, 72.39)
+    Type: bidirectional
+  Pin 35 (VDD):
+    Position: (120.65, 36.83)
+    Type: power_in
+  Pin 36 (PA13):
+    Position: (135.89, 74.93)
+    Type: bidirectional
+  Pin 37 (PA14):
+    Position: (135.89, 77.47)
+    Type: bidirectional
+  Pin 38 (PA15):
+    Position: (135.89, 80.01)
+    Type: bidirectional
+  Pin 39 (PC10):
+    Position: (102.87, 64.77)
+    Type: bidirectional
+  Pin 40 (PC11):
+    Position: (102.87, 67.31)
+    Type: bidirectional
+  Pin 41 (PB3):
+    Position: (102.87, 87.63)
+    Type: bidirectional
+  Pin 42 (PB4):
+    Position: (102.87, 90.17)
+    Type: bidirectional
+  Pin 43 (PB5):
+    Position: (102.87, 92.71)
+    Type: bidirectional
+  Pin 44 (PB6):
+    Position: (102.87, 95.25)
+    Type: bidirectional
+  Pin 45 (PB7):
+    Position: (102.87, 97.79)
+    Type: bidirectional
+  Pin 46 (PB8):
+    Position: (102.87, 100.33)
+    Type: bidirectional
+  Pin 47 (PB9):
+    Position: (102.87, 102.87)
+    Type: bidirectional
+  Pin 48 (VDD):
+    Position: (123.19, 36.83)
+    Type: power_in
+  Pin 49 (VSS):
+    Position: (120.65, 125.73)
+    Type: power_in
+
+Component: #PWR014
+  Pin 1 (~):
+    Position: (161.29, 48.26)
+    Type: power_in
+
+Component: #PWR013
+  Pin 1 (~):
+    Position: (161.29, 45.72)
+    Type: power_in
+
+Component: #PWR01
+  Pin 1 (~):
+    Position: (102.87, 25.40)
+    Type: power_in
+
+Component: #PWR05
+  Pin 1 (~):
+    Position: (120.65, 125.73)
+    Type: power_in

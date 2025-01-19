@@ -1,0 +1,36 @@
+
+=== Component Pin Positions ===
+
+Component: #PWR04
+  Pin 1 (~):
+    Position: (121.92, 85.09)
+    Type: power_in
+
+Component: #PWR07
+  Pin 1 (~):
+    Position: (138.43, 81.28)
+    Type: power_in
+
+Component: R2
+  Pin 1 (~):
+    Position: (121.92, 77.47)
+    Type: passive
+  Pin 2 (~):
+    Position: (121.92, 85.09)
+    Type: passive
+
+Component: R1
+  Pin 1 (~):
+    Position: (121.92, 59.69)
+    Type: passive
+  Pin 2 (~):
+    Position: (121.92, 67.31)
+    Type: passive
+
+Component: C4
+  Pin 1 (~):
+    Position: (138.43, 73.66)
+    Type: passive
+  Pin 2 (~):
+    Position: (138.43, 81.28)
+    Type: passive

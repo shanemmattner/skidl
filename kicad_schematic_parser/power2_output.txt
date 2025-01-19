@@ -1,0 +1,78 @@
+
+=== Component Pin Positions ===
+
+Component: #PWR012
+  Pin 1 (~):
+    Position: (73.66, 74.93)
+    Type: power_in
+
+Component: #PWR09
+  Pin 1 (~):
+    Position: (107.95, 74.93)
+    Type: power_in
+
+Component: U1
+  Pin 1 (GND):
+    Position: (90.17, 71.12)
+    Type: power_in
+  Pin 2 (VO):
+    Position: (97.79, 63.50)
+    Type: power_out
+  Pin 3 (VI):
+    Position: (82.55, 63.50)
+    Type: power_in
+
+Component: C2
+  Pin 1 (~):
+    Position: (107.95, 63.50)
+    Type: passive
+  Pin 2 (~):
+    Position: (107.95, 71.12)
+    Type: passive
+
+Component: C3
+  Pin 1 (~):
+    Position: (73.66, 63.50)
+    Type: passive
+  Pin 2 (~):
+    Position: (73.66, 71.12)
+    Type: passive
+
+Component: #PWR011
+  Pin 1 (~):
+    Position: (73.66, 63.50)
+    Type: power_in
+
+Component: #PWR08
+  Pin 1 (~):
+    Position: (107.95, 63.50)
+    Type: power_in
+
+Component: #PWR06
+  Pin 1 (~):
+    Position: (90.17, 74.93)
+    Type: power_in
+
+=== Netlist ===
+
+NET_1:
+  #PWR012 Pin 1 (~)
+  C3 Pin 2 (~)
+
+NET_2:
+  #PWR09 Pin 1 (~)
+  C2 Pin 2 (~)
+
+NET_3:
+  U1 Pin 1 (GND)
+  #PWR06 Pin 1 (~)
+
+NET_4:
+  U1 Pin 2 (VO)
+  C2 Pin 1 (~)
+  #PWR08 Pin 1 (~)
+
+NET_5:
+  U1 Pin 3 (VI)
+  C3 Pin 1 (~)
+  #PWR011 Pin 1 (~)
