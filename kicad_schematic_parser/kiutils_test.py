@@ -2,50 +2,6 @@ from kiutils.schematic import Schematic
 import math
 import sys
 
-def parse_labels(schematic):
-    """
-    Parse different types of labels from the schematic
-    """
-    labels = {
-        'local': [],
-        'hierarchical': [],
-        'power': []
-    }
-    
-    # Parse local labels
-    for label in schematic.labels:
-        label_info = {
-            'text': label.text,
-            'position': (label.position.X, label.position.Y),
-            'angle': label.position.angle
-        }
-        labels['local'].append(label_info)
-        
-    # Parse hierarchical labels
-    for label in schematic.hierarchicalLabels:
-        label_info = {
-            'text': label.text,
-            'shape': label.shape,  # input/output/bidirectional/etc
-            'position': (label.position.X, label.position.Y),
-            'angle': label.position.angle
-        }
-        labels['hierarchical'].append(label_info)
-    
-    # Parse power symbols (they appear as schematic symbols)
-    for symbol in schematic.schematicSymbols:
-        if symbol.libraryNickname == 'power':
-            if hasattr(symbol, 'properties'):
-                # Find the Value property which contains the power net name
-                value_prop = next((prop for prop in symbol.properties if prop.key == 'Value'), None)
-                if value_prop:
-                    label_info = {
-                        'text': value_prop.value,
-                        'position': (symbol.position.X, symbol.position.Y),
-                        'angle': symbol.position.angle
-                    }
-                    labels['power'].append(label_info)
-
-    return labels
 
 def calculate_pin_position(component_position, pin_position, component_angle=0):
     """
@@ -136,16 +92,15 @@ def get_wire_connections(schematic):
     
     return wire_connections
 
-def find_label_for_position(position, labels, wire_connections, tolerance=0.01):
+def find_labels_for_position(position, labels, wire_connections, tolerance=0.01):
     """
-    Find a label that connects to the given position, either directly or through wires
+    Find all labels connected to a given position, including power symbols, local labels, 
+    and hierarchical labels. Returns list of (type, name) tuples.
     """
-    # Helper function to check if points are close enough to be considered connected
     def points_match(p1, p2, tolerance=0.01):
         return (abs(p1[0] - p2[0]) <= tolerance and 
                 abs(p1[1] - p2[1]) <= tolerance)
     
-    # Helper function to get all connected points through wires
     def get_connected_points(start_pos, wire_list, visited=None):
         if visited is None:
             visited = set()
@@ -155,10 +110,11 @@ def find_label_for_position(position, labels, wire_connections, tolerance=0.01):
             wire_start = (wire[0][0], wire[0][1])
             wire_end = (wire[1][0], wire[1][1])
             
-            if (wire_start, wire_end) in visited:
+            wire_key = (wire_start, wire_end)
+            if wire_key in visited:
                 continue
                 
-            visited.add((wire_start, wire_end))
+            visited.add(wire_key)
             
             if points_match(start_pos, wire_start, tolerance):
                 connected_points.add(wire_end)
@@ -176,50 +132,57 @@ def find_label_for_position(position, labels, wire_connections, tolerance=0.01):
     # Get all points connected to the given position
     connected_points = get_connected_points(position, wire_connections)
     
-    # Check local labels
-    for label in labels['local']:
-        label_pos = (label['position'][0], label['position'][1])
-        if any(points_match(label_pos, p, tolerance) for p in connected_points):
-            return ('local', label['text'])
-            
-    # Check hierarchical labels
-    for label in labels['hierarchical']:
-        label_pos = (label['position'][0], label['position'][1])
-        if any(points_match(label_pos, p, tolerance) for p in connected_points):
-            return ('hierarchical', label['text'])
-            
-    # Check power labels
+    # Find all labels connected to these points
+    found_labels = []
+    
+    # Check power labels first (highest priority)
     for label in labels['power']:
         label_pos = (label['position'][0], label['position'][1])
         if any(points_match(label_pos, p, tolerance) for p in connected_points):
-            return ('power', label['text'])
+            found_labels.append(('power', label['text']))
             
-    return None
-
-def calculate_pin_connectivity(component_pins, wire_connections, labels):
-    """
-    Calculate connectivity between pins and labels, properly handling local labels
-    """
-    netlist = {}
-    net_counter = 1
+    # Check hierarchical labels next
+    for label in labels['hierarchical']:
+        label_pos = (label['position'][0], label['position'][1])
+        if any(points_match(label_pos, p, tolerance) for p in connected_points):
+            found_labels.append(('hierarchical', label['text']))
+            
+    # Check local labels last
+    for label in labels['local']:
+        label_pos = (label['position'][0], label['position'][1])
+        if any(points_match(label_pos, p, tolerance) for p in connected_points):
+            found_labels.append(('local', label['text']))
     
-    def are_points_connected(point1, point2, wire_list, local_labels, visited=None):
+    return found_labels
+
+
+def are_points_connected(point1, point2, wire_connections, labels, tolerance=0.01):
+    """
+    Check if two points are connected either directly through wires or through shared labels.
+    
+    Args:
+        point1: First point (x,y) tuple
+        point2: Second point (x,y) tuple  
+        wire_connections: List of wire connections
+        labels: Dictionary of label information
+        tolerance: Distance tolerance for point matching
+
+    Returns:
+        bool: True if points are connected, False otherwise
+    """
+    def points_match(p1, p2, tolerance=0.01):
+        return (abs(p1[0] - p2[0]) <= tolerance and 
+                abs(p1[1] - p2[1]) <= tolerance)
+        
+    def get_connected_points(start_pos, wire_list, visited=None):
+        """Find all points connected to start_pos through wires"""
         if visited is None:
             visited = set()
             
-        p1 = (round(point1[0], 2), round(point1[1], 2))
-        p2 = (round(point2[0], 2), round(point2[1], 2))
+        # Convert point coordinates to 2-decimal precision for more reliable matching
+        start_pos = (round(start_pos[0], 2), round(start_pos[1], 2))
+        connected_points = {start_pos}
         
-        if p1 == p2:
-            return True
-        
-        # Check if points share a local label
-        label1 = find_label_for_position(p1, labels, wire_list)
-        label2 = find_label_for_position(p2, labels, wire_list)
-        
-        if label1 and label2 and label1[1] == label2[1] and label1[0] == 'local':
-            return True
-            
         for wire in wire_list:
             wire_start = (round(wire[0][0], 2), round(wire[0][1], 2))
             wire_end = (round(wire[1][0], 2), round(wire[1][1], 2))
@@ -228,115 +191,42 @@ def calculate_pin_connectivity(component_pins, wire_connections, labels):
             if wire_key in visited:
                 continue
                 
-            if p1 in (wire_start, wire_end):
-                visited.add(wire_key)
-                other_point = wire_end if p1 == wire_start else wire_start
-                if are_points_connected(other_point, p2, wire_list, local_labels, visited):
-                    return True
-                    
-        return False
-
-    # Process pins and assign to nets
-    unassigned_pins = []
-    for component, pins in component_pins.items():
-        for pin in pins:
-            pin_position = pin['absolute_position']
-            pin_info = {
-                'component': component,
-                'pin_number': pin['pin_number'],
-                'pin_name': pin['pin_name'],
-                'position': pin_position
-            }
-            unassigned_pins.append(pin_info)
-    
-    # Group pins into nets, including local label connections
-    while unassigned_pins:
-        current_pin = unassigned_pins.pop(0)
-        current_net = [current_pin]
-        
-        # Check connectivity with remaining pins
-        i = 0
-        while i < len(unassigned_pins):
-            test_pin = unassigned_pins[i]
-            if are_points_connected(
-                current_pin['position'],
-                test_pin['position'],
-                wire_connections,
-                labels['local']
-            ):
-                current_net.append(test_pin)
-                unassigned_pins.pop(i)
-            else:
-                i += 1
-        
-        # Look for a label connected to any pin in this net
-        net_name = None
-        for pin in current_net:
-            label_info = find_label_for_position(
-                pin['position'],
-                labels,
-                wire_connections
-            )
-            if label_info:
-                label_type, label_text = label_info
-                # Prioritize local labels
-                if label_type == 'local':
-                    net_name = label_text
-                    break
-                elif not net_name:  # Use other label types as fallback
-                    net_name = label_text
-                
-        if net_name is None:
-            net_name = f"NET_{net_counter}"
-            net_counter += 1
+            visited.add(wire_key)
+            visited.add((wire_end, wire_start))  # Add both orientations
             
-        netlist[net_name] = current_net
+            if points_match(start_pos, wire_start, tolerance):
+                connected_points.add(wire_end)
+                connected_points.update(
+                    get_connected_points(wire_end, wire_list, visited)
+                )
+            elif points_match(start_pos, wire_end, tolerance):
+                connected_points.add(wire_start)
+                connected_points.update(
+                    get_connected_points(wire_start, wire_list, visited)
+                )
+                
+        return connected_points
+
+    # Get all points connected to point1 and point2 through wires
+    p1_connected = get_connected_points(point1, wire_connections)
+    p2_connected = get_connected_points(point2, wire_connections)
     
-    return netlist
-def analyze_schematic(schematic):
-    """
-    Analyze schematic and print component pin positions, connectivity, and labels
-    """
-    # Get component pins
-    component_pins = get_component_pins(schematic)
-    
-    # Get wire connections
-    wire_connections = get_wire_connections(schematic)
-    
-    # Parse labels
-    labels = parse_labels(schematic)
-    
-    # Calculate pin connectivity with label-based net names
-    netlist = calculate_pin_connectivity(component_pins, wire_connections, labels)
-    
-    # Print results
-    print("\n=== Component Pin Positions ===")
-    for component_ref, pins in component_pins.items():
-        print(f"\nComponent: {component_ref}")
-        for pin in pins:
-            print(f"  Pin {pin['pin_number']} ({pin['pin_name']}):")
-            print(f"    Position: ({pin['absolute_position'][0]:.2f}, "
-                  f"{pin['absolute_position'][1]:.2f})")
-            print(f"    Type: {pin['electrical_type']}")
-    
-    print("\n=== Labels ===")
-    print("\nLocal Labels:")
-    for label in labels['local']:
-        print(f"  {label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+    # Direct wire connection check
+    if any(points_match(p1, p2, tolerance) for p1 in p1_connected for p2 in p2_connected):
+        return True
         
-    print("\nHierarchical Labels:")
-    for label in labels['hierarchical']:
-        print(f"  {label['text']} ({label['shape']}) at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
-        
-    print("\nPower Labels:")
-    for label in labels['power']:
-        print(f"  {label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+    # Check connection through labels
+    p1_labels = find_labels_for_position(point1, labels, wire_connections)
+    p2_labels = find_labels_for_position(point2, labels, wire_connections)
     
-    print("\n=== Netlist ===")
-    for net_name, connected_pins in netlist.items():
-        print(f"\n{net_name}:")
-        for pin in connected_pins:
-            print(f"  {pin['component']} Pin {pin['pin_number']} ({pin['pin_name']})")
+    # Check for shared label connections
+    for label1 in p1_labels:
+        for label2 in p2_labels:
+            # If both points connect to the same label name, they're connected
+            if label1[1] == label2[1]:
+                return True
+                
+    return False
 
 
 from kiutils.schematic import Schematic
@@ -384,6 +274,215 @@ def parse_labels(schematic):
 
     return labels
 
+def points_match(p1, p2, tolerance=0.01):
+    """Helper function to check if two points match within tolerance"""
+    return (abs(p1[0] - p2[0]) <= tolerance and 
+            abs(p1[1] - p2[1]) <= tolerance)
+
+def get_connected_points(start_pos, wire_list, visited=None):
+    """
+    Find all points connected to start_pos through wires, recursively
+    """
+    if visited is None:
+        visited = set()
+        
+    # Convert point coordinates to 2-decimal precision for reliable matching
+    start_pos = (round(start_pos[0], 2), round(start_pos[1], 2))
+    connected_points = {start_pos}
+    
+    for wire in wire_list:
+        wire_start = (round(wire[0][0], 2), round(wire[0][1], 2))
+        wire_end = (round(wire[1][0], 2), round(wire[1][1], 2))
+        
+        wire_key = (wire_start, wire_end)
+        if wire_key in visited:
+            continue
+            
+        visited.add(wire_key)
+        visited.add((wire_end, wire_start))  # Add both orientations
+        
+        # Check if this wire connects to our point
+        if points_match(start_pos, wire_start):
+            connected_points.add(wire_end)
+            connected_points.update(
+                get_connected_points(wire_end, wire_list, visited)
+            )
+        elif points_match(start_pos, wire_end):
+            connected_points.add(wire_start)
+            connected_points.update(
+                get_connected_points(wire_start, wire_list, visited)
+            )
+                
+    return connected_points
+
+def create_initial_nets(component_pins, wire_connections, labels):
+    """
+    Create initial nets from physical connections and gather all connected labels
+    """
+    net_groups = {}
+    next_id = 1
+    
+    # Process each pin from every component
+    for component, pins in component_pins.items():
+        for pin in pins:
+            pin_pos = pin['absolute_position']
+            
+            # Get all physically connected points
+            connected_points = get_connected_points(pin_pos, wire_connections)
+            
+            # Gather all labels connected to these points
+            all_labels = []
+            for point in connected_points:
+                point_labels = find_labels_for_position(point, labels, wire_connections)
+                all_labels.extend(point_labels)
+            
+            # Create new net entry
+            net_id = f"NET_{next_id}"
+            next_id += 1
+            
+            net_groups[net_id] = {
+                'pins': [(component, pin)],
+                'labels': all_labels,
+                'connected_points': connected_points
+            }
+    
+    return net_groups
+
+def merge_connected_nets(net_groups):
+    """
+    Merge nets that share any connections via labels or physical connections
+    """
+    # Build connection map
+    label_to_nets = {}
+    point_to_nets = {}
+    
+    # First pass - map labels and points to their nets
+    for net_id, net_info in net_groups.items():
+        # Map labels to nets
+        for label in net_info['labels']:
+            label_key = (label[0], label[1])  # (type, name)
+            if label_key not in label_to_nets:
+                label_to_nets[label_key] = set()
+            label_to_nets[label_key].add(net_id)
+        
+        # Map points to nets
+        for point in net_info['connected_points']:
+            point_key = (round(point[0], 2), round(point[1], 2))
+            if point_key not in point_to_nets:
+                point_to_nets[point_key] = set()
+            point_to_nets[point_key].add(net_id)
+    
+    # Second pass - merge nets
+    merged_nets = {}
+    processed = set()
+    next_merged_id = 1
+    
+    for net_id, net_info in net_groups.items():
+        if net_id in processed:
+            continue
+            
+        # Start a new merged net
+        merged_net = {
+            'pins': net_info['pins'].copy(),
+            'labels': net_info['labels'].copy(),
+            'connected_points': net_info['connected_points'].copy(),
+            'source_nets': {net_id}
+        }
+        
+        # Find all connected nets through labels and points
+        connected = {net_id}
+        to_process = {net_id}
+        
+        while to_process:
+            current = to_process.pop()
+            current_info = net_groups[current]
+            
+            # Check label connections
+            for label in current_info['labels']:
+                label_key = (label[0], label[1])
+                for other_net in label_to_nets.get(label_key, set()):
+                    if other_net not in connected:
+                        connected.add(other_net)
+                        to_process.add(other_net)
+            
+            # Check point connections
+            for point in current_info['connected_points']:
+                point_key = (round(point[0], 2), round(point[1], 2))
+                for other_net in point_to_nets.get(point_key, set()):
+                    if other_net not in connected:
+                        connected.add(other_net)
+                        to_process.add(other_net)
+        
+        # Merge all connected nets
+        for other_net in connected:
+            if other_net != net_id:
+                other_info = net_groups[other_net]
+                merged_net['pins'].extend(other_info['pins'])
+                merged_net['labels'].extend(other_info['labels'])
+                merged_net['connected_points'].update(other_info['connected_points'])
+                merged_net['source_nets'].add(other_net)
+        
+        # Remove duplicates
+        merged_net['labels'] = list(set(merged_net['labels']))
+        
+        # Create new merged net ID
+        merged_id = f"MERGED_NET_{next_merged_id}"
+        next_merged_id += 1
+        
+        merged_nets[merged_id] = merged_net
+        processed.update(connected)
+    
+    return merged_nets
+
+def calculate_pin_connectivity(component_pins, wire_connections, labels):
+    """
+    Calculate connectivity between pins and labels with improved handling of multiple connections
+    """
+    # Create initial nets from physical connections
+    initial_nets = create_initial_nets(component_pins, wire_connections, labels)
+    
+    # Merge connected nets
+    merged_nets = merge_connected_nets(initial_nets)
+    
+    # Format the final netlist
+    netlist = {}
+    
+    for net_id, net_info in merged_nets.items():
+        # Group labels by type
+        power_labels = []
+        hier_labels = []
+        local_labels = []
+        
+        for label_type, label_name in net_info['labels']:
+            if label_type == 'power':
+                power_labels.append(label_name)
+            elif label_type == 'hierarchical':
+                hier_labels.append(label_name)
+            else:
+                local_labels.append(label_name)
+        
+        # Choose primary net name based on any available label
+        net_name = None
+        if power_labels:
+            net_name = power_labels[0]
+        elif hier_labels:
+            net_name = hier_labels[0]
+        elif local_labels:
+            net_name = local_labels[0]
+        else:
+            net_name = net_id
+        
+        # Create netlist entry
+        netlist[net_name] = {
+            'pins': [{'component': comp, 'pin_number': pin['pin_number'], 
+                     'pin_name': pin['pin_name']} for comp, pin in net_info['pins']],
+            'power_labels': power_labels,
+            'hierarchical_labels': hier_labels,
+            'local_labels': local_labels,
+            'merged_from': list(net_info['source_nets'])
+        }
+    
+    return netlist
 def parse_hierarchical_sheets(schematic, base_path):
     """
     Recursively parse hierarchical sheets and merge results into the main schematic.
@@ -401,6 +500,7 @@ def parse_hierarchical_sheets(schematic, base_path):
                 print(f"Error: Unable to find hierarchical sheet file: {child_path}")
 
     return all_schematics
+
 
 def analyze_schematic(schematic, base_path):
     """
@@ -438,7 +538,6 @@ def analyze_schematic(schematic, base_path):
                 print(f"  {prop.key}: {prop.value}")
             print(f"Position: ({symbol.position.X}, {symbol.position.Y}), Angle: {symbol.position.angle}")
             
-            # Print unit information if available
             if hasattr(symbol, 'unit'):
                 print(f"Unit: {symbol.unit}")
 
@@ -480,16 +579,43 @@ def analyze_schematic(schematic, base_path):
 
     # Print netlist
     print("\n=== Netlist ===")
-    for net_name, connected_pins in netlist.items():
+    for net_name, net_info in netlist.items():
         print(f"\n{net_name}:")
-        for pin in connected_pins:
-            print(f"  {pin['component']} Pin {pin['pin_number']} ({pin['pin_name']})")
+        
+        # Print connected pins
+        if 'pins' in net_info:
+            for pin in net_info['pins']:
+                print(f"  {pin['component']} Pin {pin['pin_number']} ({pin['pin_name']})")
+        
+        # Print power labels
+        if 'power_labels' in net_info and net_info['power_labels']:
+            print("  Power Labels:")
+            for label in net_info['power_labels']:
+                print(f"    {label}")
+                
+        # Print hierarchical labels
+        if 'hierarchical_labels' in net_info and net_info['hierarchical_labels']:
+            print("  Hierarchical Labels:")
+            for label in net_info['hierarchical_labels']:
+                print(f"    {label}")
+                
+        # Print local labels
+        if 'local_labels' in net_info and net_info['local_labels']:
+            print("  Local Labels:")
+            for label in net_info['local_labels']:
+                print(f"    {label}")
+                
+        # Print merged information
+        if 'merged_from' in net_info:
+            print("  Merged from nets:")
+            for source_net in net_info['merged_from']:
+                print(f"    {source_net}")
 
 def main(file_path):
     # Load the schematic
     base_path = os.path.dirname(file_path)
     schematic = Schematic().from_file(file_path)
-    print(f"Loaded schematic: {schematic}")
+    # print(f"Loaded schematic: {schematic}")
 
     # Analyze the schematic
     analyze_schematic(schematic, base_path)

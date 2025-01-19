@@ -145,3 +145,7 @@ The tests verify:
 - Y coordinates are negated in the final output to match KiCad's convention
 - Pin numbers are sorted numerically for consistent output
 - A tolerance of 0.01 (1%) is used for position comparisons in tests
+
+
+## Tests to run
+- Combining labels, ie a local label attached to the same net as the a hierarchical label or power net
