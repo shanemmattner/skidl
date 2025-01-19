@@ -106,7 +106,13 @@ def get_component_pins(schematic):
                 'pin_number': pin.number,
                 'pin_name': pin.name,
                 'absolute_position': absolute_pos,
-                'electrical_type': pin.electricalType
+                'electrical_type': pin.electricalType,
+                'alternatePins': [
+                    {
+                        'pinName': alt.pinName,
+                        'electricalType': alt.electricalType
+                    } for alt in pin.alternatePins
+                ] if hasattr(pin, 'alternatePins') else []
             }
             component_pins[component.properties[0].value].append(pin_info)
             
@@ -333,13 +339,160 @@ def analyze_schematic(schematic):
             print(f"  {pin['component']} Pin {pin['pin_number']} ({pin['pin_name']})")
 
 
+from kiutils.schematic import Schematic
+import math
+import sys
+import os
+
+def parse_labels(schematic):
+    """
+    Parse different types of labels from the schematic
+    """
+    labels = {
+        'local': [],
+        'hierarchical': [],
+        'power': []
+    }
+    
+    # Parse local labels
+    for label in schematic.labels:
+        labels['local'].append({
+            'text': label.text,
+            'position': (label.position.X, label.position.Y),
+            'angle': label.position.angle
+        })
+        
+    # Parse hierarchical labels
+    for label in schematic.hierarchicalLabels:
+        labels['hierarchical'].append({
+            'text': label.text,
+            'shape': label.shape,  # input/output/bidirectional/etc
+            'position': (label.position.X, label.position.Y),
+            'angle': label.position.angle
+        })
+    
+    # Parse power symbols
+    for symbol in schematic.schematicSymbols:
+        if symbol.libraryNickname == 'power':
+            value_prop = next((prop for prop in symbol.properties if prop.key == 'Value'), None)
+            if value_prop:
+                labels['power'].append({
+                    'text': value_prop.value,
+                    'position': (symbol.position.X, symbol.position.Y),
+                    'angle': symbol.position.angle
+                })
+
+    return labels
+
+def parse_hierarchical_sheets(schematic, base_path):
+    """
+    Recursively parse hierarchical sheets and merge results into the main schematic.
+    """
+    all_schematics = [schematic]
+
+    for sheet in schematic.sheets:
+        sheet_file = next((prop.value for prop in sheet.properties if prop.key == "Sheetfile"), None)
+        if sheet_file:
+            child_path = os.path.join(base_path, sheet_file)
+            try:
+                child_schematic = Schematic().from_file(child_path)
+                all_schematics.extend(parse_hierarchical_sheets(child_schematic, os.path.dirname(child_path)))
+            except FileNotFoundError:
+                print(f"Error: Unable to find hierarchical sheet file: {child_path}")
+
+    return all_schematics
+
+def analyze_schematic(schematic, base_path):
+    """
+    Analyze schematic and generate comprehensive information about components, pins, and connectivity.
+    """
+    # Parse all schematics, including hierarchical ones
+    all_schematics = parse_hierarchical_sheets(schematic, base_path)
+
+    # Merge data across all schematics
+    all_labels = {'local': [], 'hierarchical': [], 'power': []}
+    all_wire_connections = []
+    all_component_pins = {}
+
+    for sch in all_schematics:
+        labels = parse_labels(sch)
+        all_labels['local'].extend(labels['local'])
+        all_labels['hierarchical'].extend(labels['hierarchical'])
+        all_labels['power'].extend(labels['power'])
+
+        all_wire_connections.extend(get_wire_connections(sch))
+
+        component_pins = get_component_pins(sch)
+        all_component_pins.update(component_pins)
+
+    # Generate netlist
+    netlist = calculate_pin_connectivity(all_component_pins, all_wire_connections, all_labels)
+
+    # Print component information
+    print("\n=== Components ===")
+    for symbol in schematic.schematicSymbols:
+        if symbol.libraryNickname != 'power':  # Skip power symbols as they're handled separately
+            print(f"\nComponent: {symbol.libraryNickname}/{symbol.entryName}")
+            print("Properties:")
+            for prop in symbol.properties:
+                print(f"  {prop.key}: {prop.value}")
+            print(f"Position: ({symbol.position.X}, {symbol.position.Y}), Angle: {symbol.position.angle}")
+            
+            # Print unit information if available
+            if hasattr(symbol, 'unit'):
+                print(f"Unit: {symbol.unit}")
+
+    # Print pin information with more details
+    print("\n=== Pin Details ===")
+    for component, pins in all_component_pins.items():
+        print(f"\nComponent: {component}")
+        for pin in pins:
+            print(f"\n  Pin {pin['pin_number']} ({pin['pin_name']}):")
+            print(f"    Position: ({pin['absolute_position'][0]:.2f}, {pin['absolute_position'][1]:.2f})")
+            print(f"    Type: {pin['electrical_type']}")
+            if 'alternatePins' in pin:
+                print("    Alternate Functions:")
+                for alt in pin['alternatePins']:
+                    print(f"      - {alt['pinName']} ({alt['electricalType']})")
+
+    # Print graphical items
+    print("\n=== Graphical Items ===")
+    for item in schematic.graphicalItems:
+        if hasattr(item, 'type'):
+            print(f"\nType: {item.type}")
+            if item.type == 'wire':
+                print(f"  Start: ({item.points[0].X}, {item.points[0].Y})")
+                print(f"  End: ({item.points[1].X}, {item.points[1].Y})")
+
+    # Print labels
+    print("\n=== Labels ===")
+    print("\nLocal Labels:")
+    for label in all_labels['local']:
+        print(f"  {label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+        
+    print("\nHierarchical Labels:")
+    for label in all_labels['hierarchical']:
+        print(f"  {label['text']} ({label['shape']}) at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+        
+    print("\nPower Labels:")
+    for label in all_labels['power']:
+        print(f"  {label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+
+    # Print netlist
+    print("\n=== Netlist ===")
+    for net_name, connected_pins in netlist.items():
+        print(f"\n{net_name}:")
+        for pin in connected_pins:
+            print(f"  {pin['component']} Pin {pin['pin_number']} ({pin['pin_name']})")
+
 def main(file_path):
     # Load the schematic
+    base_path = os.path.dirname(file_path)
     schematic = Schematic().from_file(file_path)
     print(f"Loaded schematic: {schematic}")
-    
+
     # Analyze the schematic
-    analyze_schematic(schematic)
+    analyze_schematic(schematic, base_path)
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
