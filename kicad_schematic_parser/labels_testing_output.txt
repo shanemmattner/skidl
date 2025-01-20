@@ -1,153 +1,4 @@
 
-=== Debug: Wire Connections ===
-Wire from (88.90, 88.90) to (88.90, 95.25)
-Wire from (146.05, 88.90) to (142.24, 88.90)
-Wire from (156.21, 57.15) to (74.93, 57.15)
-Wire from (88.90, 95.25) to (88.90, 99.06)
-Wire from (146.05, 68.58) to (133.35, 68.58)
-Wire from (142.24, 91.44) to (146.05, 91.44)
-Wire from (201.93, 130.81) to (195.58, 130.81)
-Wire from (146.05, 91.44) to (146.05, 93.98)
-Wire from (146.05, 93.98) to (142.24, 93.98)
-Wire from (88.90, 68.58) to (88.90, 81.28)
-Wire from (195.58, 139.70) to (203.20, 139.70)
-Wire from (139.70, 95.25) to (139.70, 99.06)
-Wire from (99.06, 80.01) to (99.06, 76.20)
-Wire from (142.24, 95.25) to (147.32, 95.25)
-Wire from (142.24, 88.90) to (142.24, 91.44)
-Wire from (146.05, 68.58) to (146.05, 81.28)
-Wire from (195.58, 125.73) to (201.93, 125.73)
-Wire from (88.90, 68.58) to (99.06, 68.58)
-Wire from (133.35, 80.01) to (133.35, 76.20)
-Wire from (123.19, 68.58) to (133.35, 68.58)
-Wire from (88.90, 95.25) to (105.41, 95.25)
-Wire from (142.24, 93.98) to (142.24, 95.25)
-Wire from (195.58, 130.81) to (195.58, 132.08)
-Wire from (99.06, 68.58) to (107.95, 68.58)
-Wire from (74.93, 57.15) to (74.93, 121.92)
-Wire from (74.93, 121.92) to (147.32, 121.92)
-Wire from (195.58, 118.11) to (201.93, 118.11)
-Wire from (139.70, 95.25) to (142.24, 95.25)
-Wire from (115.57, 80.01) to (115.57, 76.20)
-Wire from (147.32, 95.25) to (147.32, 121.92)
-Wire from (161.29, 88.90) to (156.21, 88.90)
-Wire from (156.21, 88.90) to (156.21, 57.15)
-Wire from (147.32, 95.25) to (156.21, 95.25)
-
-=== Debug: Label Positions ===
-
-Local Labels:
-	label_test_power3 at (193.04, 99.06)
-	Connected points:
-		(193.04, 99.06)
-	divider_1 at (95.25, 95.25)
-	Connected points:
-		(88.90, 95.25)
-		(95.25, 95.25)
-		(105.41, 95.25)
-	label_test_power2 at (195.58, 125.73)
-	Connected points:
-		(201.93, 125.73)
-		(195.58, 125.73)
-	divider_1 at (193.04, 77.47)
-	Connected points:
-		(193.04, 77.47)
-	label_test_power1 at (195.58, 118.11)
-	Connected points:
-		(195.58, 118.11)
-		(201.93, 118.11)
-	label_test_power4 at (193.04, 101.60)
-	Connected points:
-		(193.04, 101.60)
-	divider_2 at (161.29, 88.90)
-	Connected points:
-		(156.21, 88.90)
-		(161.29, 88.90)
-	label_test_power3 at (195.58, 132.08)
-	Connected points:
-		(195.58, 130.81)
-		(195.58, 132.08)
-	label_test_power4 at (195.58, 139.70)
-	Connected points:
-		(203.20, 139.70)
-		(195.58, 139.70)
-	label_test_power2 at (193.04, 96.52)
-	Connected points:
-		(193.04, 96.52)
-	label_test_power1 at (193.04, 93.98)
-	Connected points:
-		(193.04, 93.98)
-	label_test_power1 at (203.20, 139.70)
-	Connected points:
-		(203.20, 139.70)
-		(195.58, 139.70)
-	divider_2 at (193.04, 80.01)
-	Connected points:
-		(193.04, 80.01)
-
-Hierarchical Labels:
-	5v_monitor at (193.04, 72.39)
-	Connected points:
-		(193.04, 72.39)
-	5v_monitor at (105.41, 95.25)
-	Connected points:
-		(88.90, 95.25)
-		(105.41, 95.25)
-	3v3_monitor at (156.21, 95.25)
-	Connected points:
-		(147.32, 95.25)
-		(156.21, 95.25)
-	3v3_monitor at (193.04, 74.93)
-	Connected points:
-		(193.04, 74.93)
-
-Power Labels:
-	+5V at (201.93, 118.11)
-	Connected points:
-		(195.58, 118.11)
-		(201.93, 118.11)
-	GND at (88.90, 106.68)
-	Connected points:
-		(88.90, 106.68)
-	GND at (201.93, 130.81)
-	Connected points:
-		(195.58, 130.81)
-		(201.93, 130.81)
-	+5V at (99.06, 68.58)
-	Connected points:
-		(88.90, 68.58)
-		(99.06, 68.58)
-	GND at (139.70, 106.68)
-	Connected points:
-		(139.70, 106.68)
-	GND at (99.06, 80.01)
-	Connected points:
-		(99.06, 76.20)
-		(99.06, 80.01)
-	+3V3 at (201.93, 125.73)
-	Connected points:
-		(201.93, 125.73)
-		(195.58, 125.73)
-	GND at (156.21, 102.87)
-	Connected points:
-		(156.21, 102.87)
-	GND at (105.41, 102.87)
-	Connected points:
-		(105.41, 102.87)
-	GND at (133.35, 80.01)
-	Connected points:
-		(133.35, 76.20)
-		(133.35, 80.01)
-	+3V3 at (133.35, 68.58)
-	Connected points:
-		(146.05, 81.28)
-		(146.05, 68.58)
-		(133.35, 68.58)
-	GND at (115.57, 80.01)
-	Connected points:
-		(115.57, 76.20)
-		(115.57, 80.01)
-
 === Components ===
 
 Component: Device/C
@@ -677,11 +528,11 @@ Power Labels:
 === Netlist ===
 
 +3V3:
-	#PWR035 Pin 1 (~)
 	C11 Pin 1 (~)
 	U4 Pin 2 (VO)
 	R12 Pin 1 (~)
 	#PWR030 Pin 1 (~)
+	#PWR035 Pin 1 (~)
 	J4 Pin 2 (Pin_2)
 	Power Labels:
 		+3V3
@@ -689,30 +540,30 @@ Power Labels:
 		label_test_power2
 
 GND:
-	#PWR028 Pin 1 (~)
-	C10 Pin 2 (~)
-	#PWR032 Pin 1 (~)
-	R11 Pin 2 (~)
-	#PWR027 Pin 1 (~)
-	C9 Pin 2 (~)
 	#PWR036 Pin 1 (~)
+	C11 Pin 2 (~)
+	#PWR031 Pin 1 (~)
 	U4 Pin 1 (GND)
 	#PWR029 Pin 1 (~)
 	#PWR025 Pin 1 (~)
 	R10 Pin 2 (~)
+	#PWR032 Pin 1 (~)
+	R11 Pin 2 (~)
 	#PWR033 Pin 1 (~)
 	C12 Pin 2 (~)
-	C11 Pin 2 (~)
-	#PWR031 Pin 1 (~)
+	#PWR027 Pin 1 (~)
+	C9 Pin 2 (~)
+	#PWR028 Pin 1 (~)
+	C10 Pin 2 (~)
 	Power Labels:
 		GND
 
 +5V:
+	J4 Pin 1 (Pin_1)
 	U4 Pin 3 (VI)
 	#PWR026 Pin 1 (~)
 	R9 Pin 1 (~)
 	C9 Pin 1 (~)
-	J4 Pin 1 (Pin_1)
 	#PWR034 Pin 1 (~)
 	Power Labels:
 		+5V
@@ -728,10 +579,10 @@ GND:
 		3v3_monitor
 
 5v_monitor:
+	J3 Pin 1 (Pin_1)
 	R9 Pin 2 (~)
 	R10 Pin 1 (~)
 	C10 Pin 1 (~)
-	J3 Pin 1 (Pin_1)
 	Hierarchical Labels:
 		5v_monitor
 
