@@ -42,8 +42,14 @@ src/
     │   └── geometry.py
     └── tests/                 # Test files
         ├── conftest.py
-        ├── test_pin_positions.py
-        └── test_schematics/   # Test schematic files
+        ├── pin_placement_tests/   # Tests for component pin positions
+        │   ├── test_pin_positions.py
+        │   ├── power2.kicad_sch
+        │   ├── resistor_divider.kicad_sch
+        │   └── stm32.kicad_sch
+        └── wire_connection_tests/ # Tests for wire and net connectivity
+            ├── test_wire_connections.py
+            └── wire_conn_test.kicad_sch
 ```
 
 ## Usage
@@ -115,13 +121,21 @@ pytest
 ```
 
 The test suite includes:
-- Pin position calculations
-- Component parsing
-- Wire connectivity analysis
-- Label detection
-- Net analysis
 
-Test schematics are included in `src/kicad_parser/tests/test_schematics/`.
+Pin Placement Tests:
+- Component pin position calculations
+- Support for rotated components
+- Pin electrical type verification
+- Tests using power supplies, resistor dividers, and microcontroller schematics
+
+Wire Connection Tests:
+- Wire connectivity analysis
+- Net detection and verification
+- Power and ground connections
+- Local and hierarchical label connections
+- Tests using voltage monitoring and power supply circuits
+
+Test schematics are included in their respective test directories.
 
 ## Dependencies
 
