@@ -11,6 +11,11 @@ A Python module for SKiDL that parses and analyzes KiCad schematic files. This m
 - Net connectivity analysis
 - Support for hierarchical sheets
 
+## Known Bugs
+- Lables placed in the middle of a wire do not always get detected
+- Labels might not transfer when connected
+  - ie 5v connected to label1, then label1 connected to label2.  label2 might not be connected to 5v
+
 ## Project Structure
 
 ```

@@ -92,13 +92,13 @@ def analyze_schematic(schematic, base_path, debug=False):
                     print(f"\t\t\t- {alt['pinName']} ({alt['electricalType']})")
 
     # Print graphical items
-    print("\n=== Graphical Items ===")
-    for item in schematic.graphicalItems:
-        if hasattr(item, 'type'):
-            print(f"\nType: {item.type}")
-            if item.type == 'wire':
-                print(f"\tStart: ({item.points[0].X}, {item.points[0].Y})")
-                print(f"\tEnd: ({item.points[1].X}, {item.points[1].Y})")
+    # print("\n=== Graphical Items ===")
+    # for item in schematic.graphicalItems:
+    #     if hasattr(item, 'type'):
+    #         print(f"\nType: {item.type}")
+    #         if item.type == 'wire':
+    #             print(f"\tStart: ({item.points[0].X}, {item.points[0].Y})")
+    #             print(f"\tEnd: ({item.points[1].X}, {item.points[1].Y})")
 
     # Print labels
     # print("\n=== Labels ===")

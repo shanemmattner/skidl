@@ -1,0 +1,340 @@
+
+=== Components ===
+
+Component: Device/C
+	Properties:
+		Reference: C11
+		Value: C
+		Footprint: Capacitor_SMD:C_0603_1608Metric
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (133.35, 72.39), Angle: 0
+Unit: 1
+
+Component: Regulator_Linear/NCP1117-3.3_SOT223
+	Properties:
+		Reference: U4
+		Value: NCP1117-3.3_SOT223
+		Footprint: Package_TO_SOT_SMD:SOT-223-3_TabPin2
+		Datasheet: http://www.onsemi.com/pub_link/Collateral/NCP1117-D.PDF
+		Description: 1A Low drop-out regulator, Fixed Output 3.3V, SOT-223
+	Position: (115.57, 68.58), Angle: 0
+Unit: 1
+
+Component: Device/R
+	Properties:
+		Reference: R12
+		Value: R
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (146.05, 85.09), Angle: 0
+Unit: 1
+
+Component: Connector_Generic/Conn_01x04
+	Properties:
+		Reference: J3
+		Value: Conn_01x04
+		Footprint: 
+		Datasheet: ~
+		Description: Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)
+	Position: (198.12, 74.93), Angle: 0
+Unit: 1
+
+Component: Connector_Generic/Conn_01x04
+	Properties:
+		Reference: J4
+		Value: Conn_01x04
+		Footprint: 
+		Datasheet: ~
+		Description: Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)
+	Position: (198.12, 96.52), Angle: 0
+Unit: 1
+
+Component: Device/C
+	Properties:
+		Reference: C9
+		Value: C
+		Footprint: Capacitor_SMD:C_0603_1608Metric
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (99.06, 72.39), Angle: 0
+Unit: 1
+
+Component: Device/C
+	Properties:
+		Reference: C12
+		Value: C
+		Footprint: 
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (156.21, 99.06), Angle: 0
+Unit: 1
+
+Component: Device/R
+	Properties:
+		Reference: R11
+		Value: R
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (139.7, 102.87), Angle: 0
+Unit: 1
+
+=== Pin Details ===
+
+Component: C11
+
+	Pin 1 (~):
+		Position: (133.35, 68.58)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (133.35, 76.20)
+		Type: passive
+		Alternate Functions:
+
+Component: U4
+
+	Pin 1 (GND):
+		Position: (115.57, 76.20)
+		Type: power_in
+		Alternate Functions:
+
+	Pin 2 (VO):
+		Position: (123.19, 68.58)
+		Type: power_out
+		Alternate Functions:
+
+	Pin 3 (VI):
+		Position: (107.95, 68.58)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR034
+
+	Pin 1 (~):
+		Position: (201.93, 118.11)
+		Type: power_in
+		Alternate Functions:
+
+Component: R12
+
+	Pin 1 (~):
+		Position: (146.05, 81.28)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (146.05, 88.90)
+		Type: passive
+		Alternate Functions:
+
+Component: #PWR036
+
+	Pin 1 (~):
+		Position: (201.93, 130.81)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR026
+
+	Pin 1 (~):
+		Position: (99.06, 68.58)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR032
+
+	Pin 1 (~):
+		Position: (139.70, 106.68)
+		Type: power_in
+		Alternate Functions:
+
+Component: J3
+
+	Pin 1 (Pin_1):
+		Position: (193.04, 72.39)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (Pin_2):
+		Position: (193.04, 74.93)
+		Type: passive
+		Alternate Functions:
+
+	Pin 3 (Pin_3):
+		Position: (193.04, 77.47)
+		Type: passive
+		Alternate Functions:
+
+	Pin 4 (Pin_4):
+		Position: (193.04, 80.01)
+		Type: passive
+		Alternate Functions:
+
+Component: #PWR027
+
+	Pin 1 (~):
+		Position: (99.06, 80.01)
+		Type: power_in
+		Alternate Functions:
+
+Component: J4
+
+	Pin 1 (Pin_1):
+		Position: (193.04, 93.98)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (Pin_2):
+		Position: (193.04, 96.52)
+		Type: passive
+		Alternate Functions:
+
+	Pin 3 (Pin_3):
+		Position: (193.04, 99.06)
+		Type: passive
+		Alternate Functions:
+
+	Pin 4 (Pin_4):
+		Position: (193.04, 101.60)
+		Type: passive
+		Alternate Functions:
+
+Component: #PWR035
+
+	Pin 1 (~):
+		Position: (201.93, 125.73)
+		Type: power_in
+		Alternate Functions:
+
+Component: C9
+
+	Pin 1 (~):
+		Position: (99.06, 68.58)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (99.06, 76.20)
+		Type: passive
+		Alternate Functions:
+
+Component: #PWR033
+
+	Pin 1 (~):
+		Position: (156.21, 102.87)
+		Type: power_in
+		Alternate Functions:
+
+Component: C12
+
+	Pin 1 (~):
+		Position: (156.21, 95.25)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (156.21, 102.87)
+		Type: passive
+		Alternate Functions:
+
+Component: #PWR031
+
+	Pin 1 (~):
+		Position: (133.35, 80.01)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR030
+
+	Pin 1 (~):
+		Position: (133.35, 68.58)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR029
+
+	Pin 1 (~):
+		Position: (115.57, 80.01)
+		Type: power_in
+		Alternate Functions:
+
+Component: R11
+
+	Pin 1 (~):
+		Position: (139.70, 99.06)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (139.70, 106.68)
+		Type: passive
+		Alternate Functions:
+
+=== Netlist ===
+
++3V3:
+	C11 Pin 1 (~)
+	U4 Pin 2 (VO)
+	R12 Pin 1 (~)
+	#PWR030 Pin 1 (~)
+	#PWR035 Pin 1 (~)
+	J4 Pin 2 (Pin_2)
+	Power Labels:
+		+3V3
+	Local Labels:
+		label_test_power2
+
+GND:
+	U4 Pin 1 (GND)
+	#PWR029 Pin 1 (~)
+	#PWR032 Pin 1 (~)
+	R11 Pin 2 (~)
+	#PWR027 Pin 1 (~)
+	C9 Pin 2 (~)
+	#PWR036 Pin 1 (~)
+	J4 Pin 3 (Pin_3)
+	C11 Pin 2 (~)
+	#PWR031 Pin 1 (~)
+	#PWR033 Pin 1 (~)
+	C12 Pin 2 (~)
+	Power Labels:
+		GND
+	Local Labels:
+		label_test_power3
+
++5V:
+	#PWR034 Pin 1 (~)
+	J4 Pin 1 (Pin_1)
+	J3 Pin 1 (Pin_1)
+	U4 Pin 3 (VI)
+	#PWR026 Pin 1 (~)
+	C9 Pin 1 (~)
+	Power Labels:
+		+5V
+	Local Labels:
+		label_test_power1
+
+3v3_monitor:
+	J3 Pin 2 (Pin_2)
+	J3 Pin 4 (Pin_4)
+	R12 Pin 2 (~)
+	C12 Pin 1 (~)
+	R11 Pin 1 (~)
+	Hierarchical Labels:
+		3v3_monitor
+	Local Labels:
+		divider_2
+
+divider_1:
+	J3 Pin 3 (Pin_3)
+	Local Labels:
+		divider_1
+
+label_test_power4:
+	J4 Pin 4 (Pin_4)
+	Local Labels:
+		label_test_power4
