@@ -14,30 +14,43 @@ def get_wire_connections(schematic):
     
     return wire_connections
 
-def get_connected_points(start_pos, wire_list, visited=None, tolerance=0.01):
-    """
-    Find all points connected to start_pos through wires, recursively
-    
-    Args:
-        start_pos: Starting point (x,y) tuple
-        wire_list: List of wire connections
-        visited: Set of already visited wire segments
-        tolerance: Distance tolerance for point matching
+
+def get_connected_points(start_pos, wire_list, visited=None, tolerance=0.01, depth=0):
+    """Find all points connected to start_pos through wires"""
+    # Add maximum recursion depth
+    MAX_DEPTH = 100
+    if depth > MAX_DEPTH:
+        return set()
         
-    Returns:
-        set: Set of all connected points including points along wire segments
-    """
+    if not wire_list:
+        return set()
+        
     if visited is None:
         visited = set()
         
     # Convert point coordinates to 2-decimal precision for reliable matching
-    start_pos = (round(start_pos[0], 2), round(start_pos[1], 2))
+    try:
+        start_pos = (round(float(start_pos[0]), 2), round(float(start_pos[1]), 2))
+    except (TypeError, IndexError) as e:
+        print(f"Warning: Invalid point format: {start_pos}")
+        return set()
+        
+    # Add point itself to visited set
+    point_key = start_pos
+    if point_key in visited:
+        return set()
+    visited.add(point_key)
+        
     connected_points = {start_pos}
     
     for wire in wire_list:
-        wire_start = (round(wire[0][0], 2), round(wire[0][1], 2))
-        wire_end = (round(wire[1][0], 2), round(wire[1][1], 2))
-        
+        try:
+            wire_start = (round(float(wire[0][0]), 2), round(float(wire[0][1]), 2))
+            wire_end = (round(float(wire[1][0]), 2), round(float(wire[1][1]), 2))
+        except (TypeError, IndexError) as e:
+            print(f"Warning: Invalid wire format: {wire}")
+            continue
+            
         wire_key = (wire_start, wire_end)
         if wire_key in visited:
             continue
@@ -45,21 +58,23 @@ def get_connected_points(start_pos, wire_list, visited=None, tolerance=0.01):
         visited.add(wire_key)
         visited.add((wire_end, wire_start))  # Add both orientations
         
-        # Check if this wire connects to our point at endpoints or along segment
+        # Check if this wire connects to our point
         if (points_match(start_pos, wire_start, tolerance) or 
             points_match(start_pos, wire_end, tolerance) or 
             point_on_wire_segment(start_pos, wire_start, wire_end, tolerance)):
             
-            # Add both endpoints since the point connects to this wire
             connected_points.add(wire_start)
             connected_points.add(wire_end)
             
-            # Recursively find other connected points from both endpoints
-            connected_points.update(
-                get_connected_points(wire_start, wire_list, visited, tolerance)
-            )
-            connected_points.update(
-                get_connected_points(wire_end, wire_list, visited, tolerance)
-            )
+            # Recursively find other connected points with depth tracking
+            if wire_start not in visited:
+                connected_points.update(
+                    get_connected_points(wire_start, wire_list, visited, tolerance, depth + 1)
+                )
+            if wire_end not in visited:
+                connected_points.update(
+                    get_connected_points(wire_end, wire_list, visited, tolerance, depth + 1)
+                )
                 
     return connected_points
+

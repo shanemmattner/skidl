@@ -1,6 +1,202 @@
+import os
 from .wire_parser import get_connected_points
 from ..labels.label_parser import parse_labels
 from ..utils.geometry import points_match
+from kiutils.schematic import Schematic
+
+def build_sheet_hierarchy(schematic, base_path):
+    """Build tree of sheet relationships"""
+    hierarchy = {'root': {'path': base_path, 'pins': []}}
+    
+    def process_sheet(schematic, parent_path):
+        for sheet in schematic.sheets:
+            sheet_name = sheet.sheetName.value
+            sheet_file = sheet.fileName.value
+            sheet_path = os.path.join(base_path, sheet_file)
+            
+            # Store sheet info including pins
+            hierarchy[sheet_name] = {
+                'path': sheet_path,
+                'parent': parent_path,
+                'pins': [
+                    {
+                        'name': pin.name,
+                        'type': pin.connectionType,
+                        'uuid': pin.uuid
+                    }
+                    for pin in getattr(sheet, 'pins', [])
+                ]
+            }
+            
+            # Process child sheet
+            try:
+                child_schematic = Schematic().from_file(sheet_path)
+                process_sheet(child_schematic, sheet_path)
+            except Exception as e:
+                print(f"Warning: Could not process sheet {sheet_name}: {e}")
+                
+    process_sheet(schematic, base_path)
+    return hierarchy
+
+
+def parse_hierarchical_net(net_name, sheet_hierarchy):
+    """Parse hierarchical net name into components
+    
+    Args:
+        net_name: Name of the net
+        sheet_hierarchy: Sheet hierarchy information
+        
+    Returns:
+        dict: Parsed net information
+    """
+    parts = net_name.split('/')
+    if len(parts) == 1:
+        return {'sheet': 'root', 'net': parts[0]}
+        
+    return {
+        'sheet': '/'.join(parts[:-1]),
+        'net': parts[-1]
+    }
+
+
+def merge_hierarchical_nets(netlists, sheet_hierarchy):
+    """Merge nets across hierarchical boundaries"""
+    global_netlist = {}
+    for sheet_name, sheet_netlist in netlists.items():
+        for net_name, net_info in sheet_netlist.items():
+            if net_name.startswith('+') or net_name == 'GND':
+                if net_name not in global_netlist:
+                    global_netlist[net_name] = {
+                        'pins': [],
+                        'labels': [],
+                        'sheets': set()
+                    }
+                # Handle case where net_info is list or dict
+                if isinstance(net_info, dict):
+                    for pin_info in net_info.get('pins', []):
+                        pin_info['sheet'] = sheet_name
+                        global_netlist[net_name]['pins'].append(pin_info)
+                    global_netlist[net_name]['labels'].extend(net_info.get('labels', []))
+                    global_netlist[net_name]['sheets'].add(sheet_name)
+    # First collect power nets (these are global)
+    for net_name, net_info in netlists.items():
+        if net_name.startswith('+') or net_name == 'GND':
+            if net_name not in global_netlist:
+                global_netlist[net_name] = {
+                    'pins': [],
+                    'labels': [],
+                    'sheets': set()
+                }
+            # Handle case where labels and pins are lists
+            if isinstance(net_info, dict):
+                global_netlist[net_name]['pins'].extend(net_info.get('pins', []))
+                global_netlist[net_name]['labels'].extend(net_info.get('labels', []))
+            elif isinstance(net_info, list):
+                # If net_info is a list, assume it's list of pins
+                global_netlist[net_name]['pins'].extend(net_info)
+            
+    # Build map of hierarchical labels to sheet pins
+    hier_connections = {}
+    for sheet_name, sheet_info in sheet_hierarchy.items():
+        if 'pins' in sheet_info:
+            for pin in sheet_info['pins']:
+                pin_name = pin['name']
+                # Map sheet pin to its hierarchical label
+                hier_connections[f"{sheet_name}/{pin_name}"] = pin_name
+                
+    # Connect nets through hierarchical boundaries
+    for sheet_name, sheet_netlist in netlists.items():
+        for net_name, net_info in sheet_netlist.items():
+            # Skip already processed power nets
+            if net_name.startswith('+') or net_name == 'GND':
+                continue
+                
+            # Look for hierarchical labels
+            hier_labels = []
+            if isinstance(net_info, dict) and 'labels' in net_info:
+                for label in net_info['labels']:
+                    if isinstance(label, tuple) and len(label) > 1 and label[0] == 'hierarchical':
+                        hier_labels.append(label[1])
+            elif isinstance(net_info, list):
+                # If net_info is a list, check each item for hierarchical labels
+                for item in net_info:
+                    if isinstance(item, tuple) and len(item) > 1 and item[0] == 'hierarchical':
+                        hier_labels.append(item[1])
+                    
+            # Create merged name for this net
+            merged_name = f"{sheet_name}/{net_name}"
+            
+            # If net has hierarchical labels, merge with connected nets
+            if hier_labels:
+                if merged_name not in global_netlist:
+                    global_netlist[merged_name] = {
+                        'pins': [],
+                        'labels': [],
+                        'sheets': set([sheet_name])
+                    }
+                
+            # Add this net's components and labels if it exists in global_netlist
+            if merged_name in global_netlist:
+                if isinstance(net_info, dict):
+                    global_netlist[merged_name]['pins'].extend(net_info.get('pins', []))
+                    global_netlist[merged_name]['labels'].extend(net_info.get('labels', []))
+                elif isinstance(net_info, (list, tuple)):
+                    # Extract pins and any labels from list items
+                    pins = []
+                    labels = []
+                    for item in net_info:
+                        if isinstance(item, dict):
+                            pins.append(item)
+                        elif isinstance(item, tuple) and len(item) > 1:
+                            if item[0] == 'label':
+                                labels.append(item[1])
+                    global_netlist[merged_name]['pins'].extend(pins)
+                    global_netlist[merged_name]['labels'].extend(labels)
+                
+                # Look for matching sheet pins
+                for label in hier_labels:
+                    sheet_pin_key = f"{sheet_name}/{label}"
+                    if sheet_pin_key in hier_connections:
+                        connected_label = hier_connections[sheet_pin_key]
+                        # Find and merge other nets with this label
+                        for other_sheet, other_netlist in netlists.items():
+                            if other_sheet == sheet_name:
+                                continue
+                            for other_net, other_info in other_netlist.items():
+                                if isinstance(other_info, dict):
+                                    other_labels = other_info.get('labels', [])
+                                else:  # list case
+                                    other_labels = [item for item in other_info if isinstance(item, tuple)]
+                                    
+                                if any(l[1] == connected_label for l in other_labels if isinstance(l, tuple) and len(l) > 1):
+                                    other_name = f"{other_sheet}/{other_net}"
+                                    if other_name not in global_netlist:
+                                        # Handle different net_info types when creating new entry
+                                        pins = []
+                                        labels = []
+                                        if isinstance(other_info, dict):
+                                            pins = other_info.get('pins', [])
+                                            labels = other_info.get('labels', [])
+                                        elif isinstance(other_info, (list, tuple)):
+                                            for item in other_info:
+                                                if isinstance(item, dict):
+                                                    pins.append(item)
+                                                elif isinstance(item, tuple) and len(item) > 1:
+                                                    if item[0] == 'label':
+                                                        labels.append(item[1])
+                                        
+                                        global_netlist[other_name] = {
+                                            'pins': pins,
+                                            'labels': labels,
+                                            'sheets': set([other_sheet])
+                                        }
+                                    # Merge the nets
+                                    global_netlist[merged_name]['pins'].extend(global_netlist[other_name]['pins'])
+                                    global_netlist[merged_name]['labels'].extend(global_netlist[other_name]['labels'])
+                                    global_netlist[merged_name]['sheets'].add(other_sheet)
+
+    return global_netlist
+
 
 def find_labels_for_position(position, labels, wire_connections, tolerance=0.01):
     """
@@ -66,19 +262,7 @@ def create_initial_nets(component_pins, wire_connections, labels):
     """
     Create initial nets with improved connection tracking, including sheet pins
     """
-    # Add sheet pins as special "components"
-    for label in labels['hierarchical']:
-        if 'uuid' in label:  # This indicates it's a sheet pin
-            pin_info = {
-                'pin_number': '1',  # Sheet pins don't have numbers
-                'pin_name': label['text'],
-                'absolute_position': label['position'],
-                'electrical_type': label['shape']  # Sheet pins store type as 'shape' (input/output)
-            }
-            component_name = f"Sheet_{label['sheet_name']}"
-            if component_name not in component_pins:
-                component_pins[component_name] = []
-            component_pins[component_name].append(pin_info)
+
     def get_all_connected_points(point, visited=None):
         """Helper function to get all points connected to a point"""
         if visited is None:
@@ -108,7 +292,20 @@ def create_initial_nets(component_pins, wire_connections, labels):
                     to_visit.update(p for p in conn_points if p not in visited)
             
         return result
-    
+
+    # Add sheet pins as special "components"
+    for label in labels['hierarchical']:
+        if 'uuid' in label:  # This indicates it's a sheet pin
+            pin_info = {
+                'pin_number': '1',  # Sheet pins don't have numbers
+                'pin_name': label['text'],
+                'absolute_position': label['position'],
+                'electrical_type': label['shape']  # Sheet pins store type as 'shape' (input/output)
+            }
+            component_name = f"Sheet_{label['sheet_name']}"
+            if component_name not in component_pins:
+                component_pins[component_name] = []
+            component_pins[component_name].append(pin_info)
     net_groups = {}
     next_id = 1
     point_to_net = {}  # Map points to their assigned net ID
@@ -131,8 +328,15 @@ def create_initial_nets(component_pins, wire_connections, labels):
             
             # If connected to existing net(s), merge into the first one
             if existing_nets:
-                target_net_id = min(existing_nets)  # Use the lowest net ID
-                net_groups[target_net_id]['pins'].append((component, pin))
+                target_net_id = min(existing_nets)
+                # Include component sheet info
+                sheet_name = component.split('/')[-2] if '/' in component else 'root'
+                pin_info = {
+                    'component': component,
+                    'pin': pin,
+                    'sheet': sheet_name
+                }
+                net_groups[target_net_id]['pins'].append(pin_info)
                 net_groups[target_net_id]['connected_points'].update(connected_points)
                 
                 # Update point mappings
@@ -221,9 +425,13 @@ def merge_connected_nets(net_groups, wire_connections, labels):
                     to_visit.update(p for p in conn_points if p not in visited)
             
         return result
-    
-    def get_connected_nets(net_id, processed=None, visited_points=None):
+    def get_connected_nets(net_id, processed=None, visited_points=None, recursion_depth=0):
         """Find all nets connected to the given net"""
+        # Add recursion depth limit
+        MAX_RECURSION_DEPTH = 50
+        if recursion_depth > MAX_RECURSION_DEPTH:
+            return set()
+            
         if processed is None:
             processed = set()
         if visited_points is None:
@@ -235,115 +443,49 @@ def merge_connected_nets(net_groups, wire_connections, labels):
         connected = {net_id}
         processed.add(net_id)
         
-        net_info = net_groups[net_id]
-        
-        # Get all physically connected points
-        net_points = get_all_connected_points(net_info['connected_points'])
+        try:
+            net_info = net_groups[net_id]
+        except KeyError:
+            print(f"Warning: Net {net_id} not found in net_groups")
+            return connected
+            
+        # Get points for this net that haven't been visited
+        net_points = set(net_info['connected_points']) - visited_points
         visited_points.update(net_points)
+        
+        # Early exit if no new points to process
+        if not net_points:
+            return connected
         
         # Check which nets share any of these points
         for other_id, other_info in net_groups.items():
             if other_id in processed:
                 continue
                 
-            # Get all points connected to the other net
-            other_points = get_all_connected_points(other_info['connected_points'])
+            # Get unvisited points from other net
+            other_points = set(other_info['connected_points']) - visited_points
             
-            # Check if any points overlap or are connected by wires
-            connected_found = False
-            for point1 in net_points:
-                if connected_found:
-                    break
-                connected_points = get_connected_points(point1, wire_connections)
-                for point2 in other_points:
-                    if point2 in connected_points:
-                        connected.update(get_connected_nets(other_id, processed, visited_points))
-                        connected_found = True
-                        break
-                        
-            # Check if any points are connected through labels
-            if not connected_found:
-                # Get all labels for this net's points
-                net_labels = set()
-                for point in net_points:
-                    point_labels = find_labels_for_position(point, labels, wire_connections)
-                    # print(f"\nChecking labels at point {point} for net {net_id}")
-                    # print(f"Found labels: {point_labels}")
-                    net_labels.update(point_labels)
-                
-                # Get all labels for other net's points
-                other_labels = set()
-                for point in other_points:
-                    point_labels = find_labels_for_position(point, labels, wire_connections)
-                    # print(f"Checking labels at point {point} for other net {other_id}")
-                    # print(f"Found labels: {point_labels}")
-                    other_labels.update(point_labels)
-                
-                # print(f"\nComparing labels between nets {net_id} and {other_id}:")
-                # print(f"Net {net_id} labels: {net_labels}")
-                # print(f"Net {other_id} labels: {other_labels}")
-                
-                # Check if any labels match, considering connectivity rules
-                for label1 in net_labels:
-                    for label2 in other_labels:
-                        # Direct match - same type and name
-                        if label1[0] == label2[0] and label1[1] == label2[1]:
-                            connected.update(get_connected_nets(other_id, processed, visited_points))
-                            connected_found = True
-                            break
-                            
-                        # Local label to power label connection
-                        # Any local label can connect to a power label with the same name
-                        if ((label1[0] == 'local' and label2[0] == 'power') or
-                            (label2[0] == 'local' and label1[0] == 'power')):
-                            local_label = label1[1] if label1[0] == 'local' else label2[1]
-                            power_label = label2[1] if label2[0] == 'power' else label1[1]
-                            
-                            # If the names match exactly, connect them
-                            if local_label == power_label:
-                                connected.update(get_connected_nets(other_id, processed, visited_points))
-                                connected_found = True
-                                break
-                            
-                        # Hierarchical label to local label connection
-                        # Any hierarchical label can connect to a local label with the same name
-                        if ((label1[0] == 'hierarchical' and label2[0] == 'local') or
-                            (label1[0] == 'local' and label2[0] == 'hierarchical')):
-                            hier_label = label1[1] if label1[0] == 'hierarchical' else label2[1]
-                            local_label = label2[1] if label2[0] == 'local' else label1[1]
-                            
-                            # If the names match exactly, connect them
-                            if hier_label == local_label:
-                                connected.update(get_connected_nets(other_id, processed, visited_points))
-                                connected_found = True
-                                break
-
-                        # Sheet pin to sheet pin connection
-                        # Connect sheet pins with the same name between different sheets
-                        if label1[0] == 'hierarchical' and label2[0] == 'hierarchical':
-                            # Check if both are sheet pins by looking for 'uuid' in their label info
-                            label1_info = next((l for l in labels['hierarchical'] if l['text'] == label1[1] and 'uuid' in l), None)
-                            label2_info = next((l for l in labels['hierarchical'] if l['text'] == label2[1] and 'uuid' in l), None)
-                            
-                            if label1_info and label2_info:
-                                # If they're from different sheets and have the same name, connect them
-                                if (label1_info['sheet_name'] != label2_info['sheet_name'] and 
-                                    label1_info['text'] == label2_info['text']):
-                                    connected.update(get_connected_nets(other_id, processed, visited_points))
-                                    connected_found = True
-                                    break
-                    if connected_found:
-                        break
+            # Check if any points overlap
+            if net_points & other_points:
+                connected.update(
+                    get_connected_nets(other_id, processed, visited_points, recursion_depth + 1)
+                )
                 
         return connected
     
-    # Create merged nets from groups
+    """Enhanced net merging with improved label handling"""
     merged_nets = {}
     processed = set()
+    max_iterations = len(net_groups) * 2  # Reasonable upper limit
+    iteration = 0
     
     for net_id in net_groups:
         if net_id in processed:
             continue
+            
+        if iteration > max_iterations:
+            print("Warning: Maximum merge iterations reached")
+            break
             
         # Find all connected nets
         group = get_connected_nets(net_id)
@@ -358,85 +500,42 @@ def merge_connected_nets(net_groups, wire_connections, labels):
             
             # Merge all information from grouped nets
             for gid in group:
-                net_info = net_groups[gid]
-                merged_net['pins'].extend(net_info['pins'])
-                merged_net['labels'].extend(net_info['labels'])
-                merged_net['connected_points'].update(net_info['connected_points'])
-                processed.add(gid)
-                
+                if gid in net_groups:  # Add safety check
+                    net_info = net_groups[gid]
+                    merged_net['pins'].extend(net_info['pins'])
+                    merged_net['labels'].extend(net_info['labels'])
+                    merged_net['connected_points'].update(net_info['connected_points'])
+                    processed.add(gid)
+                    
             # Remove duplicates
             merged_net['labels'] = list(set(merged_net['labels']))
             merged_nets[merged_id] = merged_net
-
-    # print("\n=== Final Merged Nets ===")
-    # for net_id, net_info in merged_nets.items():
-    #     print(f"\nMerged Net {net_id}:")
-    #     print(f"  Labels: {net_info['labels']}")
-    #     print(f"  Connected points: {net_info['connected_points']}")
+            
+        iteration += 1
+            
     return merged_nets
 
-def calculate_pin_connectivity(component_pins, wire_connections, labels):
+
+def calculate_pin_connectivity(component_pins, wire_connections, labels, sheet_hierarchy=None):
+    """Calculate connectivity between pins and labels with improved handling of multiple connections
+    
+    Args:
+        component_pins: Dict of component pins
+        wire_connections: List of wire connections
+        labels: Dict of labels by type
+        sheet_hierarchy: Optional sheet hierarchy information
+    
+    Returns:
+        dict: Calculated netlist
     """
-    Calculate connectivity between pins and labels with improved handling of multiple connections
-    """
-    # print("\n=== Starting Pin Connectivity Calculation ===")
     # Create initial nets from physical connections
     initial_nets = create_initial_nets(component_pins, wire_connections, labels)
     
     # Merge connected nets with wire_connections for physical connectivity check
     merged_nets = merge_connected_nets(initial_nets, wire_connections, labels)
     
-    # Format the final netlist
-    netlist = {}
+    # If we have sheet hierarchy information, merge across hierarchies
+    if sheet_hierarchy:
+        merged_nets = merge_hierarchical_nets(merged_nets, sheet_hierarchy)
     
-    for net_id, net_info in merged_nets.items():
-        # Group labels by type
-        power_labels = []
-        hier_labels = []
-        local_labels = []
-        
-        for label_type, label_name in net_info['labels']:
-            if label_type == 'power':
-                power_labels.append(label_name)
-            elif label_type == 'hierarchical':
-                hier_labels.append(label_name)
-            else:
-                local_labels.append(label_name)
-        
-        # Choose primary net name based on any available label
-        net_name = None
-        if power_labels:
-            net_name = power_labels[0]
-        elif hier_labels:
-            net_name = hier_labels[0]
-        elif local_labels:
-            net_name = local_labels[0]
-        else:
-            net_name = net_id
-            
-        # Skip empty nets
-        if not net_info['pins'] and not power_labels and not hier_labels and not local_labels:
-            continue
-        
-        # Create netlist entry
-        netlist[net_name] = {
-            'pins': [],
-            'power_labels': power_labels,
-            'hierarchical_labels': hier_labels,
-            'local_labels': local_labels
-        }
-        
-        # Add all pins that are physically connected
-        for comp, pin in net_info['pins']:
-            pin_pos = pin['absolute_position']
-            connected_points = get_connected_points(pin_pos, wire_connections)
-            
-            # Add pin if it's connected to any point in this net
-            if connected_points.intersection(net_info['connected_points']):
-                netlist[net_name]['pins'].append({
-                    'component': comp,
-                    'pin_number': pin['pin_number'],
-                    'pin_name': pin['pin_name']
-                })
-    
-    return netlist
+    return merged_nets

@@ -4,6 +4,7 @@ import os
 from kiutils.schematic import Schematic
 from skidl_kicad_parser import analyze_schematic
 
+
 def main(file_path, debug=False):
     """
     Main entry point for the KiCad schematic parser
@@ -12,8 +13,13 @@ def main(file_path, debug=False):
         file_path: Path to the KiCad schematic file
         debug: Enable debug output
     """
-    def analyze_schematics_recursive(file_path, base_path, depth=0, debug=False, parent_sheet=None):
+    def analyze_schematics_recursive(file_path, base_path, processed_sheets, depth=0, debug=False, parent_sheet=None):        
+            
+        if file_path in processed_sheets:
+            return
+        processed_sheets.add(file_path)
         try:
+
             print("\n" + "-" * 80)
             if parent_sheet:
                 print(f"Parent Sheet: {parent_sheet}")
@@ -35,7 +41,8 @@ def main(file_path, debug=False):
 
     # Usage
     base_path = os.path.dirname(file_path)
-    analyze_schematics_recursive(file_path, base_path, debug=debug)
+    processed_sheets = set()  # Initialize here
+    analyze_schematics_recursive(file_path, base_path, processed_sheets, debug=debug)
 
 
 if __name__ == "__main__":
