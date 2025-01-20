@@ -30,12 +30,9 @@ Core Files:
 This logic works well but needs to be refactored to handle more complex cases.  I recently implemented logic to combine labels and it has a few bugs.
 :
 - R12 pin 2 is not connected to anything, it should be connected to 3v3_monitor or divider_2
-- Power labels have duplicate entries in Netlist section under `Connected Labels`
 - divider_1 should be connected to 5v_monitor, which means J3 pin 3 should be connected to 5v_monitor
 - divider_2 should be connected to 3v3_monitor, which means J3 pin 4 should be connected to 3v3_monitor
-- label_test_powerx nets are listed as connected to themselves under `Connected Labels`, this is a duplicate entry since they are already connected to other labels
-- R9 pin 2 is not connected to anything, it should be connected to 5v_monitor or divider_1
-- R11 pin 1 is not connected to anything, it should be connected to 3v3_monitor or divider_2
+- What does it mean when the output file says "Merged from nets:"?  I do not see the net mentioned.  For example, R12 Pin 2 is said to merged from nets NET_9, but NET_9 is not listed anywhere else
 
 For reference, in the output file attached:
 - `lbael_test_power1` is connected to +5v so it should take on that net name when connecting to other parts

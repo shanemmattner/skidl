@@ -365,6 +365,10 @@ Type: wire
   End: (142.24, 88.9)
 
 Type: wire
+  Start: (156.21, 57.15)
+  End: (74.93, 57.15)
+
+Type: wire
   Start: (88.9, 95.25)
   End: (88.9, 99.06)
 
@@ -389,20 +393,12 @@ Type: wire
   End: (142.24, 93.98)
 
 Type: wire
-  Start: (152.4, 91.44)
-  End: (156.21, 91.44)
-
-Type: wire
   Start: (88.9, 68.58)
   End: (88.9, 81.28)
 
 Type: wire
   Start: (195.58, 139.7)
   End: (203.2, 139.7)
-
-Type: wire
-  Start: (152.4, 88.9)
-  End: (152.4, 91.44)
 
 Type: wire
   Start: (139.7, 95.25)
@@ -413,32 +409,16 @@ Type: wire
   End: (99.06, 76.2)
 
 Type: wire
-  Start: (148.59, 92.71)
-  End: (148.59, 93.98)
-
-Type: wire
-  Start: (149.86, 95.25)
-  End: (156.21, 95.25)
+  Start: (142.24, 95.25)
+  End: (147.32, 95.25)
 
 Type: wire
   Start: (142.24, 88.9)
   End: (142.24, 91.44)
 
 Type: wire
-  Start: (142.24, 95.25)
-  End: (149.86, 95.25)
-
-Type: wire
   Start: (146.05, 68.58)
   End: (146.05, 81.28)
-
-Type: wire
-  Start: (148.59, 93.98)
-  End: (149.86, 93.98)
-
-Type: wire
-  Start: (149.86, 93.98)
-  End: (149.86, 95.25)
 
 Type: wire
   Start: (195.58, 125.73)
@@ -447,14 +427,6 @@ Type: wire
 Type: wire
   Start: (88.9, 68.58)
   End: (99.06, 68.58)
-
-Type: wire
-  Start: (156.21, 92.71)
-  End: (148.59, 92.71)
-
-Type: wire
-  Start: (156.21, 91.44)
-  End: (156.21, 92.71)
 
 Type: wire
   Start: (133.35, 80.01)
@@ -481,6 +453,14 @@ Type: wire
   End: (107.95, 68.58)
 
 Type: wire
+  Start: (74.93, 57.15)
+  End: (74.93, 121.92)
+
+Type: wire
+  Start: (74.93, 121.92)
+  End: (147.32, 121.92)
+
+Type: wire
   Start: (195.58, 118.11)
   End: (201.93, 118.11)
 
@@ -493,8 +473,20 @@ Type: wire
   End: (115.57, 76.2)
 
 Type: wire
-  Start: (157.48, 88.9)
-  End: (152.4, 88.9)
+  Start: (147.32, 95.25)
+  End: (147.32, 121.92)
+
+Type: wire
+  Start: (161.29, 88.9)
+  End: (156.21, 88.9)
+
+Type: wire
+  Start: (156.21, 88.9)
+  End: (156.21, 57.15)
+
+Type: wire
+  Start: (147.32, 95.25)
+  End: (156.21, 95.25)
 
 === Labels ===
 
@@ -505,7 +497,7 @@ Local Labels:
   divider_1 at (193.04, 77.47)
   label_test_power1 at (195.58, 118.11)
   label_test_power4 at (193.04, 101.60)
-  divider_2 at (157.48, 88.90)
+  divider_2 at (161.29, 88.90)
   label_test_power3 at (195.58, 132.08)
   label_test_power4 at (195.58, 139.70)
   label_test_power2 at (193.04, 96.52)
@@ -538,126 +530,114 @@ Power Labels:
 +3V3:
   C11 Pin 1 (~)
   U4 Pin 2 (VO)
-  J4 Pin 2 (Pin_2)
-  #PWR035 Pin 1 (~)
   R12 Pin 1 (~)
   #PWR030 Pin 1 (~)
+  #PWR035 Pin 1 (~)
+  J4 Pin 2 (Pin_2)
   Power Labels:
     +3V3
   Local Labels:
     label_test_power2
   Merged from nets:
-    NET_4
-    NET_19
     NET_1
-    NET_24
-    NET_8
-    NET_34
+    NET_20
+    NET_16
 
 GND:
-  C11 Pin 2 (~)
-  R10 Pin 2 (~)
   #PWR025 Pin 1 (~)
+  R10 Pin 2 (~)
   #PWR028 Pin 1 (~)
-  C12 Pin 2 (~)
-  R11 Pin 2 (~)
-  #PWR036 Pin 1 (~)
-  #PWR032 Pin 1 (~)
-  #PWR033 Pin 1 (~)
-  J4 Pin 3 (Pin_3)
-  #PWR027 Pin 1 (~)
+  C10 Pin 2 (~)
+  C11 Pin 2 (~)
   #PWR031 Pin 1 (~)
   U4 Pin 1 (GND)
   #PWR029 Pin 1 (~)
+  J4 Pin 3 (Pin_3)
+  #PWR033 Pin 1 (~)
+  C12 Pin 2 (~)
+  #PWR036 Pin 1 (~)
+  #PWR032 Pin 1 (~)
+  R11 Pin 2 (~)
+  #PWR027 Pin 1 (~)
   C9 Pin 2 (~)
-  C10 Pin 2 (~)
   Power Labels:
     GND
   Local Labels:
     label_test_power3
   Merged from nets:
-    NET_26
-    NET_7
-    NET_32
-    NET_31
-    NET_39
-    NET_36
-    NET_10
-    NET_12
-    NET_29
-    NET_20
+    NET_6
+    NET_23
     NET_2
-    NET_33
     NET_3
-    NET_37
-    NET_28
     NET_17
+    NET_21
+    NET_8
+    NET_9
+    NET_14
 
 +5V:
   U4 Pin 3 (VI)
-  R9 Pin 1 (~)
   #PWR026 Pin 1 (~)
-  #PWR034 Pin 1 (~)
-  J4 Pin 1 (Pin_1)
+  R9 Pin 1 (~)
   C9 Pin 1 (~)
+  J4 Pin 1 (Pin_1)
+  #PWR034 Pin 1 (~)
   Power Labels:
     +5V
   Local Labels:
     label_test_power1
   Merged from nets:
-    NET_22
-    NET_11
-    NET_18
-    NET_6
+    NET_4
+    NET_15
     NET_5
-    NET_27
 
 MERGED_NET_4:
   R12 Pin 2 (~)
   Merged from nets:
-    NET_9
+    NET_7
 
 5v_monitor:
-  J3 Pin 1 (Pin_1)
-  R10 Pin 1 (~)
   R9 Pin 2 (~)
+  R10 Pin 1 (~)
   C10 Pin 1 (~)
+  J3 Pin 1 (Pin_1)
   Hierarchical Labels:
     5v_monitor
   Merged from nets:
-    NET_25
-    NET_13
-    NET_23
-    NET_35
+    NET_19
+    NET_10
 
 3v3_monitor:
-  J3 Pin 2 (Pin_2)
   C12 Pin 1 (~)
-  R11 Pin 1 (~)
+  J3 Pin 2 (Pin_2)
   Hierarchical Labels:
     3v3_monitor
   Merged from nets:
-    NET_30
-    NET_38
-    NET_14
+    NET_22
+    NET_11
 
 divider_1:
   J3 Pin 3 (Pin_3)
   Local Labels:
     divider_1
   Merged from nets:
-    NET_15
+    NET_12
 
 divider_2:
   J3 Pin 4 (Pin_4)
   Local Labels:
     divider_2
   Merged from nets:
-    NET_16
+    NET_13
 
 label_test_power4:
   J4 Pin 4 (Pin_4)
   Local Labels:
     label_test_power4
   Merged from nets:
-    NET_21
+    NET_18
+
+MERGED_NET_10:
+  R11 Pin 1 (~)
+  Merged from nets:
+    NET_24

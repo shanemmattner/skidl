@@ -92,68 +92,34 @@ def get_wire_connections(schematic):
     
     return wire_connections
 
+
 def find_labels_for_position(position, labels, wire_connections, tolerance=0.01):
     """
-    Find all labels connected to a given position, including power symbols, local labels, 
-    and hierarchical labels. Returns list of (type, name) tuples.
+    Enhanced label detection that checks all physically connected points
     """
-    def points_match(p1, p2, tolerance=0.01):
-        return (abs(p1[0] - p2[0]) <= tolerance and 
-                abs(p1[1] - p2[1]) <= tolerance)
+    # Get all physically connected points
+    connected_points = get_connected_points(position, wire_connections, tolerance=tolerance)
     
-    def get_connected_points(start_pos, wire_list, visited=None):
-        if visited is None:
-            visited = set()
-        
-        connected_points = {start_pos}
-        for wire in wire_list:
-            wire_start = (wire[0][0], wire[0][1])
-            wire_end = (wire[1][0], wire[1][1])
-            
-            wire_key = (wire_start, wire_end)
-            if wire_key in visited:
-                continue
-                
-            visited.add(wire_key)
-            
-            if points_match(start_pos, wire_start, tolerance):
-                connected_points.add(wire_end)
-                connected_points.update(
-                    get_connected_points(wire_end, wire_list, visited)
-                )
-            elif points_match(start_pos, wire_end, tolerance):
-                connected_points.add(wire_start)
-                connected_points.update(
-                    get_connected_points(wire_start, wire_list, visited)
-                )
-                
-        return connected_points
-
-    # Get all points connected to the given position
-    connected_points = get_connected_points(position, wire_connections)
-    
-    # Find all labels connected to these points
     found_labels = []
     
-    # Check power labels first (highest priority)
-    for label in labels['power']:
-        label_pos = (label['position'][0], label['position'][1])
-        if any(points_match(label_pos, p, tolerance) for p in connected_points):
-            found_labels.append(('power', label['text']))
-            
-    # Check hierarchical labels next
-    for label in labels['hierarchical']:
-        label_pos = (label['position'][0], label['position'][1])
-        if any(points_match(label_pos, p, tolerance) for p in connected_points):
-            found_labels.append(('hierarchical', label['text']))
-            
-    # Check local labels last
-    for label in labels['local']:
-        label_pos = (label['position'][0], label['position'][1])
-        if any(points_match(label_pos, p, tolerance) for p in connected_points):
-            found_labels.append(('local', label['text']))
-    
-    return found_labels
+    # Check each connected point against all label types
+    for point in connected_points:
+        # Check power labels
+        for label in labels['power']:
+            if points_match(point, label['position'], tolerance):
+                found_labels.append(('power', label['text']))
+                
+        # Check hierarchical labels  
+        for label in labels['hierarchical']:
+            if points_match(point, label['position'], tolerance):
+                found_labels.append(('hierarchical', label['text']))
+                
+        # Check local labels
+        for label in labels['local']:
+            if points_match(point, label['position'], tolerance):
+                found_labels.append(('local', label['text']))
+                
+    return list(set(found_labels))  # Remove duplicates
 
 
 def are_points_connected(point1, point2, wire_connections, labels, tolerance=0.01):
@@ -173,13 +139,24 @@ def are_points_connected(point1, point2, wire_connections, labels, tolerance=0.0
     def points_match(p1, p2, tolerance=0.01):
         return (abs(p1[0] - p2[0]) <= tolerance and 
                 abs(p1[1] - p2[1]) <= tolerance)
+            
+    def get_connected_points(start_pos, wire_list, visited=None, tolerance=0.01):
+        """
+        Find all points connected to start_pos through wires, recursively
         
-    def get_connected_points(start_pos, wire_list, visited=None):
-        """Find all points connected to start_pos through wires"""
+        Args:
+            start_pos: Starting point (x,y) tuple
+            wire_list: List of wire connections
+            visited: Set of already visited wire segments
+            tolerance: Distance tolerance for point matching
+            
+        Returns:
+            set: Set of all connected points
+        """
         if visited is None:
             visited = set()
             
-        # Convert point coordinates to 2-decimal precision for more reliable matching
+        # Convert point coordinates to 2-decimal precision for reliable matching
         start_pos = (round(start_pos[0], 2), round(start_pos[1], 2))
         connected_points = {start_pos}
         
@@ -194,18 +171,21 @@ def are_points_connected(point1, point2, wire_connections, labels, tolerance=0.0
             visited.add(wire_key)
             visited.add((wire_end, wire_start))  # Add both orientations
             
+            # Check if this wire connects to our point
             if points_match(start_pos, wire_start, tolerance):
                 connected_points.add(wire_end)
                 connected_points.update(
-                    get_connected_points(wire_end, wire_list, visited)
+                    get_connected_points(wire_end, wire_list, visited, tolerance)
                 )
             elif points_match(start_pos, wire_end, tolerance):
                 connected_points.add(wire_start)
                 connected_points.update(
-                    get_connected_points(wire_start, wire_list, visited)
+                    get_connected_points(wire_start, wire_list, visited, tolerance)
                 )
-                
+                    
         return connected_points
+
+
 
     # Get all points connected to point1 and point2 through wires
     p1_connected = get_connected_points(point1, wire_connections)
@@ -279,9 +259,19 @@ def points_match(p1, p2, tolerance=0.01):
     return (abs(p1[0] - p2[0]) <= tolerance and 
             abs(p1[1] - p2[1]) <= tolerance)
 
-def get_connected_points(start_pos, wire_list, visited=None):
+
+def get_connected_points(start_pos, wire_list, visited=None, tolerance=0.01):
     """
     Find all points connected to start_pos through wires, recursively
+    
+    Args:
+        start_pos: Starting point (x,y) tuple
+        wire_list: List of wire connections
+        visited: Set of already visited wire segments
+        tolerance: Distance tolerance for point matching
+        
+    Returns:
+        set: Set of all connected points
     """
     if visited is None:
         visited = set()
@@ -302,137 +292,202 @@ def get_connected_points(start_pos, wire_list, visited=None):
         visited.add((wire_end, wire_start))  # Add both orientations
         
         # Check if this wire connects to our point
-        if points_match(start_pos, wire_start):
+        if points_match(start_pos, wire_start, tolerance):
             connected_points.add(wire_end)
             connected_points.update(
-                get_connected_points(wire_end, wire_list, visited)
+                get_connected_points(wire_end, wire_list, visited, tolerance)
             )
-        elif points_match(start_pos, wire_end):
+        elif points_match(start_pos, wire_end, tolerance):
             connected_points.add(wire_start)
             connected_points.update(
-                get_connected_points(wire_start, wire_list, visited)
+                get_connected_points(wire_start, wire_list, visited, tolerance)
             )
                 
     return connected_points
 
+def point_on_wire_segment(point, wire_start, wire_end, tolerance=0.01):
+    """
+    Check if a point lies on a wire segment
+    """
+    # Convert to 2 decimal precision for reliable comparison
+    px, py = round(point[0], 2), round(point[1], 2)
+    x1, y1 = round(wire_start[0], 2), round(wire_start[1], 2)
+    x2, y2 = round(wire_end[0], 2), round(wire_end[1], 2)
+    
+    # Check if point is within the bounding box of the wire
+    if not (min(x1, x2) - tolerance <= px <= max(x1, x2) + tolerance and
+            min(y1, y2) - tolerance <= py <= max(y1, y2) + tolerance):
+        return False
+        
+    # For vertical wires
+    if abs(x1 - x2) < tolerance:
+        return abs(px - x1) < tolerance
+        
+    # For horizontal wires
+    if abs(y1 - y2) < tolerance:
+        return abs(py - y1) < tolerance
+        
+    # For diagonal wires (if any)
+    # Calculate distance from point to line
+    numerator = abs((y2-y1)*px - (x2-x1)*py + x2*y1 - y2*x1)
+    denominator = ((y2-y1)**2 + (x2-x1)**2)**0.5
+    distance = numerator/denominator
+    
+    return distance < tolerance
+
+
 def create_initial_nets(component_pins, wire_connections, labels):
     """
-    Create initial nets from physical connections and gather all connected labels
+    Create initial nets with improved connection tracking
     """
     net_groups = {}
     next_id = 1
+    point_to_net = {}  # Map points to their assigned net ID
     
-    # Process each pin from every component
+    # First pass: Create nets for physically connected points
     for component, pins in component_pins.items():
         for pin in pins:
             pin_pos = pin['absolute_position']
+            pin_pos_key = (round(pin_pos[0], 2), round(pin_pos[1], 2))
             
             # Get all physically connected points
             connected_points = get_connected_points(pin_pos, wire_connections)
+            connected_point_keys = {(round(p[0], 2), round(p[1], 2)) for p in connected_points}
             
-            # Gather all labels connected to these points
-            all_labels = []
-            for point in connected_points:
-                point_labels = find_labels_for_position(point, labels, wire_connections)
-                all_labels.extend(point_labels)
+            # Find if any points are already assigned to a net
+            existing_nets = set()
+            for point_key in connected_point_keys:
+                if point_key in point_to_net:
+                    existing_nets.add(point_to_net[point_key])
             
-            # Create new net entry
-            net_id = f"NET_{next_id}"
-            next_id += 1
-            
-            net_groups[net_id] = {
-                'pins': [(component, pin)],
-                'labels': all_labels,
-                'connected_points': connected_points
-            }
+            # If connected to existing net(s), merge into the first one
+            if existing_nets:
+                target_net_id = min(existing_nets)  # Use the lowest net ID
+                net_groups[target_net_id]['pins'].append((component, pin))
+                net_groups[target_net_id]['connected_points'].update(connected_points)
+                
+                # Update point mappings
+                for point_key in connected_point_keys:
+                    point_to_net[point_key] = target_net_id
+                    
+                # Merge other nets if multiple exist
+                for other_net_id in existing_nets:
+                    if other_net_id != target_net_id:
+                        net_groups[target_net_id]['pins'].extend(net_groups[other_net_id]['pins'])
+                        net_groups[target_net_id]['connected_points'].update(
+                            net_groups[other_net_id]['connected_points'])
+                        del net_groups[other_net_id]
+            else:
+                # Create new net
+                net_id = f"NET_{next_id}"
+                next_id += 1
+                
+                net_groups[net_id] = {
+                    'pins': [(component, pin)],
+                    'labels': [],
+                    'connected_points': connected_points
+                }
+                
+                # Map all points to this net
+                for point_key in connected_point_keys:
+                    point_to_net[point_key] = net_id
+    
+    # Second pass: Add label information
+    for net_id, net_info in net_groups.items():
+        # Find labels connected to any point in this net
+        all_labels = []
+        for point in net_info['connected_points']:
+            point_labels = find_labels_for_position(point, labels, wire_connections)
+            all_labels.extend(point_labels)
+        net_info['labels'] = list(set(all_labels))
     
     return net_groups
 
+
 def merge_connected_nets(net_groups):
     """
-    Merge nets that share any connections via labels or physical connections
+    Enhanced net merging with improved label handling and recursive connection search
     """
-    # Build connection map
-    label_to_nets = {}
-    point_to_nets = {}
-    
-    # First pass - map labels and points to their nets
-    for net_id, net_info in net_groups.items():
-        # Map labels to nets
-        for label in net_info['labels']:
-            label_key = (label[0], label[1])  # (type, name)
-            if label_key not in label_to_nets:
-                label_to_nets[label_key] = set()
-            label_to_nets[label_key].add(net_id)
+    def get_connected_nets(net_id, processed=None):
+        if processed is None:
+            processed = set()
+            
+        if net_id in processed:
+            return set()
+            
+        connected = {net_id}
+        processed.add(net_id)
         
-        # Map points to nets
-        for point in net_info['connected_points']:
-            point_key = (round(point[0], 2), round(point[1], 2))
-            if point_key not in point_to_nets:
-                point_to_nets[point_key] = set()
-            point_to_nets[point_key].add(net_id)
-    
-    # Second pass - merge nets
-    merged_nets = {}
+        net_info = net_groups[net_id]
+        
+        # Check label connections including transitive connections
+        # For example: if net1 has label1, net2 has label2, and label1 connects to label2,
+        # then net1 and net2 should be connected
+        net_labels = net_info['labels']
+        for other_id, other_info in net_groups.items():
+            if other_id in processed:
+                continue
+                
+            other_labels = other_info['labels']
+            
+            # Check for direct label name matches
+            for label1 in net_labels:
+                for label2 in other_labels:
+                    if label1[1] == label2[1]:  # Match on label name
+                        connected.update(get_connected_nets(other_id, processed))
+                        break
+                        
+        # Check point connections
+        net_points = net_info['connected_points']
+        for other_id, other_info in net_groups.items():
+            if other_id in processed:
+                continue
+                
+            other_points = other_info['connected_points']
+            
+            # Check if any points overlap
+            if net_points.intersection(other_points):
+                connected.update(get_connected_nets(other_id, processed))
+                
+        return connected
+
+    # Build initial groups using recursive connection search
+    merged_groups = []
     processed = set()
-    next_merged_id = 1
     
-    for net_id, net_info in net_groups.items():
+    for net_id in net_groups:
         if net_id in processed:
             continue
             
-        # Start a new merged net
+        group = get_connected_nets(net_id)
+        if group:
+            merged_groups.append(group)
+            processed.update(group)
+
+    # Create merged nets from groups
+    merged_nets = {}
+    for idx, group in enumerate(merged_groups, 1):
+        merged_id = f"MERGED_NET_{idx}"
         merged_net = {
-            'pins': net_info['pins'].copy(),
-            'labels': net_info['labels'].copy(),
-            'connected_points': net_info['connected_points'].copy(),
-            'source_nets': {net_id}
+            'pins': [],
+            'labels': [],
+            'connected_points': set(),
+            'source_nets': group
         }
         
-        # Find all connected nets through labels and points
-        connected = {net_id}
-        to_process = {net_id}
-        
-        while to_process:
-            current = to_process.pop()
-            current_info = net_groups[current]
+        # Merge all information from grouped nets
+        for net_id in group:
+            net_info = net_groups[net_id]
+            merged_net['pins'].extend(net_info['pins'])
+            merged_net['labels'].extend(net_info['labels'])
+            merged_net['connected_points'].update(net_info['connected_points'])
             
-            # Check label connections
-            for label in current_info['labels']:
-                label_key = (label[0], label[1])
-                for other_net in label_to_nets.get(label_key, set()):
-                    if other_net not in connected:
-                        connected.add(other_net)
-                        to_process.add(other_net)
-            
-            # Check point connections
-            for point in current_info['connected_points']:
-                point_key = (round(point[0], 2), round(point[1], 2))
-                for other_net in point_to_nets.get(point_key, set()):
-                    if other_net not in connected:
-                        connected.add(other_net)
-                        to_process.add(other_net)
-        
-        # Merge all connected nets
-        for other_net in connected:
-            if other_net != net_id:
-                other_info = net_groups[other_net]
-                merged_net['pins'].extend(other_info['pins'])
-                merged_net['labels'].extend(other_info['labels'])
-                merged_net['connected_points'].update(other_info['connected_points'])
-                merged_net['source_nets'].add(other_net)
-        
         # Remove duplicates
         merged_net['labels'] = list(set(merged_net['labels']))
-        
-        # Create new merged net ID
-        merged_id = f"MERGED_NET_{next_merged_id}"
-        next_merged_id += 1
-        
         merged_nets[merged_id] = merged_net
-        processed.update(connected)
-    
+
     return merged_nets
+
 
 def calculate_pin_connectivity(component_pins, wire_connections, labels):
     """
@@ -483,6 +538,7 @@ def calculate_pin_connectivity(component_pins, wire_connections, labels):
         }
     
     return netlist
+
 def parse_hierarchical_sheets(schematic, base_path):
     """
     Recursively parse hierarchical sheets and merge results into the main schematic.
