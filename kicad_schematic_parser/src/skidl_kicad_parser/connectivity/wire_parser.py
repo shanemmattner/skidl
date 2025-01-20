@@ -1,4 +1,4 @@
-from ..utils.geometry import points_match
+from ..utils.geometry import points_match, point_on_wire_segment
 
 def get_wire_connections(schematic):
     """
@@ -25,7 +25,7 @@ def get_connected_points(start_pos, wire_list, visited=None, tolerance=0.01):
         tolerance: Distance tolerance for point matching
         
     Returns:
-        set: Set of all connected points
+        set: Set of all connected points including points along wire segments
     """
     if visited is None:
         visited = set()
@@ -45,16 +45,21 @@ def get_connected_points(start_pos, wire_list, visited=None, tolerance=0.01):
         visited.add(wire_key)
         visited.add((wire_end, wire_start))  # Add both orientations
         
-        # Check if this wire connects to our point
-        if points_match(start_pos, wire_start, tolerance):
-            connected_points.add(wire_end)
-            connected_points.update(
-                get_connected_points(wire_end, wire_list, visited, tolerance)
-            )
-        elif points_match(start_pos, wire_end, tolerance):
+        # Check if this wire connects to our point at endpoints or along segment
+        if (points_match(start_pos, wire_start, tolerance) or 
+            points_match(start_pos, wire_end, tolerance) or 
+            point_on_wire_segment(start_pos, wire_start, wire_end, tolerance)):
+            
+            # Add both endpoints since the point connects to this wire
             connected_points.add(wire_start)
+            connected_points.add(wire_end)
+            
+            # Recursively find other connected points from both endpoints
             connected_points.update(
                 get_connected_points(wire_start, wire_list, visited, tolerance)
+            )
+            connected_points.update(
+                get_connected_points(wire_end, wire_list, visited, tolerance)
             )
                 
     return connected_points

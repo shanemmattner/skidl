@@ -1,7 +1,7 @@
 import os
 from kiutils.schematic import Schematic
 from .components.component_parser import get_component_pins
-from .connectivity.wire_parser import get_wire_connections
+from .connectivity.wire_parser import get_wire_connections, get_connected_points
 from .connectivity.net_parser import calculate_pin_connectivity
 from .labels.label_parser import parse_labels
 
@@ -23,7 +23,7 @@ def parse_hierarchical_sheets(schematic, base_path):
 
     return all_schematics
 
-def analyze_schematic(schematic, base_path):
+def analyze_schematic(schematic, base_path, debug=False):
     """
     Analyze schematic and generate comprehensive information about components, pins, and connectivity.
     """
@@ -46,7 +46,23 @@ def analyze_schematic(schematic, base_path):
         component_pins = get_component_pins(sch)
         all_component_pins.update(component_pins)
 
-    # Generate netlist
+    # Generate netlist with debug info
+    if debug:
+        print("\n=== Debug: Wire Connections ===")
+        for wire in all_wire_connections:
+            print(f"Wire from ({wire[0][0]:.2f}, {wire[0][1]:.2f}) to ({wire[1][0]:.2f}, {wire[1][1]:.2f})")
+            
+        print("\n=== Debug: Label Positions ===")
+        for label_type in ['local', 'hierarchical', 'power']:
+            print(f"\n{label_type.capitalize()} Labels:")
+            for label in all_labels[label_type]:
+                print(f"  {label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+                # Find connected points for each label
+                connected = get_connected_points(label['position'], all_wire_connections)
+                print("  Connected points:")
+                for point in connected:
+                    print(f"    ({point[0]:.2f}, {point[1]:.2f})")
+                    
     netlist = calculate_pin_connectivity(all_component_pins, all_wire_connections, all_labels)
 
     # Print component information

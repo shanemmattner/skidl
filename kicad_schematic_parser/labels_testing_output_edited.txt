@@ -710,6 +710,8 @@ GND:
   #PWR029 Pin 1 (~)
   Power Labels:
     GND
+  Local Labels:
+    label_test_power3
   Merged from nets:
     NET_23
     NET_2
@@ -738,6 +740,10 @@ GND:
 
 MERGED_NET_4:
   R12 Pin 2 (~)
+  Local Label:
+    divider_2
+  Hierarchical Label:
+    3v3_monitor
   Merged from nets:
     NET_7
 
@@ -748,6 +754,8 @@ MERGED_NET_4:
   J3 Pin 1 (Pin_1)
   Hierarchical Labels:
     5v_monitor
+  Local Label:
+    divider_1
   Merged from nets:
     NET_19
     NET_10
@@ -755,23 +763,36 @@ MERGED_NET_4:
 3v3_monitor:
   C12 Pin 1 (~)
   J3 Pin 2 (Pin_2)
+  R12 Pin 2 (~)
   Hierarchical Labels:
     3v3_monitor
+  Local Labels:
+    divider_2
   Merged from nets:
     NET_22
     NET_11
 
 divider_1:
   J3 Pin 3 (Pin_3)
+  R9 Pin 2 (~)
+  R10 Pin 1 (~)
+  C10 Pin 1 (~)
   Local Labels:
     divider_1
+  Hierarchical Labels:
+    5v_monitor
   Merged from nets:
     NET_12
 
 divider_2:
   J3 Pin 4 (Pin_4)
+  R12 Pin 2 (~)
+  R11 Pin 1 (~)
+  C12 Pin 1 (~)
   Local Labels:
     divider_2
+  Hierarchical Labels:
+    3v3_monitor
   Merged from nets:
     NET_13
 
@@ -779,6 +800,8 @@ label_test_power3:
   J4 Pin 3 (Pin_3)
   Local Labels:
     label_test_power3
+  Power Labels:
+    GND
   Merged from nets:
     NET_17
 
@@ -786,10 +809,19 @@ label_test_power4:
   J4 Pin 4 (Pin_4)
   Local Labels:
     label_test_power4
+    label_test_power1
+  Power Labels:
+    +5V
   Merged from nets:
     NET_18
 
 MERGED_NET_11:
   R11 Pin 1 (~)
+  R12 Pin 2 (~)
+  C12 Pin 1 (~)
+  Local Labels:
+    divider_2
+  Hierarchical Labels:
+    3v3_monitor
   Merged from nets:
     NET_24
