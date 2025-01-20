@@ -65,6 +65,13 @@ def analyze_schematic(schematic, base_path, debug=False):
                     
     netlist = calculate_pin_connectivity(all_component_pins, all_wire_connections, all_labels)
 
+    # Print sheet information
+    print("\n=== Sheets ===")
+    for sheet in schematic.sheets:
+        print(f"\nSheet: {sheet.sheetName.value}")
+        print(f"\tFile: {sheet.fileName.value}")
+        print(f"\tUUID: {sheet.uuid}")
+
     # Print component information
     print("\n=== Components ===")
     for symbol in schematic.schematicSymbols:

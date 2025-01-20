@@ -121,6 +121,16 @@
 				(justify left top)
 			)
 		)
+		(pin "3v3_monitor" input
+			(at 167.64 109.22 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+			(uuid "f871e7e3-b9d1-4ca8-96cc-dcf4117975fa")
+		)
 		(instances
 			(project "example_kicad_project"
 				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13"
@@ -196,6 +206,26 @@
 				)
 				(justify left top)
 			)
+		)
+		(pin "3v3_monitor" input
+			(at 133.35 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+			(uuid "07aab0d4-78c3-4900-8b73-3e2535a98882")
+		)
+		(pin "HW_VER" input
+			(at 111.76 54.61 180)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+			(uuid "a5980c16-7dce-4e10-b4a4-8add3a91b0bf")
 		)
 		(instances
 			(project "example_kicad_project"

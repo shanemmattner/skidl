@@ -16,6 +16,7 @@ def main(file_path, debug=False):
     base_path = os.path.dirname(file_path)
     try:
         schematic = Schematic().from_file(file_path)
+        # print(schematic)
         analyze_schematic(schematic, base_path, debug=debug)
     except Exception as e:
         print(f"Error processing schematic: {str(e)}")

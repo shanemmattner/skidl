@@ -2096,6 +2096,30 @@
 		)
 		(uuid "f76ef3e9-5413-4410-9559-8767ca00cae6")
 	)
+	(hierarchical_label "3v3_monitor"
+		(shape input)
+		(at 135.89 57.15 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "2eff04ec-d85c-46a6-b0c5-549f0c81bf86")
+	)
+	(hierarchical_label "HW_VER"
+		(shape input)
+		(at 102.87 107.95 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "d3eaeda4-56cc-4605-9f7b-74d2978842a9")
+	)
 	(symbol
 		(lib_id "power:GND")
 		(at 102.87 33.02 0)
