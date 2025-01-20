@@ -64,8 +64,21 @@ def find_labels_for_position(position, labels, wire_connections, tolerance=0.01)
 
 def create_initial_nets(component_pins, wire_connections, labels):
     """
-    Create initial nets with improved connection tracking
+    Create initial nets with improved connection tracking, including sheet pins
     """
+    # Add sheet pins as special "components"
+    for label in labels['hierarchical']:
+        if 'uuid' in label:  # This indicates it's a sheet pin
+            pin_info = {
+                'pin_number': '1',  # Sheet pins don't have numbers
+                'pin_name': label['text'],
+                'absolute_position': label['position'],
+                'electrical_type': label['shape']  # Sheet pins store type as 'shape' (input/output)
+            }
+            component_name = f"Sheet_{label['sheet_name']}"
+            if component_name not in component_pins:
+                component_pins[component_name] = []
+            component_pins[component_name].append(pin_info)
     def get_all_connected_points(point, visited=None):
         """Helper function to get all points connected to a point"""
         if visited is None:
@@ -304,6 +317,21 @@ def merge_connected_nets(net_groups, wire_connections, labels):
                                 connected.update(get_connected_nets(other_id, processed, visited_points))
                                 connected_found = True
                                 break
+
+                        # Sheet pin to sheet pin connection
+                        # Connect sheet pins with the same name between different sheets
+                        if label1[0] == 'hierarchical' and label2[0] == 'hierarchical':
+                            # Check if both are sheet pins by looking for 'uuid' in their label info
+                            label1_info = next((l for l in labels['hierarchical'] if l['text'] == label1[1] and 'uuid' in l), None)
+                            label2_info = next((l for l in labels['hierarchical'] if l['text'] == label2[1] and 'uuid' in l), None)
+                            
+                            if label1_info and label2_info:
+                                # If they're from different sheets and have the same name, connect them
+                                if (label1_info['sheet_name'] != label2_info['sheet_name'] and 
+                                    label1_info['text'] == label2_info['text']):
+                                    connected.update(get_connected_nets(other_id, processed, visited_points))
+                                    connected_found = True
+                                    break
                     if connected_found:
                         break
                 

@@ -5,6 +5,98 @@
 	(uuid "139408cf-b4ac-4ccf-8751-afbb6def1f13")
 	(paper "A4")
 	(lib_symbols)
+	(wire
+		(pts
+			(xy 107.95 54.61) (xy 111.76 54.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "09123bfc-98ab-45d5-93a2-ec4907f3ec93")
+	)
+	(wire
+		(pts
+			(xy 57.15 55.88) (xy 57.15 40.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "23f01822-7f98-40bb-8915-75a0aca8c76a")
+	)
+	(wire
+		(pts
+			(xy 107.95 40.64) (xy 107.95 54.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ac137208-ddb4-4f08-a7f2-36c0908d0436")
+	)
+	(wire
+		(pts
+			(xy 167.64 109.22) (xy 173.99 109.22)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b88f12ff-49f2-4a4f-888b-d9d5f0e622f4")
+	)
+	(wire
+		(pts
+			(xy 137.16 60.96) (xy 133.35 60.96)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bf6ec14e-783b-4de5-a5f4-2a07e20aea1e")
+	)
+	(wire
+		(pts
+			(xy 57.15 55.88) (xy 54.61 55.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e4ac251f-c686-4a44-84b0-90116fbddc3f")
+	)
+	(wire
+		(pts
+			(xy 57.15 40.64) (xy 107.95 40.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fab76d43-6375-4a84-ac6f-20bc7d78cda8")
+	)
+	(label "VDD_MONITOR"
+		(at 137.16 60.96 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "2a9ff045-7a6d-4344-b1fc-1bd0a27572f9")
+	)
+	(label "VDD_MONITOR"
+		(at 173.99 109.22 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "4888b37e-f99b-4764-94ae-31d50eeb8280")
+	)
 	(sheet
 		(at 36.83 48.26)
 		(size 17.78 20.32)
@@ -54,7 +146,7 @@
 		)
 	)
 	(sheet
-		(at 143.51 48.26)
+		(at 161.29 48.26)
 		(size 13.97 21.59)
 		(fields_autoplaced yes)
 		(stroke
@@ -66,7 +158,7 @@
 		)
 		(uuid "8234fcde-2a25-40ed-bf1a-aa4bf9bd93ad")
 		(property "Sheetname" "wire_conn_test"
-			(at 143.51 47.5484 0)
+			(at 161.29 47.5484 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -75,7 +167,7 @@
 			)
 		)
 		(property "Sheetfile" "wire_conn_test.kicad_sch"
-			(at 143.51 70.4346 0)
+			(at 161.29 70.4346 0)
 			(effects
 				(font
 					(size 1.27 1.27)
