@@ -12,9 +12,11 @@ def main(file_path, debug=False):
         file_path: Path to the KiCad schematic file
         debug: Enable debug output
     """
-    def analyze_schematics_recursive(file_path, base_path, depth=0, debug=False):
+    def analyze_schematics_recursive(file_path, base_path, depth=0, debug=False, parent_sheet=None):
         try:
             print("\n" + "-" * 80)
+            if parent_sheet:
+                print(f"Parent Sheet: {parent_sheet}")
             print(f"*******  {'  ' * depth}Analyzing: {file_path}  *******")
             schematic = Schematic().from_file(file_path)
             analyze_schematic(schematic, base_path, debug=debug)  # Your existing analysis function
@@ -25,10 +27,11 @@ def main(file_path, debug=False):
                 for sheet in schematic.sheets:
                     sub_file_path = os.path.join(base_path, sheet.fileName.value)
                     # Recursively analyze the sub-schematic
-                    analyze_schematics_recursive(sub_file_path, base_path, depth + 1, debug=debug)
+                    analyze_schematics_recursive(sub_file_path, base_path, depth + 1, debug=debug, parent_sheet=file_path)
                     
         except Exception as e:
             print(f"{'  ' * depth}Error processing {file_path}: {str(e)}")
+                    
 
     # Usage
     base_path = os.path.dirname(file_path)
