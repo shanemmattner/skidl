@@ -1,6 +1,6 @@
-# KiCad Schematic Parser
+# SKiDL KiCad Schematic Parser
 
-A Python tool for parsing and analyzing KiCad schematic files. This tool extracts comprehensive information about components, pins, connections, and labels from KiCad schematics.
+A Python module for SKiDL that parses and analyzes KiCad schematic files. This module enables SKiDL to extract comprehensive information about components, pins, connections, and labels from KiCad schematics, allowing for circuit definition in code.
 
 ## Features
 
@@ -16,7 +16,7 @@ A Python tool for parsing and analyzing KiCad schematic files. This tool extract
 ```
 src/
 ├── main.py                     # Main entry point
-└── kicad_parser/              # Main package
+└── skidl_kicad_parser/        # Main package for SKiDL integration
     ├── __init__.py            # Package initialization
     ├── parser.py              # Main parser functionality
     ├── components/            # Component parsing
@@ -88,12 +88,44 @@ The project is organized into modules:
 - `labels`: Processes different types of schematic labels
 - `utils`: Contains common utility functions
 
-Tests are included in the `tests` directory and can be run using pytest.
+### Running Tests
+
+Tests are located in `src/kicad_parser/tests`. To run the tests:
+
+1. Install pytest if you haven't already:
+```bash
+pip install pytest
+```
+
+2. Run tests from the project root:
+```bash
+pytest
+```
+
+The test suite includes:
+- Pin position calculations
+- Component parsing
+- Wire connectivity analysis
+- Label detection
+- Net analysis
+
+Test schematics are included in `src/kicad_parser/tests/test_schematics/`.
 
 ## Dependencies
 
 - Python 3.6+
+- SKiDL (for circuit definition in code)
 - kiutils (for KiCad schematic file parsing)
+
+## Integration with SKiDL
+
+This module is designed to be integrated with SKiDL, a Python package that allows you to define electronic circuits using Python code. The parser extracts KiCad schematic information that can be used to:
+
+1. Create SKiDL Circuit objects from existing KiCad schematics
+2. Convert between SKiDL and KiCad representations
+3. Enable hybrid workflows combining code-defined and schematic-captured circuits
+
+For more information about SKiDL, visit: [SKiDL Documentation](https://xesscorp.github.io/skidl/docs/_site/)
 
 ## License
 

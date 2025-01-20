@@ -2,7 +2,7 @@ import pytest
 from kiutils.schematic import Schematic
 import math
 import os
-from kiutils_test import (
+from skidl_kicad_parser.components.component_parser import (
     get_component_pins,
     find_symbol_definition
 )

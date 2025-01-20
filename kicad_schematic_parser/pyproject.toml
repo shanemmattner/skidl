@@ -1,0 +1,13 @@
+[project]
+name = "skidl_kicad_parser"
+version = "0.1.0"
+description = "KiCad schematic parser module for SKiDL"
+dependencies = [
+    "skidl",
+    "kiutils",
+    "pytest"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["src/skidl_kicad_parser/tests"]

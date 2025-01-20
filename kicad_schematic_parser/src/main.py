@@ -2,7 +2,7 @@
 import sys
 import os
 from kiutils.schematic import Schematic
-from kicad_parser import analyze_schematic
+from skidl_kicad_parser import analyze_schematic
 
 def main(file_path):
     """
