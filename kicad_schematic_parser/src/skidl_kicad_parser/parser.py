@@ -52,16 +52,16 @@ def analyze_schematic(schematic, base_path, debug=False):
         for wire in all_wire_connections:
             print(f"Wire from ({wire[0][0]:.2f}, {wire[0][1]:.2f}) to ({wire[1][0]:.2f}, {wire[1][1]:.2f})")
             
-        print("\n=== Debug: Label Positions ===")
+        # print("\n=== Debug: Label Positions ===")
         for label_type in ['local', 'hierarchical', 'power']:
-            print(f"\n{label_type.capitalize()} Labels:")
+            # print(f"\n{label_type.capitalize()} Labels:")
             for label in all_labels[label_type]:
-                print(f"\t{label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+                # print(f"\t{label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
                 # Find connected points for each label
                 connected = get_connected_points(label['position'], all_wire_connections)
-                print("\tConnected points:")
-                for point in connected:
-                    print(f"\t\t({point[0]:.2f}, {point[1]:.2f})")
+                # print("\tConnected points:")
+                # for point in connected:
+                #     print(f"\t\t({point[0]:.2f}, {point[1]:.2f})")
                     
     netlist = calculate_pin_connectivity(all_component_pins, all_wire_connections, all_labels)
 
@@ -101,18 +101,18 @@ def analyze_schematic(schematic, base_path, debug=False):
                 print(f"\tEnd: ({item.points[1].X}, {item.points[1].Y})")
 
     # Print labels
-    print("\n=== Labels ===")
-    print("\nLocal Labels:")
-    for label in all_labels['local']:
-        print(f"\t{label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+    # print("\n=== Labels ===")
+    # print("\nLocal Labels:")
+    # for label in all_labels['local']:
+    #     print(f"\t{label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
         
-    print("\nHierarchical Labels:")
-    for label in all_labels['hierarchical']:
-        print(f"\t{label['text']} ({label['shape']}) at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+    # print("\nHierarchical Labels:")
+    # for label in all_labels['hierarchical']:
+    #     print(f"\t{label['text']} ({label['shape']}) at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
         
-    print("\nPower Labels:")
-    for label in all_labels['power']:
-        print(f"\t{label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+    # print("\nPower Labels:")
+    # for label in all_labels['power']:
+    #     print(f"\t{label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
 
     # Print netlist
     print("\n=== Netlist ===")

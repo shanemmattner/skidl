@@ -6,6 +6,7 @@ def find_labels_for_position(position, labels, wire_connections, tolerance=0.01)
     """
     Enhanced label detection that checks all physically connected points
     """
+    # print(f"\nFinding labels for position {position}")
     def get_all_connected_points(point, visited=None):
         """Helper function to get all points connected to a point"""
         if visited is None:
@@ -58,6 +59,7 @@ def find_labels_for_position(position, labels, wire_connections, tolerance=0.01)
             if points_match(point, label['position'], tolerance):
                 found_labels.append(('local', label['text']))
                 
+    # print(f"Found labels: {found_labels}")
     return list(set(found_labels))  # Remove duplicates
 
 def create_initial_nets(component_pins, wire_connections, labels):
@@ -161,6 +163,22 @@ def merge_connected_nets(net_groups, wire_connections, labels):
     """
     Enhanced net merging with improved label handling and recursive connection search
     """
+    # print("\n=== Starting Net Merging ===")
+    # print("\nDumping all labels for reference:")
+    # print("Power labels:", [f"{l['text']} at {l['position']}" for l in labels['power']])
+    # print("Hierarchical labels:", [f"{l['text']} at {l['position']}" for l in labels['hierarchical']])
+    # print("Local labels:", [f"{l['text']} at {l['position']}" for l in labels['local']])
+    
+    # for net_id, net_info in net_groups.items():
+        # print(f"\nNet {net_id}:")
+        # print(f"  Connected points: {net_info['connected_points']}")
+        # print(f"  Labels: {net_info['labels']}")
+        
+        # Debug: Print all labels at each connected point
+        # for point in net_info['connected_points']:
+        #     point_labels = find_labels_for_position(point, labels, wire_connections)
+        #     if point_labels:
+                # print(f"  Point {point} has labels: {point_labels}")
     def get_all_connected_points(points, visited=None):
         """Helper function to get all points connected to a set of points"""
         if visited is None:
@@ -235,20 +253,57 @@ def merge_connected_nets(net_groups, wire_connections, labels):
                 # Get all labels for this net's points
                 net_labels = set()
                 for point in net_points:
-                    net_labels.update(find_labels_for_position(point, labels, wire_connections))
+                    point_labels = find_labels_for_position(point, labels, wire_connections)
+                    # print(f"\nChecking labels at point {point} for net {net_id}")
+                    # print(f"Found labels: {point_labels}")
+                    net_labels.update(point_labels)
                 
                 # Get all labels for other net's points
                 other_labels = set()
                 for point in other_points:
-                    other_labels.update(find_labels_for_position(point, labels, wire_connections))
+                    point_labels = find_labels_for_position(point, labels, wire_connections)
+                    # print(f"Checking labels at point {point} for other net {other_id}")
+                    # print(f"Found labels: {point_labels}")
+                    other_labels.update(point_labels)
                 
-                # Check if any labels match
+                # print(f"\nComparing labels between nets {net_id} and {other_id}:")
+                # print(f"Net {net_id} labels: {net_labels}")
+                # print(f"Net {other_id} labels: {other_labels}")
+                
+                # Check if any labels match, considering connectivity rules
                 for label1 in net_labels:
                     for label2 in other_labels:
-                        if label1[1] == label2[1]:  # Match on label name
+                        # Direct match - same type and name
+                        if label1[0] == label2[0] and label1[1] == label2[1]:
                             connected.update(get_connected_nets(other_id, processed, visited_points))
                             connected_found = True
                             break
+                            
+                        # Local label to power label connection
+                        # Any local label can connect to a power label with the same name
+                        if ((label1[0] == 'local' and label2[0] == 'power') or
+                            (label2[0] == 'local' and label1[0] == 'power')):
+                            local_label = label1[1] if label1[0] == 'local' else label2[1]
+                            power_label = label2[1] if label2[0] == 'power' else label1[1]
+                            
+                            # If the names match exactly, connect them
+                            if local_label == power_label:
+                                connected.update(get_connected_nets(other_id, processed, visited_points))
+                                connected_found = True
+                                break
+                            
+                        # Hierarchical label to local label connection
+                        # Any hierarchical label can connect to a local label with the same name
+                        if ((label1[0] == 'hierarchical' and label2[0] == 'local') or
+                            (label1[0] == 'local' and label2[0] == 'hierarchical')):
+                            hier_label = label1[1] if label1[0] == 'hierarchical' else label2[1]
+                            local_label = label2[1] if label2[0] == 'local' else label1[1]
+                            
+                            # If the names match exactly, connect them
+                            if hier_label == local_label:
+                                connected.update(get_connected_nets(other_id, processed, visited_points))
+                                connected_found = True
+                                break
                     if connected_found:
                         break
                 
@@ -285,12 +340,18 @@ def merge_connected_nets(net_groups, wire_connections, labels):
             merged_net['labels'] = list(set(merged_net['labels']))
             merged_nets[merged_id] = merged_net
 
+    # print("\n=== Final Merged Nets ===")
+    # for net_id, net_info in merged_nets.items():
+    #     print(f"\nMerged Net {net_id}:")
+    #     print(f"  Labels: {net_info['labels']}")
+    #     print(f"  Connected points: {net_info['connected_points']}")
     return merged_nets
 
 def calculate_pin_connectivity(component_pins, wire_connections, labels):
     """
     Calculate connectivity between pins and labels with improved handling of multiple connections
     """
+    # print("\n=== Starting Pin Connectivity Calculation ===")
     # Create initial nets from physical connections
     initial_nets = create_initial_nets(component_pins, wire_connections, labels)
     
