@@ -12,26 +12,27 @@ def main(file_path, debug=False):
         file_path: Path to the KiCad schematic file
         debug: Enable debug output
     """
-    # Load the schematic
+    def analyze_schematics_recursive(file_path, base_path, depth=0, debug=False):
+        try:
+            print(f"/n/r*****************  {'  ' * depth}Analyzing: {file_path}  *****************")
+            schematic = Schematic().from_file(file_path)
+            analyze_schematic(schematic, base_path, debug=debug)  # Your existing analysis function
+
+            # Process all sub-sheets recursively
+            if schematic.sheets:
+                print(f"{'  ' * depth}=== Sub-sheets found ===")
+                for sheet in schematic.sheets:
+                    sub_file_path = os.path.join(base_path, sheet.fileName.value)
+                    # Recursively analyze the sub-schematic
+                    analyze_schematics_recursive(sub_file_path, base_path, depth + 1, debug=debug)
+                    
+        except Exception as e:
+            print(f"{'  ' * depth}Error processing {file_path}: {str(e)}")
+
+    # Usage
     base_path = os.path.dirname(file_path)
-    try:
-        print(file_path)
-        schematic = Schematic().from_file(file_path)
-        # print(f"kiutils Schematic() object: {schematic}\n\r")
+    analyze_schematics_recursive(file_path, base_path, debug=debug)
 
-        analyze_schematic(schematic, base_path, debug=debug)
-
-        print("\n=== Sheets Returned ===")
-        for sheet in schematic.sheets:
-            file_path_sub = os.path.join(base_path, sheet.fileName.value)
-            schematic = Schematic().from_file(file_path_sub)
-            analyze_schematic(schematic, sheet.fileName.value, debug=debug)
-            # print(f"\nSheet: {sheet.sheetName.value}")
-            # print(f"\tFile: {sheet.fileName.value}")
-            # print(f"\tUUID: {sheet.uuid}")
-    except Exception as e:
-        print(f"Error processing schematic: {str(e)}")
-        sys.exit(1)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or len(sys.argv) > 3:
