@@ -1272,6 +1272,18 @@
 		)
 		(uuid "78a39537-c562-4d33-a25d-ea6964d7cf3d")
 	)
+	(hierarchical_label "VIN"
+		(shape input)
+		(at 124.46 58.42 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "ee4114b7-ef50-4e1f-a893-c0853ead0b2c")
+	)
 	(symbol
 		(lib_id "Device:R")
 		(at 175.26 92.71 0)
@@ -2774,72 +2786,6 @@
 			(project "example_kicad_project"
 				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/8234fcde-2a25-40ed-bf1a-aa4bf9bd93ad"
 					(reference "C6")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:+5V")
-		(at 134.62 58.42 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "e443913d-3d80-4ac3-bfa9-c3fdd736bb38")
-		(property "Reference" "#PWR03"
-			(at 134.62 62.23 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Value" "+5V"
-			(at 134.62 53.34 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 134.62 58.42 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" ""
-			(at 134.62 58.42 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+5V\""
-			(at 134.62 58.42 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "55058735-7e4b-4c42-b0b0-a101d4c0383c")
-		)
-		(instances
-			(project "example_kicad_project"
-				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/8234fcde-2a25-40ed-bf1a-aa4bf9bd93ad"
-					(reference "#PWR03")
 					(unit 1)
 				)
 			)

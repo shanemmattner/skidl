@@ -4,7 +4,7 @@ A Python module for SKiDL that parses and analyzes KiCad schematic files. This m
 
 ## Next Steps
 - Hierarchical projects
-  - detect hierarchical labels in sheets
+  - print out all schematic sheets recursively
   - detect connection of hierarchical labels with wires or local labels or hierarchical labels
 ## Features
 
