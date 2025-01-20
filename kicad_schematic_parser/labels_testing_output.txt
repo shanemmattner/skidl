@@ -37,759 +37,720 @@ Wire from (147.32, 95.25) to (156.21, 95.25)
 === Debug: Label Positions ===
 
 Local Labels:
-  label_test_power3 at (193.04, 99.06)
-  Connected points:
-    (193.04, 99.06)
-  divider_1 at (95.25, 95.25)
-  Connected points:
-    (88.90, 95.25)
-    (95.25, 95.25)
-    (105.41, 95.25)
-  label_test_power2 at (195.58, 125.73)
-  Connected points:
-    (201.93, 125.73)
-    (195.58, 125.73)
-  divider_1 at (193.04, 77.47)
-  Connected points:
-    (193.04, 77.47)
-  label_test_power1 at (195.58, 118.11)
-  Connected points:
-    (195.58, 118.11)
-    (201.93, 118.11)
-  label_test_power4 at (193.04, 101.60)
-  Connected points:
-    (193.04, 101.60)
-  divider_2 at (161.29, 88.90)
-  Connected points:
-    (156.21, 88.90)
-    (161.29, 88.90)
-  label_test_power3 at (195.58, 132.08)
-  Connected points:
-    (195.58, 130.81)
-    (195.58, 132.08)
-  label_test_power4 at (195.58, 139.70)
-  Connected points:
-    (203.20, 139.70)
-    (195.58, 139.70)
-  label_test_power2 at (193.04, 96.52)
-  Connected points:
-    (193.04, 96.52)
-  label_test_power1 at (193.04, 93.98)
-  Connected points:
-    (193.04, 93.98)
-  label_test_power1 at (203.20, 139.70)
-  Connected points:
-    (203.20, 139.70)
-    (195.58, 139.70)
-  divider_2 at (193.04, 80.01)
-  Connected points:
-    (193.04, 80.01)
+	label_test_power3 at (193.04, 99.06)
+	Connected points:
+		(193.04, 99.06)
+	divider_1 at (95.25, 95.25)
+	Connected points:
+		(88.90, 95.25)
+		(95.25, 95.25)
+		(105.41, 95.25)
+	label_test_power2 at (195.58, 125.73)
+	Connected points:
+		(201.93, 125.73)
+		(195.58, 125.73)
+	divider_1 at (193.04, 77.47)
+	Connected points:
+		(193.04, 77.47)
+	label_test_power1 at (195.58, 118.11)
+	Connected points:
+		(195.58, 118.11)
+		(201.93, 118.11)
+	label_test_power4 at (193.04, 101.60)
+	Connected points:
+		(193.04, 101.60)
+	divider_2 at (161.29, 88.90)
+	Connected points:
+		(156.21, 88.90)
+		(161.29, 88.90)
+	label_test_power3 at (195.58, 132.08)
+	Connected points:
+		(195.58, 130.81)
+		(195.58, 132.08)
+	label_test_power4 at (195.58, 139.70)
+	Connected points:
+		(203.20, 139.70)
+		(195.58, 139.70)
+	label_test_power2 at (193.04, 96.52)
+	Connected points:
+		(193.04, 96.52)
+	label_test_power1 at (193.04, 93.98)
+	Connected points:
+		(193.04, 93.98)
+	label_test_power1 at (203.20, 139.70)
+	Connected points:
+		(203.20, 139.70)
+		(195.58, 139.70)
+	divider_2 at (193.04, 80.01)
+	Connected points:
+		(193.04, 80.01)
 
 Hierarchical Labels:
-  5v_monitor at (193.04, 72.39)
-  Connected points:
-    (193.04, 72.39)
-  5v_monitor at (105.41, 95.25)
-  Connected points:
-    (88.90, 95.25)
-    (105.41, 95.25)
-  3v3_monitor at (156.21, 95.25)
-  Connected points:
-    (147.32, 95.25)
-    (156.21, 95.25)
-  3v3_monitor at (193.04, 74.93)
-  Connected points:
-    (193.04, 74.93)
+	5v_monitor at (193.04, 72.39)
+	Connected points:
+		(193.04, 72.39)
+	5v_monitor at (105.41, 95.25)
+	Connected points:
+		(88.90, 95.25)
+		(105.41, 95.25)
+	3v3_monitor at (156.21, 95.25)
+	Connected points:
+		(147.32, 95.25)
+		(156.21, 95.25)
+	3v3_monitor at (193.04, 74.93)
+	Connected points:
+		(193.04, 74.93)
 
 Power Labels:
-  +5V at (201.93, 118.11)
-  Connected points:
-    (195.58, 118.11)
-    (201.93, 118.11)
-  GND at (88.90, 106.68)
-  Connected points:
-    (88.90, 106.68)
-  GND at (201.93, 130.81)
-  Connected points:
-    (195.58, 130.81)
-    (201.93, 130.81)
-  +5V at (99.06, 68.58)
-  Connected points:
-    (88.90, 68.58)
-    (99.06, 68.58)
-  GND at (139.70, 106.68)
-  Connected points:
-    (139.70, 106.68)
-  GND at (99.06, 80.01)
-  Connected points:
-    (99.06, 76.20)
-    (99.06, 80.01)
-  +3V3 at (201.93, 125.73)
-  Connected points:
-    (201.93, 125.73)
-    (195.58, 125.73)
-  GND at (156.21, 102.87)
-  Connected points:
-    (156.21, 102.87)
-  GND at (105.41, 102.87)
-  Connected points:
-    (105.41, 102.87)
-  GND at (133.35, 80.01)
-  Connected points:
-    (133.35, 76.20)
-    (133.35, 80.01)
-  +3V3 at (133.35, 68.58)
-  Connected points:
-    (146.05, 81.28)
-    (146.05, 68.58)
-    (133.35, 68.58)
-  GND at (115.57, 80.01)
-  Connected points:
-    (115.57, 76.20)
-    (115.57, 80.01)
+	+5V at (201.93, 118.11)
+	Connected points:
+		(195.58, 118.11)
+		(201.93, 118.11)
+	GND at (88.90, 106.68)
+	Connected points:
+		(88.90, 106.68)
+	GND at (201.93, 130.81)
+	Connected points:
+		(195.58, 130.81)
+		(201.93, 130.81)
+	+5V at (99.06, 68.58)
+	Connected points:
+		(88.90, 68.58)
+		(99.06, 68.58)
+	GND at (139.70, 106.68)
+	Connected points:
+		(139.70, 106.68)
+	GND at (99.06, 80.01)
+	Connected points:
+		(99.06, 76.20)
+		(99.06, 80.01)
+	+3V3 at (201.93, 125.73)
+	Connected points:
+		(201.93, 125.73)
+		(195.58, 125.73)
+	GND at (156.21, 102.87)
+	Connected points:
+		(156.21, 102.87)
+	GND at (105.41, 102.87)
+	Connected points:
+		(105.41, 102.87)
+	GND at (133.35, 80.01)
+	Connected points:
+		(133.35, 76.20)
+		(133.35, 80.01)
+	+3V3 at (133.35, 68.58)
+	Connected points:
+		(146.05, 81.28)
+		(146.05, 68.58)
+		(133.35, 68.58)
+	GND at (115.57, 80.01)
+	Connected points:
+		(115.57, 76.20)
+		(115.57, 80.01)
 
 === Components ===
 
 Component: Device/C
-Properties:
-  Reference: C11
-  Value: C
-  Footprint: Capacitor_SMD:C_0603_1608Metric
-  Datasheet: ~
-  Description: Unpolarized capacitor
-Position: (133.35, 72.39), Angle: 0
+	Properties:
+		Reference: C11
+		Value: C
+		Footprint: Capacitor_SMD:C_0603_1608Metric
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (133.35, 72.39), Angle: 0
 Unit: 1
 
 Component: Regulator_Linear/NCP1117-3.3_SOT223
-Properties:
-  Reference: U4
-  Value: NCP1117-3.3_SOT223
-  Footprint: Package_TO_SOT_SMD:SOT-223-3_TabPin2
-  Datasheet: http://www.onsemi.com/pub_link/Collateral/NCP1117-D.PDF
-  Description: 1A Low drop-out regulator, Fixed Output 3.3V, SOT-223
-Position: (115.57, 68.58), Angle: 0
+	Properties:
+		Reference: U4
+		Value: NCP1117-3.3_SOT223
+		Footprint: Package_TO_SOT_SMD:SOT-223-3_TabPin2
+		Datasheet: http://www.onsemi.com/pub_link/Collateral/NCP1117-D.PDF
+		Description: 1A Low drop-out regulator, Fixed Output 3.3V, SOT-223
+	Position: (115.57, 68.58), Angle: 0
 Unit: 1
 
 Component: Device/R
-Properties:
-  Reference: R12
-  Value: R
-  Footprint: Resistor_SMD:R_0603_1608Metric
-  Datasheet: ~
-  Description: Resistor
-Position: (146.05, 85.09), Angle: 0
+	Properties:
+		Reference: R12
+		Value: R
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (146.05, 85.09), Angle: 0
 Unit: 1
 
 Component: Connector_Generic/Conn_01x04
-Properties:
-  Reference: J3
-  Value: Conn_01x04
-  Footprint: 
-  Datasheet: ~
-  Description: Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)
-Position: (198.12, 74.93), Angle: 0
+	Properties:
+		Reference: J3
+		Value: Conn_01x04
+		Footprint: 
+		Datasheet: ~
+		Description: Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)
+	Position: (198.12, 74.93), Angle: 0
 Unit: 1
 
 Component: Connector_Generic/Conn_01x04
-Properties:
-  Reference: J4
-  Value: Conn_01x04
-  Footprint: 
-  Datasheet: ~
-  Description: Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)
-Position: (198.12, 96.52), Angle: 0
+	Properties:
+		Reference: J4
+		Value: Conn_01x04
+		Footprint: 
+		Datasheet: ~
+		Description: Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)
+	Position: (198.12, 96.52), Angle: 0
 Unit: 1
 
 Component: Device/R
-Properties:
-  Reference: R9
-  Value: R
-  Footprint: Resistor_SMD:R_0603_1608Metric
-  Datasheet: ~
-  Description: Resistor
-Position: (88.9, 85.09), Angle: 0
+	Properties:
+		Reference: R9
+		Value: R
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (88.9, 85.09), Angle: 0
 Unit: 1
 
 Component: Device/R
-Properties:
-  Reference: R10
-  Value: R
-  Footprint: Resistor_SMD:R_0603_1608Metric
-  Datasheet: ~
-  Description: Resistor
-Position: (88.9, 102.87), Angle: 0
+	Properties:
+		Reference: R10
+		Value: R
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (88.9, 102.87), Angle: 0
 Unit: 1
 
 Component: Device/C
-Properties:
-  Reference: C9
-  Value: C
-  Footprint: Capacitor_SMD:C_0603_1608Metric
-  Datasheet: ~
-  Description: Unpolarized capacitor
-Position: (99.06, 72.39), Angle: 0
+	Properties:
+		Reference: C9
+		Value: C
+		Footprint: Capacitor_SMD:C_0603_1608Metric
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (99.06, 72.39), Angle: 0
 Unit: 1
 
 Component: Device/C
-Properties:
-  Reference: C12
-  Value: C
-  Footprint: 
-  Datasheet: ~
-  Description: Unpolarized capacitor
-Position: (156.21, 99.06), Angle: 0
+	Properties:
+		Reference: C12
+		Value: C
+		Footprint: 
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (156.21, 99.06), Angle: 0
 Unit: 1
 
 Component: Device/C
-Properties:
-  Reference: C10
-  Value: C
-  Footprint: 
-  Datasheet: ~
-  Description: Unpolarized capacitor
-Position: (105.41, 99.06), Angle: 0
+	Properties:
+		Reference: C10
+		Value: C
+		Footprint: 
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (105.41, 99.06), Angle: 0
 Unit: 1
 
 Component: Device/R
-Properties:
-  Reference: R11
-  Value: R
-  Footprint: Resistor_SMD:R_0603_1608Metric
-  Datasheet: ~
-  Description: Resistor
-Position: (139.7, 102.87), Angle: 0
+	Properties:
+		Reference: R11
+		Value: R
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (139.7, 102.87), Angle: 0
 Unit: 1
 
 === Pin Details ===
 
 Component: C11
 
-  Pin 1 (~):
-    Position: (133.35, 68.58)
-    Type: passive
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (133.35, 68.58)
+		Type: passive
+		Alternate Functions:
 
-  Pin 2 (~):
-    Position: (133.35, 76.20)
-    Type: passive
-    Alternate Functions:
+	Pin 2 (~):
+		Position: (133.35, 76.20)
+		Type: passive
+		Alternate Functions:
 
 Component: U4
 
-  Pin 1 (GND):
-    Position: (115.57, 76.20)
-    Type: power_in
-    Alternate Functions:
+	Pin 1 (GND):
+		Position: (115.57, 76.20)
+		Type: power_in
+		Alternate Functions:
 
-  Pin 2 (VO):
-    Position: (123.19, 68.58)
-    Type: power_out
-    Alternate Functions:
+	Pin 2 (VO):
+		Position: (123.19, 68.58)
+		Type: power_out
+		Alternate Functions:
 
-  Pin 3 (VI):
-    Position: (107.95, 68.58)
-    Type: power_in
-    Alternate Functions:
+	Pin 3 (VI):
+		Position: (107.95, 68.58)
+		Type: power_in
+		Alternate Functions:
 
 Component: #PWR034
 
-  Pin 1 (~):
-    Position: (201.93, 118.11)
-    Type: power_in
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (201.93, 118.11)
+		Type: power_in
+		Alternate Functions:
 
 Component: #PWR025
 
-  Pin 1 (~):
-    Position: (88.90, 106.68)
-    Type: power_in
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (88.90, 106.68)
+		Type: power_in
+		Alternate Functions:
 
 Component: R12
 
-  Pin 1 (~):
-    Position: (146.05, 81.28)
-    Type: passive
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (146.05, 81.28)
+		Type: passive
+		Alternate Functions:
 
-  Pin 2 (~):
-    Position: (146.05, 88.90)
-    Type: passive
-    Alternate Functions:
+	Pin 2 (~):
+		Position: (146.05, 88.90)
+		Type: passive
+		Alternate Functions:
 
 Component: #PWR036
 
-  Pin 1 (~):
-    Position: (201.93, 130.81)
-    Type: power_in
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (201.93, 130.81)
+		Type: power_in
+		Alternate Functions:
 
 Component: #PWR026
 
-  Pin 1 (~):
-    Position: (99.06, 68.58)
-    Type: power_in
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (99.06, 68.58)
+		Type: power_in
+		Alternate Functions:
 
 Component: #PWR032
 
-  Pin 1 (~):
-    Position: (139.70, 106.68)
-    Type: power_in
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (139.70, 106.68)
+		Type: power_in
+		Alternate Functions:
 
 Component: J3
 
-  Pin 1 (Pin_1):
-    Position: (193.04, 72.39)
-    Type: passive
-    Alternate Functions:
+	Pin 1 (Pin_1):
+		Position: (193.04, 72.39)
+		Type: passive
+		Alternate Functions:
 
-  Pin 2 (Pin_2):
-    Position: (193.04, 74.93)
-    Type: passive
-    Alternate Functions:
+	Pin 2 (Pin_2):
+		Position: (193.04, 74.93)
+		Type: passive
+		Alternate Functions:
 
-  Pin 3 (Pin_3):
-    Position: (193.04, 77.47)
-    Type: passive
-    Alternate Functions:
+	Pin 3 (Pin_3):
+		Position: (193.04, 77.47)
+		Type: passive
+		Alternate Functions:
 
-  Pin 4 (Pin_4):
-    Position: (193.04, 80.01)
-    Type: passive
-    Alternate Functions:
+	Pin 4 (Pin_4):
+		Position: (193.04, 80.01)
+		Type: passive
+		Alternate Functions:
 
 Component: #PWR027
 
-  Pin 1 (~):
-    Position: (99.06, 80.01)
-    Type: power_in
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (99.06, 80.01)
+		Type: power_in
+		Alternate Functions:
 
 Component: J4
 
-  Pin 1 (Pin_1):
-    Position: (193.04, 93.98)
-    Type: passive
-    Alternate Functions:
+	Pin 1 (Pin_1):
+		Position: (193.04, 93.98)
+		Type: passive
+		Alternate Functions:
 
-  Pin 2 (Pin_2):
-    Position: (193.04, 96.52)
-    Type: passive
-    Alternate Functions:
+	Pin 2 (Pin_2):
+		Position: (193.04, 96.52)
+		Type: passive
+		Alternate Functions:
 
-  Pin 3 (Pin_3):
-    Position: (193.04, 99.06)
-    Type: passive
-    Alternate Functions:
+	Pin 3 (Pin_3):
+		Position: (193.04, 99.06)
+		Type: passive
+		Alternate Functions:
 
-  Pin 4 (Pin_4):
-    Position: (193.04, 101.60)
-    Type: passive
-    Alternate Functions:
+	Pin 4 (Pin_4):
+		Position: (193.04, 101.60)
+		Type: passive
+		Alternate Functions:
 
 Component: R9
 
-  Pin 1 (~):
-    Position: (88.90, 81.28)
-    Type: passive
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (88.90, 81.28)
+		Type: passive
+		Alternate Functions:
 
-  Pin 2 (~):
-    Position: (88.90, 88.90)
-    Type: passive
-    Alternate Functions:
+	Pin 2 (~):
+		Position: (88.90, 88.90)
+		Type: passive
+		Alternate Functions:
 
 Component: #PWR035
 
-  Pin 1 (~):
-    Position: (201.93, 125.73)
-    Type: power_in
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (201.93, 125.73)
+		Type: power_in
+		Alternate Functions:
 
 Component: R10
 
-  Pin 1 (~):
-    Position: (88.90, 99.06)
-    Type: passive
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (88.90, 99.06)
+		Type: passive
+		Alternate Functions:
 
-  Pin 2 (~):
-    Position: (88.90, 106.68)
-    Type: passive
-    Alternate Functions:
+	Pin 2 (~):
+		Position: (88.90, 106.68)
+		Type: passive
+		Alternate Functions:
 
 Component: C9
 
-  Pin 1 (~):
-    Position: (99.06, 68.58)
-    Type: passive
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (99.06, 68.58)
+		Type: passive
+		Alternate Functions:
 
-  Pin 2 (~):
-    Position: (99.06, 76.20)
-    Type: passive
-    Alternate Functions:
+	Pin 2 (~):
+		Position: (99.06, 76.20)
+		Type: passive
+		Alternate Functions:
 
 Component: #PWR033
 
-  Pin 1 (~):
-    Position: (156.21, 102.87)
-    Type: power_in
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (156.21, 102.87)
+		Type: power_in
+		Alternate Functions:
 
 Component: C12
 
-  Pin 1 (~):
-    Position: (156.21, 95.25)
-    Type: passive
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (156.21, 95.25)
+		Type: passive
+		Alternate Functions:
 
-  Pin 2 (~):
-    Position: (156.21, 102.87)
-    Type: passive
-    Alternate Functions:
+	Pin 2 (~):
+		Position: (156.21, 102.87)
+		Type: passive
+		Alternate Functions:
 
 Component: #PWR028
 
-  Pin 1 (~):
-    Position: (105.41, 102.87)
-    Type: power_in
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (105.41, 102.87)
+		Type: power_in
+		Alternate Functions:
 
 Component: #PWR031
 
-  Pin 1 (~):
-    Position: (133.35, 80.01)
-    Type: power_in
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (133.35, 80.01)
+		Type: power_in
+		Alternate Functions:
 
 Component: #PWR030
 
-  Pin 1 (~):
-    Position: (133.35, 68.58)
-    Type: power_in
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (133.35, 68.58)
+		Type: power_in
+		Alternate Functions:
 
 Component: C10
 
-  Pin 1 (~):
-    Position: (105.41, 95.25)
-    Type: passive
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (105.41, 95.25)
+		Type: passive
+		Alternate Functions:
 
-  Pin 2 (~):
-    Position: (105.41, 102.87)
-    Type: passive
-    Alternate Functions:
+	Pin 2 (~):
+		Position: (105.41, 102.87)
+		Type: passive
+		Alternate Functions:
 
 Component: #PWR029
 
-  Pin 1 (~):
-    Position: (115.57, 80.01)
-    Type: power_in
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (115.57, 80.01)
+		Type: power_in
+		Alternate Functions:
 
 Component: R11
 
-  Pin 1 (~):
-    Position: (139.70, 99.06)
-    Type: passive
-    Alternate Functions:
+	Pin 1 (~):
+		Position: (139.70, 99.06)
+		Type: passive
+		Alternate Functions:
 
-  Pin 2 (~):
-    Position: (139.70, 106.68)
-    Type: passive
-    Alternate Functions:
+	Pin 2 (~):
+		Position: (139.70, 106.68)
+		Type: passive
+		Alternate Functions:
 
 === Graphical Items ===
 
 Type: wire
-  Start: (88.9, 88.9)
-  End: (88.9, 95.25)
+	Start: (88.9, 88.9)
+	End: (88.9, 95.25)
 
 Type: wire
-  Start: (146.05, 88.9)
-  End: (142.24, 88.9)
+	Start: (146.05, 88.9)
+	End: (142.24, 88.9)
 
 Type: wire
-  Start: (156.21, 57.15)
-  End: (74.93, 57.15)
+	Start: (156.21, 57.15)
+	End: (74.93, 57.15)
 
 Type: wire
-  Start: (88.9, 95.25)
-  End: (88.9, 99.06)
+	Start: (88.9, 95.25)
+	End: (88.9, 99.06)
 
 Type: wire
-  Start: (146.05, 68.58)
-  End: (133.35, 68.58)
+	Start: (146.05, 68.58)
+	End: (133.35, 68.58)
 
 Type: wire
-  Start: (142.24, 91.44)
-  End: (146.05, 91.44)
+	Start: (142.24, 91.44)
+	End: (146.05, 91.44)
 
 Type: wire
-  Start: (201.93, 130.81)
-  End: (195.58, 130.81)
+	Start: (201.93, 130.81)
+	End: (195.58, 130.81)
 
 Type: wire
-  Start: (146.05, 91.44)
-  End: (146.05, 93.98)
+	Start: (146.05, 91.44)
+	End: (146.05, 93.98)
 
 Type: wire
-  Start: (146.05, 93.98)
-  End: (142.24, 93.98)
+	Start: (146.05, 93.98)
+	End: (142.24, 93.98)
 
 Type: wire
-  Start: (88.9, 68.58)
-  End: (88.9, 81.28)
+	Start: (88.9, 68.58)
+	End: (88.9, 81.28)
 
 Type: wire
-  Start: (195.58, 139.7)
-  End: (203.2, 139.7)
+	Start: (195.58, 139.7)
+	End: (203.2, 139.7)
 
 Type: wire
-  Start: (139.7, 95.25)
-  End: (139.7, 99.06)
+	Start: (139.7, 95.25)
+	End: (139.7, 99.06)
 
 Type: wire
-  Start: (99.06, 80.01)
-  End: (99.06, 76.2)
+	Start: (99.06, 80.01)
+	End: (99.06, 76.2)
 
 Type: wire
-  Start: (142.24, 95.25)
-  End: (147.32, 95.25)
+	Start: (142.24, 95.25)
+	End: (147.32, 95.25)
 
 Type: wire
-  Start: (142.24, 88.9)
-  End: (142.24, 91.44)
+	Start: (142.24, 88.9)
+	End: (142.24, 91.44)
 
 Type: wire
-  Start: (146.05, 68.58)
-  End: (146.05, 81.28)
+	Start: (146.05, 68.58)
+	End: (146.05, 81.28)
 
 Type: wire
-  Start: (195.58, 125.73)
-  End: (201.93, 125.73)
+	Start: (195.58, 125.73)
+	End: (201.93, 125.73)
 
 Type: wire
-  Start: (88.9, 68.58)
-  End: (99.06, 68.58)
+	Start: (88.9, 68.58)
+	End: (99.06, 68.58)
 
 Type: wire
-  Start: (133.35, 80.01)
-  End: (133.35, 76.2)
+	Start: (133.35, 80.01)
+	End: (133.35, 76.2)
 
 Type: wire
-  Start: (123.19, 68.58)
-  End: (133.35, 68.58)
+	Start: (123.19, 68.58)
+	End: (133.35, 68.58)
 
 Type: wire
-  Start: (88.9, 95.25)
-  End: (105.41, 95.25)
+	Start: (88.9, 95.25)
+	End: (105.41, 95.25)
 
 Type: wire
-  Start: (142.24, 93.98)
-  End: (142.24, 95.25)
+	Start: (142.24, 93.98)
+	End: (142.24, 95.25)
 
 Type: wire
-  Start: (195.58, 130.81)
-  End: (195.58, 132.08)
+	Start: (195.58, 130.81)
+	End: (195.58, 132.08)
 
 Type: wire
-  Start: (99.06, 68.58)
-  End: (107.95, 68.58)
+	Start: (99.06, 68.58)
+	End: (107.95, 68.58)
 
 Type: wire
-  Start: (74.93, 57.15)
-  End: (74.93, 121.92)
+	Start: (74.93, 57.15)
+	End: (74.93, 121.92)
 
 Type: wire
-  Start: (74.93, 121.92)
-  End: (147.32, 121.92)
+	Start: (74.93, 121.92)
+	End: (147.32, 121.92)
 
 Type: wire
-  Start: (195.58, 118.11)
-  End: (201.93, 118.11)
+	Start: (195.58, 118.11)
+	End: (201.93, 118.11)
 
 Type: wire
-  Start: (139.7, 95.25)
-  End: (142.24, 95.25)
+	Start: (139.7, 95.25)
+	End: (142.24, 95.25)
 
 Type: wire
-  Start: (115.57, 80.01)
-  End: (115.57, 76.2)
+	Start: (115.57, 80.01)
+	End: (115.57, 76.2)
 
 Type: wire
-  Start: (147.32, 95.25)
-  End: (147.32, 121.92)
+	Start: (147.32, 95.25)
+	End: (147.32, 121.92)
 
 Type: wire
-  Start: (161.29, 88.9)
-  End: (156.21, 88.9)
+	Start: (161.29, 88.9)
+	End: (156.21, 88.9)
 
 Type: wire
-  Start: (156.21, 88.9)
-  End: (156.21, 57.15)
+	Start: (156.21, 88.9)
+	End: (156.21, 57.15)
 
 Type: wire
-  Start: (147.32, 95.25)
-  End: (156.21, 95.25)
+	Start: (147.32, 95.25)
+	End: (156.21, 95.25)
 
 === Labels ===
 
 Local Labels:
-  label_test_power3 at (193.04, 99.06)
-  divider_1 at (95.25, 95.25)
-  label_test_power2 at (195.58, 125.73)
-  divider_1 at (193.04, 77.47)
-  label_test_power1 at (195.58, 118.11)
-  label_test_power4 at (193.04, 101.60)
-  divider_2 at (161.29, 88.90)
-  label_test_power3 at (195.58, 132.08)
-  label_test_power4 at (195.58, 139.70)
-  label_test_power2 at (193.04, 96.52)
-  label_test_power1 at (193.04, 93.98)
-  label_test_power1 at (203.20, 139.70)
-  divider_2 at (193.04, 80.01)
+	label_test_power3 at (193.04, 99.06)
+	divider_1 at (95.25, 95.25)
+	label_test_power2 at (195.58, 125.73)
+	divider_1 at (193.04, 77.47)
+	label_test_power1 at (195.58, 118.11)
+	label_test_power4 at (193.04, 101.60)
+	divider_2 at (161.29, 88.90)
+	label_test_power3 at (195.58, 132.08)
+	label_test_power4 at (195.58, 139.70)
+	label_test_power2 at (193.04, 96.52)
+	label_test_power1 at (193.04, 93.98)
+	label_test_power1 at (203.20, 139.70)
+	divider_2 at (193.04, 80.01)
 
 Hierarchical Labels:
-  5v_monitor (input) at (193.04, 72.39)
-  5v_monitor (input) at (105.41, 95.25)
-  3v3_monitor (input) at (156.21, 95.25)
-  3v3_monitor (input) at (193.04, 74.93)
+	5v_monitor (input) at (193.04, 72.39)
+	5v_monitor (input) at (105.41, 95.25)
+	3v3_monitor (input) at (156.21, 95.25)
+	3v3_monitor (input) at (193.04, 74.93)
 
 Power Labels:
-  +5V at (201.93, 118.11)
-  GND at (88.90, 106.68)
-  GND at (201.93, 130.81)
-  +5V at (99.06, 68.58)
-  GND at (139.70, 106.68)
-  GND at (99.06, 80.01)
-  +3V3 at (201.93, 125.73)
-  GND at (156.21, 102.87)
-  GND at (105.41, 102.87)
-  GND at (133.35, 80.01)
-  +3V3 at (133.35, 68.58)
-  GND at (115.57, 80.01)
+	+5V at (201.93, 118.11)
+	GND at (88.90, 106.68)
+	GND at (201.93, 130.81)
+	+5V at (99.06, 68.58)
+	GND at (139.70, 106.68)
+	GND at (99.06, 80.01)
+	+3V3 at (201.93, 125.73)
+	GND at (156.21, 102.87)
+	GND at (105.41, 102.87)
+	GND at (133.35, 80.01)
+	+3V3 at (133.35, 68.58)
+	GND at (115.57, 80.01)
 
 === Netlist ===
 
 +3V3:
-  J4 Pin 2 (Pin_2)
-  #PWR035 Pin 1 (~)
-  C11 Pin 1 (~)
-  U4 Pin 2 (VO)
-  R12 Pin 1 (~)
-  #PWR030 Pin 1 (~)
-  Power Labels:
-    +3V3
-  Local Labels:
-    label_test_power2
-  Merged from nets:
-    NET_16
-    NET_20
-    NET_1
+	#PWR035 Pin 1 (~)
+	C11 Pin 1 (~)
+	U4 Pin 2 (VO)
+	R12 Pin 1 (~)
+	#PWR030 Pin 1 (~)
+	J4 Pin 2 (Pin_2)
+	Power Labels:
+		+3V3
+	Local Labels:
+		label_test_power2
 
 GND:
-  #PWR028 Pin 1 (~)
-  C10 Pin 2 (~)
-  C11 Pin 2 (~)
-  #PWR031 Pin 1 (~)
-  #PWR033 Pin 1 (~)
-  C12 Pin 2 (~)
-  #PWR036 Pin 1 (~)
-  #PWR032 Pin 1 (~)
-  R11 Pin 2 (~)
-  #PWR027 Pin 1 (~)
-  C9 Pin 2 (~)
-  #PWR025 Pin 1 (~)
-  R10 Pin 2 (~)
-  U4 Pin 1 (GND)
-  #PWR029 Pin 1 (~)
-  Power Labels:
-    GND
-  Merged from nets:
-    NET_23
-    NET_2
-    NET_21
-    NET_8
-    NET_9
-    NET_14
-    NET_6
-    NET_3
+	#PWR028 Pin 1 (~)
+	C10 Pin 2 (~)
+	#PWR032 Pin 1 (~)
+	R11 Pin 2 (~)
+	#PWR027 Pin 1 (~)
+	C9 Pin 2 (~)
+	#PWR036 Pin 1 (~)
+	U4 Pin 1 (GND)
+	#PWR029 Pin 1 (~)
+	#PWR025 Pin 1 (~)
+	R10 Pin 2 (~)
+	#PWR033 Pin 1 (~)
+	C12 Pin 2 (~)
+	C11 Pin 2 (~)
+	#PWR031 Pin 1 (~)
+	Power Labels:
+		GND
 
 +5V:
-  #PWR034 Pin 1 (~)
-  J4 Pin 1 (Pin_1)
-  U4 Pin 3 (VI)
-  #PWR026 Pin 1 (~)
-  R9 Pin 1 (~)
-  C9 Pin 1 (~)
-  Power Labels:
-    +5V
-  Local Labels:
-    label_test_power1
-  Merged from nets:
-    NET_5
-    NET_15
-    NET_4
-
-MERGED_NET_4:
-  R12 Pin 2 (~)
-  Merged from nets:
-    NET_7
-
-5v_monitor:
-  R9 Pin 2 (~)
-  R10 Pin 1 (~)
-  C10 Pin 1 (~)
-  J3 Pin 1 (Pin_1)
-  Hierarchical Labels:
-    5v_monitor
-  Merged from nets:
-    NET_19
-    NET_10
+	U4 Pin 3 (VI)
+	#PWR026 Pin 1 (~)
+	R9 Pin 1 (~)
+	C9 Pin 1 (~)
+	J4 Pin 1 (Pin_1)
+	#PWR034 Pin 1 (~)
+	Power Labels:
+		+5V
+	Local Labels:
+		label_test_power1
 
 3v3_monitor:
-  C12 Pin 1 (~)
-  J3 Pin 2 (Pin_2)
-  Hierarchical Labels:
-    3v3_monitor
-  Merged from nets:
-    NET_22
-    NET_11
+	J3 Pin 2 (Pin_2)
+	R12 Pin 2 (~)
+	C12 Pin 1 (~)
+	R11 Pin 1 (~)
+	Hierarchical Labels:
+		3v3_monitor
+
+5v_monitor:
+	R9 Pin 2 (~)
+	R10 Pin 1 (~)
+	C10 Pin 1 (~)
+	J3 Pin 1 (Pin_1)
+	Hierarchical Labels:
+		5v_monitor
 
 divider_1:
-  J3 Pin 3 (Pin_3)
-  Local Labels:
-    divider_1
-  Merged from nets:
-    NET_12
+	J3 Pin 3 (Pin_3)
+	Local Labels:
+		divider_1
 
 divider_2:
-  J3 Pin 4 (Pin_4)
-  Local Labels:
-    divider_2
-  Merged from nets:
-    NET_13
+	J3 Pin 4 (Pin_4)
+	Local Labels:
+		divider_2
 
 label_test_power3:
-  J4 Pin 3 (Pin_3)
-  Local Labels:
-    label_test_power3
-  Merged from nets:
-    NET_17
+	J4 Pin 3 (Pin_3)
+	Local Labels:
+		label_test_power3
 
 label_test_power4:
-  J4 Pin 4 (Pin_4)
-  Local Labels:
-    label_test_power4
-  Merged from nets:
-    NET_18
-
-MERGED_NET_11:
-  R11 Pin 1 (~)
-  Merged from nets:
-    NET_24
+	J4 Pin 4 (Pin_4)
+	Local Labels:
+		label_test_power4

@@ -56,12 +56,12 @@ def analyze_schematic(schematic, base_path, debug=False):
         for label_type in ['local', 'hierarchical', 'power']:
             print(f"\n{label_type.capitalize()} Labels:")
             for label in all_labels[label_type]:
-                print(f"  {label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+                print(f"\t{label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
                 # Find connected points for each label
                 connected = get_connected_points(label['position'], all_wire_connections)
-                print("  Connected points:")
+                print("\tConnected points:")
                 for point in connected:
-                    print(f"    ({point[0]:.2f}, {point[1]:.2f})")
+                    print(f"\t\t({point[0]:.2f}, {point[1]:.2f})")
                     
     netlist = calculate_pin_connectivity(all_component_pins, all_wire_connections, all_labels)
 
@@ -70,10 +70,10 @@ def analyze_schematic(schematic, base_path, debug=False):
     for symbol in schematic.schematicSymbols:
         if symbol.libraryNickname != 'power':  # Skip power symbols as they're handled separately
             print(f"\nComponent: {symbol.libraryNickname}/{symbol.entryName}")
-            print("Properties:")
+            print("\tProperties:")
             for prop in symbol.properties:
-                print(f"  {prop.key}: {prop.value}")
-            print(f"Position: ({symbol.position.X}, {symbol.position.Y}), Angle: {symbol.position.angle}")
+                print(f"\t\t{prop.key}: {prop.value}")
+            print(f"\tPosition: ({symbol.position.X}, {symbol.position.Y}), Angle: {symbol.position.angle}")
             
             if hasattr(symbol, 'unit'):
                 print(f"Unit: {symbol.unit}")
@@ -83,13 +83,13 @@ def analyze_schematic(schematic, base_path, debug=False):
     for component, pins in all_component_pins.items():
         print(f"\nComponent: {component}")
         for pin in pins:
-            print(f"\n  Pin {pin['pin_number']} ({pin['pin_name']}):")
-            print(f"    Position: ({pin['absolute_position'][0]:.2f}, {pin['absolute_position'][1]:.2f})")
-            print(f"    Type: {pin['electrical_type']}")
+            print(f"\n\tPin {pin['pin_number']} ({pin['pin_name']}):")
+            print(f"\t\tPosition: ({pin['absolute_position'][0]:.2f}, {pin['absolute_position'][1]:.2f})")
+            print(f"\t\tType: {pin['electrical_type']}")
             if 'alternatePins' in pin:
-                print("    Alternate Functions:")
+                print("\t\tAlternate Functions:")
                 for alt in pin['alternatePins']:
-                    print(f"      - {alt['pinName']} ({alt['electricalType']})")
+                    print(f"\t\t\t- {alt['pinName']} ({alt['electricalType']})")
 
     # Print graphical items
     print("\n=== Graphical Items ===")
@@ -97,22 +97,22 @@ def analyze_schematic(schematic, base_path, debug=False):
         if hasattr(item, 'type'):
             print(f"\nType: {item.type}")
             if item.type == 'wire':
-                print(f"  Start: ({item.points[0].X}, {item.points[0].Y})")
-                print(f"  End: ({item.points[1].X}, {item.points[1].Y})")
+                print(f"\tStart: ({item.points[0].X}, {item.points[0].Y})")
+                print(f"\tEnd: ({item.points[1].X}, {item.points[1].Y})")
 
     # Print labels
     print("\n=== Labels ===")
     print("\nLocal Labels:")
     for label in all_labels['local']:
-        print(f"  {label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+        print(f"\t{label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
         
     print("\nHierarchical Labels:")
     for label in all_labels['hierarchical']:
-        print(f"  {label['text']} ({label['shape']}) at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+        print(f"\t{label['text']} ({label['shape']}) at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
         
     print("\nPower Labels:")
     for label in all_labels['power']:
-        print(f"  {label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+        print(f"\t{label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
 
     # Print netlist
     print("\n=== Netlist ===")
@@ -122,28 +122,22 @@ def analyze_schematic(schematic, base_path, debug=False):
         # Print connected pins
         if 'pins' in net_info:
             for pin in net_info['pins']:
-                print(f"  {pin['component']} Pin {pin['pin_number']} ({pin['pin_name']})")
+                print(f"\t{pin['component']} Pin {pin['pin_number']} ({pin['pin_name']})")
         
         # Print power labels
         if 'power_labels' in net_info and net_info['power_labels']:
-            print("  Power Labels:")
+            print("\tPower Labels:")
             for label in net_info['power_labels']:
-                print(f"    {label}")
+                print(f"\t\t{label}")
                 
         # Print hierarchical labels
         if 'hierarchical_labels' in net_info and net_info['hierarchical_labels']:
-            print("  Hierarchical Labels:")
+            print("\tHierarchical Labels:")
             for label in net_info['hierarchical_labels']:
-                print(f"    {label}")
+                print(f"\t\t{label}")
                 
         # Print local labels
         if 'local_labels' in net_info and net_info['local_labels']:
-            print("  Local Labels:")
+            print("\tLocal Labels:")
             for label in net_info['local_labels']:
-                print(f"    {label}")
-                
-        # Print merged information
-        if 'merged_from' in net_info:
-            print("  Merged from nets:")
-            for source_net in net_info['merged_from']:
-                print(f"    {source_net}")
+                print(f"\t\t{label}")
