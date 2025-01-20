@@ -528,52 +528,52 @@ Power Labels:
 === Netlist ===
 
 +3V3:
+  #PWR035 Pin 1 (~)
+  J4 Pin 2 (Pin_2)
   C11 Pin 1 (~)
   U4 Pin 2 (VO)
   R12 Pin 1 (~)
   #PWR030 Pin 1 (~)
-  #PWR035 Pin 1 (~)
-  J4 Pin 2 (Pin_2)
   Power Labels:
     +3V3
   Local Labels:
     label_test_power2
   Merged from nets:
-    NET_1
     NET_20
     NET_16
+    NET_1
 
 GND:
-  #PWR025 Pin 1 (~)
-  R10 Pin 2 (~)
-  #PWR028 Pin 1 (~)
-  C10 Pin 2 (~)
   C11 Pin 2 (~)
   #PWR031 Pin 1 (~)
-  U4 Pin 1 (GND)
-  #PWR029 Pin 1 (~)
-  J4 Pin 3 (Pin_3)
-  #PWR033 Pin 1 (~)
-  C12 Pin 2 (~)
-  #PWR036 Pin 1 (~)
   #PWR032 Pin 1 (~)
   R11 Pin 2 (~)
+  U4 Pin 1 (GND)
+  #PWR029 Pin 1 (~)
+  #PWR028 Pin 1 (~)
+  C10 Pin 2 (~)
+  #PWR036 Pin 1 (~)
   #PWR027 Pin 1 (~)
   C9 Pin 2 (~)
+  #PWR033 Pin 1 (~)
+  C12 Pin 2 (~)
+  J4 Pin 3 (Pin_3)
+  #PWR025 Pin 1 (~)
+  R10 Pin 2 (~)
   Power Labels:
     GND
   Local Labels:
     label_test_power3
   Merged from nets:
-    NET_6
-    NET_23
     NET_2
-    NET_3
-    NET_17
-    NET_21
-    NET_8
     NET_9
+    NET_3
+    NET_23
+    NET_8
     NET_14
+    NET_21
+    NET_17
+    NET_6
 
 +5V:
   U4 Pin 3 (VI)
@@ -597,15 +597,15 @@ MERGED_NET_4:
     NET_7
 
 5v_monitor:
+  J3 Pin 1 (Pin_1)
   R9 Pin 2 (~)
   R10 Pin 1 (~)
   C10 Pin 1 (~)
-  J3 Pin 1 (Pin_1)
   Hierarchical Labels:
     5v_monitor
   Merged from nets:
-    NET_19
     NET_10
+    NET_19
 
 3v3_monitor:
   C12 Pin 1 (~)
