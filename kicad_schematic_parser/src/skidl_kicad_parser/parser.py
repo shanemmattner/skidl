@@ -108,18 +108,21 @@ def analyze_schematic(schematic, base_path, debug=False):
     #             print(f"\tEnd: ({item.points[1].X}, {item.points[1].Y})")
 
     # Print labels
-    # print("\n=== Labels ===")
-    # print("\nLocal Labels:")
-    # for label in all_labels['local']:
-    #     print(f"\t{label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+    print("\n=== Labels ===")
+    print("\nLocal Labels:")
+    for label in all_labels['local']:
+        print(f"\t{label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
         
-    # print("\nHierarchical Labels:")
-    # for label in all_labels['hierarchical']:
-    #     print(f"\t{label['text']} ({label['shape']}) at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+    print("\nHierarchical Labels and Sheet Pins:")
+    for label in all_labels['hierarchical']:
+        if 'uuid' in label:  # This indicates it's a sheet pin
+            print(f"\tSheet Pin: {label['text']} ({label['shape']}) at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+        else:
+            print(f"\tLabel: {label['text']} ({label['shape']}) at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
         
-    # print("\nPower Labels:")
-    # for label in all_labels['power']:
-    #     print(f"\t{label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+    print("\nPower Labels:")
+    for label in all_labels['power']:
+        print(f"\t{label['text']} at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
 
     # Print netlist
     print("\n=== Netlist ===")

@@ -1,3 +1,23 @@
+def parse_sheet_pins(sheet):
+    """
+    Parse pins from a schematic sheet and convert them to hierarchical label format.
+    Sheet pins are treated as hierarchical labels since they serve the same purpose
+    of connecting signals between different hierarchy levels.
+    """
+    sheet_pins = []
+    
+    # Extract pins from the sheet
+    for pin in getattr(sheet, 'pins', []):
+        sheet_pins.append({
+            'text': pin.name,  # Pin name
+            'shape': pin.connectionType.lower(),  # Pin type (input/output)
+            'position': (float(pin.position.X), float(pin.position.Y)),  # Position coordinates
+            'angle': float(pin.position.angle) if hasattr(pin.position, 'angle') else 0,  # Angle is optional
+            'uuid': pin.uuid
+        })
+    
+    return sheet_pins
+
 def parse_labels(schematic):
     """
     Parse different types of labels from the schematic
@@ -24,6 +44,11 @@ def parse_labels(schematic):
             'position': (label.position.X, label.position.Y),
             'angle': label.position.angle
         })
+        
+    # Parse sheet pins as hierarchical labels
+    for sheet in schematic.sheets:
+        sheet_pins = parse_sheet_pins(sheet)
+        labels['hierarchical'].extend(sheet_pins)
     
     # Parse power symbols
     for symbol in schematic.schematicSymbols:
