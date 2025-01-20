@@ -14,17 +14,24 @@ def build_sheet_hierarchy(schematic, base_path):
             sheet_file = sheet.fileName.value
             sheet_path = os.path.join(base_path, sheet_file)
             
+            # Safely handle pins, ensuring it's always a list
+            sheet_pins = []
+            if hasattr(sheet, 'pins'):
+                # Ensure pins is a list, even if it's a single item or None
+                if sheet.pins is not None:
+                    sheet_pins = sheet.pins if isinstance(sheet.pins, list) else [sheet.pins]
+            
             # Store sheet info including pins
             hierarchy[sheet_name] = {
                 'path': sheet_path,
                 'parent': parent_path,
                 'pins': [
                     {
-                        'name': pin.name,
-                        'type': pin.connectionType,
-                        'uuid': pin.uuid
+                        'name': pin.name if hasattr(pin, 'name') else str(pin),
+                        'type': pin.connectionType if hasattr(pin, 'connectionType') else 'unknown',
+                        'uuid': pin.uuid if hasattr(pin, 'uuid') else None
                     }
-                    for pin in getattr(sheet, 'pins', [])
+                    for pin in sheet_pins
                 ]
             }
             
@@ -38,26 +45,330 @@ def build_sheet_hierarchy(schematic, base_path):
     process_sheet(schematic, base_path)
     return hierarchy
 
+def find_labels_for_position(position, labels, wire_connections, tolerance=0.01):
+    """
+    Enhanced label detection that checks all physically connected points
+    """
+    def get_all_connected_points(point, visited=None):
+        """Helper function to get all points connected to a point"""
+        if visited is None:
+            visited = set()
+            
+        result = set()
+        to_visit = {point}
+        
+        while to_visit:
+            current = to_visit.pop()
+            if current in visited:
+                continue
+                
+            visited.add(current)
+            result.add(current)
+            
+            # Get points connected to this point
+            connected = get_connected_points(current, wire_connections)
+            result.update(connected)
+            
+            # Add new points to visit
+            for conn_point in connected:
+                if conn_point not in visited:
+                    to_visit.add(conn_point)
+                    # Also add points connected to this point
+                    conn_points = get_connected_points(conn_point, wire_connections)
+                    to_visit.update(p for p in conn_points if p not in visited)
+            
+        return result
+    
+    # Get all physically connected points
+    connected_points = get_all_connected_points(position)
+    
+    found_labels = []
+    
+    # Check each connected point against all label types
+    for point in connected_points:
+        # Check power labels
+        for label in labels['power']:
+            if points_match(point, label['position'], tolerance):
+                found_labels.append(('power', label['text']))
+                
+        # Check hierarchical labels  
+        for label in labels['hierarchical']:
+            if points_match(point, label['position'], tolerance):
+                found_labels.append(('hierarchical', label['text']))
+                
+        # Check local labels
+        for label in labels['local']:
+            if points_match(point, label['position'], tolerance):
+                found_labels.append(('local', label['text']))
+                
+    return list(set(found_labels))  # Remove duplicates
 
-def parse_hierarchical_net(net_name, sheet_hierarchy):
-    """Parse hierarchical net name into components
+def create_initial_nets(component_pins, wire_connections, labels):
+    """
+    Create initial nets with improved connection tracking, including sheet pins
+    """
+
+    def get_all_connected_points(point, visited=None):
+        """Helper function to get all points connected to a point"""
+        if visited is None:
+            visited = set()
+            
+        result = set()
+        to_visit = {point}
+        
+        while to_visit:
+            current = to_visit.pop()
+            if current in visited:
+                continue
+                
+            visited.add(current)
+            result.add(current)
+            
+            # Get points connected to this point
+            connected = get_connected_points(current, wire_connections)
+            result.update(connected)
+            
+            # Add new points to visit
+            for conn_point in connected:
+                if conn_point not in visited:
+                    to_visit.add(conn_point)
+                    # Also add points connected to this point
+                    conn_points = get_connected_points(conn_point, wire_connections)
+                    to_visit.update(p for p in conn_points if p not in visited)
+            
+        return result
+
+    # Add sheet pins as special "components"
+    for label in labels['hierarchical']:
+        if 'uuid' in label:  # This indicates it's a sheet pin
+            pin_info = {
+                'pin_number': '1',  # Sheet pins don't have numbers
+                'pin_name': label['text'],
+                'absolute_position': label['position'],
+                'electrical_type': label['shape']  # Sheet pins store type as 'shape' (input/output)
+            }
+            component_name = f"Sheet_{label['sheet_name']}"
+            if component_name not in component_pins:
+                component_pins[component_name] = []
+            component_pins[component_name].append(pin_info)
+
+    net_groups = {}
+    next_id = 1
+    point_to_net = {}  # Map points to their assigned net ID
+    
+    # First pass: Create nets for physically connected points
+    for component, pins in component_pins.items():
+        for pin in pins:
+            pin_pos = pin['absolute_position']
+            pin_pos_key = (round(pin_pos[0], 2), round(pin_pos[1], 2))
+            
+            # Get all physically connected points
+            connected_points = get_all_connected_points(pin_pos)
+            connected_point_keys = {(round(p[0], 2), round(p[1], 2)) for p in connected_points}
+            
+            # Find if any points are already assigned to a net
+            existing_nets = set()
+            for point_key in connected_point_keys:
+                if point_key in point_to_net:
+                    existing_nets.add(point_to_net[point_key])
+            
+            # If connected to existing net(s), merge into the first one
+            if existing_nets:
+                target_net_id = min(existing_nets)
+                # Include component sheet info
+                sheet_name = component.split('/')[-2] if '/' in component else 'root'
+                pin_info = {
+                    'component': component,
+                    'pin': pin,
+                    'sheet': sheet_name
+                }
+                net_groups[target_net_id]['pins'].append(pin_info)
+                net_groups[target_net_id]['connected_points'].update(connected_points)
+                
+                # Update point mappings
+                for point_key in connected_point_keys:
+                    point_to_net[point_key] = target_net_id
+                    
+                # Merge other nets if multiple exist
+                for other_net_id in existing_nets:
+                    if other_net_id != target_net_id:
+                        net_groups[target_net_id]['pins'].extend(net_groups[other_net_id]['pins'])
+                        net_groups[target_net_id]['connected_points'].update(
+                            net_groups[other_net_id]['connected_points'])
+                        del net_groups[other_net_id]
+            else:
+                # Create new net
+                net_id = f"NET_{next_id}"
+                next_id += 1
+                
+                net_groups[net_id] = {
+                    'pins': [(component, pin)],
+                    'labels': [],
+                    'connected_points': connected_points
+                }
+                
+                # Map all points to this net
+                for point_key in connected_point_keys:
+                    point_to_net[point_key] = net_id
+    
+    # Second pass: Add label information
+    for net_id, net_info in net_groups.items():
+        # Find labels connected to any point in this net
+        all_labels = []
+        for point in net_info['connected_points']:
+            point_labels = find_labels_for_position(point, labels, wire_connections)
+            all_labels.extend(point_labels)
+        net_info['labels'] = list(set(all_labels))
+    
+    return net_groups
+
+def merge_connected_nets(net_groups, wire_connections, labels):
+    """
+    Enhanced net merging with improved label handling and recursive connection search
+    """
+    def get_all_connected_points(points, visited=None):
+        """Helper function to get all points connected to a set of points"""
+        if visited is None:
+            visited = set()
+            
+        result = set()
+        to_visit = set(points)
+        
+        while to_visit:
+            point = to_visit.pop()
+            if point in visited:
+                continue
+                
+            visited.add(point)
+            result.add(point)
+            
+            # Get points connected to this point
+            connected = get_connected_points(point, wire_connections)
+            result.update(connected)
+            
+            # Add new points to visit
+            for conn_point in connected:
+                if conn_point not in visited:
+                    to_visit.add(conn_point)
+                    # Also add points connected to this point
+                    conn_points = get_connected_points(conn_point, wire_connections)
+                    to_visit.update(p for p in conn_points if p not in visited)
+            
+        return result
+
+    def get_connected_nets(net_id, processed=None, visited_points=None, recursion_depth=0):
+        """Find all nets connected to the given net"""
+        # Add recursion depth limit
+        MAX_RECURSION_DEPTH = 50
+        if recursion_depth > MAX_RECURSION_DEPTH:
+            return set()
+            
+        if processed is None:
+            processed = set()
+        if visited_points is None:
+            visited_points = set()
+            
+        if net_id in processed:
+            return set()
+            
+        connected = {net_id}
+        processed.add(net_id)
+        
+        try:
+            net_info = net_groups[net_id]
+        except KeyError:
+            print(f"Warning: Net {net_id} not found in net_groups")
+            return connected
+            
+        # Get points for this net that haven't been visited
+        net_points = set(net_info['connected_points']) - visited_points
+        visited_points.update(net_points)
+        
+        # Early exit if no new points to process
+        if not net_points:
+            return connected
+        
+        # Check which nets share any of these points
+        for other_id, other_info in net_groups.items():
+            if other_id in processed:
+                continue
+                
+            # Get unvisited points from other net
+            other_points = set(other_info['connected_points']) - visited_points
+            
+            # Check if any points overlap
+            if net_points & other_points:
+                connected.update(
+                    get_connected_nets(other_id, processed, visited_points, recursion_depth + 1)
+                )
+                
+        return connected
+    
+    """Enhanced net merging with improved label handling"""
+    merged_nets = {}
+    processed = set()
+    max_iterations = len(net_groups) * 2  # Reasonable upper limit
+    iteration = 0
+    
+    for net_id in net_groups:
+        if net_id in processed:
+            continue
+            
+        if iteration > max_iterations:
+            print("Warning: Maximum merge iterations reached")
+            break
+            
+        # Find all connected nets
+        group = get_connected_nets(net_id)
+        if group:
+            # Create merged net
+            merged_id = f"MERGED_NET_{len(merged_nets) + 1}"
+            merged_net = {
+                'pins': [],
+                'labels': [],
+                'connected_points': set()
+            }
+            
+            # Merge all information from grouped nets
+            for gid in group:
+                if gid in net_groups:  # Add safety check
+                    net_info = net_groups[gid]
+                    merged_net['pins'].extend(net_info['pins'])
+                    merged_net['labels'].extend(net_info['labels'])
+                    merged_net['connected_points'].update(net_info['connected_points'])
+                    processed.add(gid)
+                    
+            # Remove duplicates
+            merged_net['labels'] = list(set(merged_net['labels']))
+            merged_nets[merged_id] = merged_net
+            
+        iteration += 1
+            
+    return merged_nets
+
+def calculate_pin_connectivity(component_pins, wire_connections, labels, sheet_hierarchy=None):
+    """Calculate connectivity between pins and labels with improved handling of multiple connections
     
     Args:
-        net_name: Name of the net
-        sheet_hierarchy: Sheet hierarchy information
-        
+        component_pins: Dict of component pins
+        wire_connections: List of wire connections
+        labels: Dict of labels by type
+        sheet_hierarchy: Optional sheet hierarchy information
+    
     Returns:
-        dict: Parsed net information
+        dict: Calculated netlist
     """
-    parts = net_name.split('/')
-    if len(parts) == 1:
-        return {'sheet': 'root', 'net': parts[0]}
-        
-    return {
-        'sheet': '/'.join(parts[:-1]),
-        'net': parts[-1]
-    }
-
+    # Create initial nets from physical connections
+    initial_nets = create_initial_nets(component_pins, wire_connections, labels)
+    
+    # Merge connected nets with wire_connections for physical connectivity check
+    merged_nets = merge_connected_nets(initial_nets, wire_connections, labels)
+    
+    # If we have sheet hierarchy information, merge across hierarchies
+    if sheet_hierarchy:
+        merged_nets = merge_hierarchical_nets(merged_nets, sheet_hierarchy)
+    
+    return merged_nets
 
 def merge_hierarchical_nets(netlists, sheet_hierarchy):
     """Merge nets across hierarchical boundaries"""
@@ -196,346 +507,3 @@ def merge_hierarchical_nets(netlists, sheet_hierarchy):
                                     global_netlist[merged_name]['sheets'].add(other_sheet)
 
     return global_netlist
-
-
-def find_labels_for_position(position, labels, wire_connections, tolerance=0.01):
-    """
-    Enhanced label detection that checks all physically connected points
-    """
-    # print(f"\nFinding labels for position {position}")
-    def get_all_connected_points(point, visited=None):
-        """Helper function to get all points connected to a point"""
-        if visited is None:
-            visited = set()
-            
-        result = set()
-        to_visit = {point}
-        
-        while to_visit:
-            current = to_visit.pop()
-            if current in visited:
-                continue
-                
-            visited.add(current)
-            result.add(current)
-            
-            # Get points connected to this point
-            connected = get_connected_points(current, wire_connections)
-            result.update(connected)
-            
-            # Add new points to visit
-            for conn_point in connected:
-                if conn_point not in visited:
-                    to_visit.add(conn_point)
-                    # Also add points connected to this point
-                    conn_points = get_connected_points(conn_point, wire_connections)
-                    to_visit.update(p for p in conn_points if p not in visited)
-            
-        return result
-    
-    # Get all physically connected points
-    connected_points = get_all_connected_points(position)
-    
-    found_labels = []
-    
-    # Check each connected point against all label types
-    for point in connected_points:
-        # Check power labels
-        for label in labels['power']:
-            if points_match(point, label['position'], tolerance):
-                found_labels.append(('power', label['text']))
-                
-        # Check hierarchical labels  
-        for label in labels['hierarchical']:
-            if points_match(point, label['position'], tolerance):
-                found_labels.append(('hierarchical', label['text']))
-                
-        # Check local labels
-        for label in labels['local']:
-            if points_match(point, label['position'], tolerance):
-                found_labels.append(('local', label['text']))
-                
-    # print(f"Found labels: {found_labels}")
-    return list(set(found_labels))  # Remove duplicates
-
-def create_initial_nets(component_pins, wire_connections, labels):
-    """
-    Create initial nets with improved connection tracking, including sheet pins
-    """
-
-    def get_all_connected_points(point, visited=None):
-        """Helper function to get all points connected to a point"""
-        if visited is None:
-            visited = set()
-            
-        result = set()
-        to_visit = {point}
-        
-        while to_visit:
-            current = to_visit.pop()
-            if current in visited:
-                continue
-                
-            visited.add(current)
-            result.add(current)
-            
-            # Get points connected to this point
-            connected = get_connected_points(current, wire_connections)
-            result.update(connected)
-            
-            # Add new points to visit
-            for conn_point in connected:
-                if conn_point not in visited:
-                    to_visit.add(conn_point)
-                    # Also add points connected to this point
-                    conn_points = get_connected_points(conn_point, wire_connections)
-                    to_visit.update(p for p in conn_points if p not in visited)
-            
-        return result
-
-    # Add sheet pins as special "components"
-    for label in labels['hierarchical']:
-        if 'uuid' in label:  # This indicates it's a sheet pin
-            pin_info = {
-                'pin_number': '1',  # Sheet pins don't have numbers
-                'pin_name': label['text'],
-                'absolute_position': label['position'],
-                'electrical_type': label['shape']  # Sheet pins store type as 'shape' (input/output)
-            }
-            component_name = f"Sheet_{label['sheet_name']}"
-            if component_name not in component_pins:
-                component_pins[component_name] = []
-            component_pins[component_name].append(pin_info)
-    net_groups = {}
-    next_id = 1
-    point_to_net = {}  # Map points to their assigned net ID
-    
-    # First pass: Create nets for physically connected points
-    for component, pins in component_pins.items():
-        for pin in pins:
-            pin_pos = pin['absolute_position']
-            pin_pos_key = (round(pin_pos[0], 2), round(pin_pos[1], 2))
-            
-            # Get all physically connected points
-            connected_points = get_all_connected_points(pin_pos)
-            connected_point_keys = {(round(p[0], 2), round(p[1], 2)) for p in connected_points}
-            
-            # Find if any points are already assigned to a net
-            existing_nets = set()
-            for point_key in connected_point_keys:
-                if point_key in point_to_net:
-                    existing_nets.add(point_to_net[point_key])
-            
-            # If connected to existing net(s), merge into the first one
-            if existing_nets:
-                target_net_id = min(existing_nets)
-                # Include component sheet info
-                sheet_name = component.split('/')[-2] if '/' in component else 'root'
-                pin_info = {
-                    'component': component,
-                    'pin': pin,
-                    'sheet': sheet_name
-                }
-                net_groups[target_net_id]['pins'].append(pin_info)
-                net_groups[target_net_id]['connected_points'].update(connected_points)
-                
-                # Update point mappings
-                for point_key in connected_point_keys:
-                    point_to_net[point_key] = target_net_id
-                    
-                # Merge other nets if multiple exist
-                for other_net_id in existing_nets:
-                    if other_net_id != target_net_id:
-                        net_groups[target_net_id]['pins'].extend(net_groups[other_net_id]['pins'])
-                        net_groups[target_net_id]['connected_points'].update(
-                            net_groups[other_net_id]['connected_points'])
-                        del net_groups[other_net_id]
-            else:
-                # Create new net
-                net_id = f"NET_{next_id}"
-                next_id += 1
-                
-                net_groups[net_id] = {
-                    'pins': [(component, pin)],
-                    'labels': [],
-                    'connected_points': connected_points
-                }
-                
-                # Map all points to this net
-                for point_key in connected_point_keys:
-                    point_to_net[point_key] = net_id
-    
-    # Second pass: Add label information
-    for net_id, net_info in net_groups.items():
-        # Find labels connected to any point in this net
-        all_labels = []
-        for point in net_info['connected_points']:
-            point_labels = find_labels_for_position(point, labels, wire_connections)
-            all_labels.extend(point_labels)
-        net_info['labels'] = list(set(all_labels))
-    
-    return net_groups
-
-def merge_connected_nets(net_groups, wire_connections, labels):
-    """
-    Enhanced net merging with improved label handling and recursive connection search
-    """
-    # print("\n=== Starting Net Merging ===")
-    # print("\nDumping all labels for reference:")
-    # print("Power labels:", [f"{l['text']} at {l['position']}" for l in labels['power']])
-    # print("Hierarchical labels:", [f"{l['text']} at {l['position']}" for l in labels['hierarchical']])
-    # print("Local labels:", [f"{l['text']} at {l['position']}" for l in labels['local']])
-    
-    # for net_id, net_info in net_groups.items():
-        # print(f"\nNet {net_id}:")
-        # print(f"  Connected points: {net_info['connected_points']}")
-        # print(f"  Labels: {net_info['labels']}")
-        
-        # Debug: Print all labels at each connected point
-        # for point in net_info['connected_points']:
-        #     point_labels = find_labels_for_position(point, labels, wire_connections)
-        #     if point_labels:
-                # print(f"  Point {point} has labels: {point_labels}")
-    def get_all_connected_points(points, visited=None):
-        """Helper function to get all points connected to a set of points"""
-        if visited is None:
-            visited = set()
-            
-        result = set()
-        to_visit = set(points)
-        
-        while to_visit:
-            point = to_visit.pop()
-            if point in visited:
-                continue
-                
-            visited.add(point)
-            result.add(point)
-            
-            # Get points connected to this point
-            connected = get_connected_points(point, wire_connections)
-            result.update(connected)
-            
-            # Add new points to visit
-            for conn_point in connected:
-                if conn_point not in visited:
-                    to_visit.add(conn_point)
-                    # Also add points connected to this point
-                    conn_points = get_connected_points(conn_point, wire_connections)
-                    to_visit.update(p for p in conn_points if p not in visited)
-            
-        return result
-    def get_connected_nets(net_id, processed=None, visited_points=None, recursion_depth=0):
-        """Find all nets connected to the given net"""
-        # Add recursion depth limit
-        MAX_RECURSION_DEPTH = 50
-        if recursion_depth > MAX_RECURSION_DEPTH:
-            return set()
-            
-        if processed is None:
-            processed = set()
-        if visited_points is None:
-            visited_points = set()
-            
-        if net_id in processed:
-            return set()
-            
-        connected = {net_id}
-        processed.add(net_id)
-        
-        try:
-            net_info = net_groups[net_id]
-        except KeyError:
-            print(f"Warning: Net {net_id} not found in net_groups")
-            return connected
-            
-        # Get points for this net that haven't been visited
-        net_points = set(net_info['connected_points']) - visited_points
-        visited_points.update(net_points)
-        
-        # Early exit if no new points to process
-        if not net_points:
-            return connected
-        
-        # Check which nets share any of these points
-        for other_id, other_info in net_groups.items():
-            if other_id in processed:
-                continue
-                
-            # Get unvisited points from other net
-            other_points = set(other_info['connected_points']) - visited_points
-            
-            # Check if any points overlap
-            if net_points & other_points:
-                connected.update(
-                    get_connected_nets(other_id, processed, visited_points, recursion_depth + 1)
-                )
-                
-        return connected
-    
-    """Enhanced net merging with improved label handling"""
-    merged_nets = {}
-    processed = set()
-    max_iterations = len(net_groups) * 2  # Reasonable upper limit
-    iteration = 0
-    
-    for net_id in net_groups:
-        if net_id in processed:
-            continue
-            
-        if iteration > max_iterations:
-            print("Warning: Maximum merge iterations reached")
-            break
-            
-        # Find all connected nets
-        group = get_connected_nets(net_id)
-        if group:
-            # Create merged net
-            merged_id = f"MERGED_NET_{len(merged_nets) + 1}"
-            merged_net = {
-                'pins': [],
-                'labels': [],
-                'connected_points': set()
-            }
-            
-            # Merge all information from grouped nets
-            for gid in group:
-                if gid in net_groups:  # Add safety check
-                    net_info = net_groups[gid]
-                    merged_net['pins'].extend(net_info['pins'])
-                    merged_net['labels'].extend(net_info['labels'])
-                    merged_net['connected_points'].update(net_info['connected_points'])
-                    processed.add(gid)
-                    
-            # Remove duplicates
-            merged_net['labels'] = list(set(merged_net['labels']))
-            merged_nets[merged_id] = merged_net
-            
-        iteration += 1
-            
-    return merged_nets
-
-
-def calculate_pin_connectivity(component_pins, wire_connections, labels, sheet_hierarchy=None):
-    """Calculate connectivity between pins and labels with improved handling of multiple connections
-    
-    Args:
-        component_pins: Dict of component pins
-        wire_connections: List of wire connections
-        labels: Dict of labels by type
-        sheet_hierarchy: Optional sheet hierarchy information
-    
-    Returns:
-        dict: Calculated netlist
-    """
-    # Create initial nets from physical connections
-    initial_nets = create_initial_nets(component_pins, wire_connections, labels)
-    
-    # Merge connected nets with wire_connections for physical connectivity check
-    merged_nets = merge_connected_nets(initial_nets, wire_connections, labels)
-    
-    # If we have sheet hierarchy information, merge across hierarchies
-    if sheet_hierarchy:
-        merged_nets = merge_hierarchical_nets(merged_nets, sheet_hierarchy)
-    
-    return merged_nets

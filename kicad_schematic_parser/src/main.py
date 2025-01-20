@@ -33,7 +33,7 @@ def main(file_path, debug=False):
                 for sheet in schematic.sheets:
                     sub_file_path = os.path.join(base_path, sheet.fileName.value)
                     # Recursively analyze the sub-schematic
-                    analyze_schematics_recursive(sub_file_path, base_path, depth + 1, debug=debug, parent_sheet=file_path)
+                    analyze_schematics_recursive(sub_file_path, base_path, processed_sheets, depth=depth+1, debug=debug, parent_sheet=file_path)
                     
         except Exception as e:
             print(f"{'  ' * depth}Error processing {file_path}: {str(e)}")
