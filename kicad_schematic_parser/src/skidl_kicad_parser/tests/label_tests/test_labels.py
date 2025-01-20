@@ -9,6 +9,8 @@ def test_sheet_pin_parsing():
     
     # Create a sheet with test pins
     sheet = HierarchicalSheet()
+    # Add sheet name property
+    sheet.sheetName = Property(key='Sheetname', value='TestSheet')
     sheet.pins = [
         HierarchicalPin(
             name='test_pin1',
@@ -37,6 +39,7 @@ def test_sheet_pin_parsing():
     assert pin1['position'] == (100.0, 50.0)
     assert pin1['angle'] == 0
     assert pin1['uuid'] == 'test-uuid-1'
+    assert pin1['sheet_name'] == 'TestSheet'
     
     # Check second pin
     pin2 = next(l for l in labels['hierarchical'] if l['text'] == 'test_pin2')
@@ -44,6 +47,7 @@ def test_sheet_pin_parsing():
     assert pin2['position'] == (150.0, 75.0)
     assert pin2['angle'] == 180
     assert pin2['uuid'] == 'test-uuid-2'
+    assert pin2['sheet_name'] == 'TestSheet'
     
     # Verify other label types are empty (no regular labels in test)
     assert len(labels['local']) == 0
@@ -56,6 +60,7 @@ def test_mixed_label_parsing():
     
     # Add a sheet with a pin
     sheet = HierarchicalSheet()
+    sheet.sheetName = Property(key='Sheetname', value='TestSheet')
     sheet.pins = [
         HierarchicalPin(
             name='sheet_pin',
@@ -86,9 +91,11 @@ def test_mixed_label_parsing():
     assert sheet_pin['shape'] == 'input'
     assert sheet_pin['position'] == (100.0, 50.0)
     assert sheet_pin['uuid'] == 'test-uuid-1'
+    assert sheet_pin['sheet_name'] == 'TestSheet'
     
     # Check hierarchical label
     hier = next(l for l in labels['hierarchical'] if l['text'] == 'test_label')
     assert hier['shape'] == 'output'
     assert hier['position'] == (200.0, 75.0)
     assert 'uuid' not in hier  # Regular hierarchical labels don't have UUIDs
+    assert 'sheet_name' not in hier  # Regular hierarchical labels don't have sheet names

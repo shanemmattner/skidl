@@ -116,7 +116,7 @@ def analyze_schematic(schematic, base_path, debug=False):
     print("\nHierarchical Labels and Sheet Pins:")
     for label in all_labels['hierarchical']:
         if 'uuid' in label:  # This indicates it's a sheet pin
-            print(f"\tSheet Pin: {label['text']} ({label['shape']}) at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
+            print(f"\tSheet Pin: {label['text']} ({label['shape']}) on sheet '{label['sheet_name']}' at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
         else:
             print(f"\tLabel: {label['text']} ({label['shape']}) at ({label['position'][0]:.2f}, {label['position'][1]:.2f})")
         

@@ -6,6 +6,9 @@ def parse_sheet_pins(sheet):
     """
     sheet_pins = []
     
+    # Get sheet name
+    sheet_name = sheet.sheetName.value if hasattr(sheet, 'sheetName') else 'Unknown'
+    
     # Extract pins from the sheet
     for pin in getattr(sheet, 'pins', []):
         sheet_pins.append({
@@ -13,7 +16,8 @@ def parse_sheet_pins(sheet):
             'shape': pin.connectionType.lower(),  # Pin type (input/output)
             'position': (float(pin.position.X), float(pin.position.Y)),  # Position coordinates
             'angle': float(pin.position.angle) if hasattr(pin.position, 'angle') else 0,  # Angle is optional
-            'uuid': pin.uuid
+            'uuid': pin.uuid,
+            'sheet_name': sheet_name  # Associate pin with its parent sheet
         })
     
     return sheet_pins
