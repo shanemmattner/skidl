@@ -34,6 +34,7 @@ def analyze_schematic(schematic, base_path, debug=False):
     all_labels = {'local': [], 'hierarchical': [], 'power': []}
     all_wire_connections = []
     all_component_pins = {}
+    sheets_info = {}
 
     for sch in all_schematics:
         labels = parse_labels(sch)
@@ -151,3 +152,5 @@ def analyze_schematic(schematic, base_path, debug=False):
             print("\tLocal Labels:")
             for label in net_info['local_labels']:
                 print(f"\t\t{label}")
+
+    return schematic.sheets

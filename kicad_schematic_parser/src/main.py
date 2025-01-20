@@ -18,7 +18,12 @@ def main(file_path, debug=False):
         schematic = Schematic().from_file(file_path)
         print(f"kiutils Schematic() object: {schematic}\n\r")
 
-        analyze_schematic(schematic, base_path, debug=debug)
+        sheets = analyze_schematic(schematic, base_path, debug=debug)
+        print("\n=== Sheets Returned ===")
+        for sheet in schematic.sheets:
+            print(f"\nSheet: {sheet.sheetName.value}")
+            print(f"\tFile: {sheet.fileName.value}")
+            print(f"\tUUID: {sheet.uuid}")
     except Exception as e:
         print(f"Error processing schematic: {str(e)}")
         sys.exit(1)
