@@ -15,15 +15,20 @@ def main(file_path, debug=False):
     # Load the schematic
     base_path = os.path.dirname(file_path)
     try:
+        print(file_path)
         schematic = Schematic().from_file(file_path)
-        print(f"kiutils Schematic() object: {schematic}\n\r")
+        # print(f"kiutils Schematic() object: {schematic}\n\r")
 
-        sheets = analyze_schematic(schematic, base_path, debug=debug)
+        analyze_schematic(schematic, base_path, debug=debug)
+
         print("\n=== Sheets Returned ===")
         for sheet in schematic.sheets:
-            print(f"\nSheet: {sheet.sheetName.value}")
-            print(f"\tFile: {sheet.fileName.value}")
-            print(f"\tUUID: {sheet.uuid}")
+            file_path_sub = os.path.join(base_path, sheet.fileName.value)
+            schematic = Schematic().from_file(file_path_sub)
+            analyze_schematic(schematic, sheet.fileName.value, debug=debug)
+            # print(f"\nSheet: {sheet.sheetName.value}")
+            # print(f"\tFile: {sheet.fileName.value}")
+            # print(f"\tUUID: {sheet.uuid}")
     except Exception as e:
         print(f"Error processing schematic: {str(e)}")
         sys.exit(1)
