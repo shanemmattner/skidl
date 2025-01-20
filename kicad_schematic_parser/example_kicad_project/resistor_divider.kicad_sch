@@ -429,7 +429,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "5710e9dd-88ae-4670-a07a-efffe43c1beb")
-		(property "Reference" "#PWR04"
+		(property "Reference" "#PWR025"
 			(at 121.92 91.44 0)
 			(effects
 				(font
@@ -474,12 +474,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "d2fbf537-1ef5-4fd5-90fd-dcff52bea028")
+			(uuid "05c7405e-69a1-4891-8ccf-c197e47cb1fc")
 		)
 		(instances
-			(project ""
-				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
-					(reference "#PWR04")
+			(project "example_kicad_project"
+				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/0f8673e0-e78a-49db-bb03-1ef92ea13213"
+					(reference "#PWR025")
 					(unit 1)
 				)
 			)
@@ -540,12 +540,16 @@
 			)
 		)
 		(pin "1"
-			(uuid "8ea38a01-2e3c-4ddf-90ad-0efdbbadd8e5")
+			(uuid "a1ea0ba2-dc95-4603-b8f0-ee61f3fac893")
 		)
 		(instances
 			(project "example_kicad_project"
 				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
 					(reference "#PWR07")
+					(unit 1)
+				)
+				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/0f8673e0-e78a-49db-bb03-1ef92ea13213"
+					(reference "#PWR028")
 					(unit 1)
 				)
 			)
@@ -607,15 +611,19 @@
 			)
 		)
 		(pin "2"
-			(uuid "ee6e8e6d-f94f-4b5e-84c7-def42054c3f6")
+			(uuid "1f7ef378-2699-44f3-b91a-07553c1b06e1")
 		)
 		(pin "1"
-			(uuid "5954a627-37ee-406d-ad4b-38b6b0554508")
+			(uuid "8b70e858-e291-462c-9c4d-82bc566050de")
 		)
 		(instances
 			(project "example_kicad_project"
 				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
 					(reference "R2")
+					(unit 1)
+				)
+				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/0f8673e0-e78a-49db-bb03-1ef92ea13213"
+					(reference "R10")
 					(unit 1)
 				)
 			)
@@ -677,15 +685,19 @@
 			)
 		)
 		(pin "2"
-			(uuid "af902059-b225-4f3f-bb99-884ce62f8101")
+			(uuid "4c4baed4-431b-4270-9e7b-5388e3d61314")
 		)
 		(pin "1"
-			(uuid "397f8c4c-673c-49d2-9a1f-4c823a41ec1d")
+			(uuid "22b5ecfe-a189-4119-b974-20174beaeca0")
 		)
 		(instances
 			(project "example_kicad_project"
 				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
 					(reference "R1")
+					(unit 1)
+				)
+				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/0f8673e0-e78a-49db-bb03-1ef92ea13213"
+					(reference "R9")
 					(unit 1)
 				)
 			)
@@ -701,7 +713,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "e40afd4b-c6bc-4b32-bbe4-7680b58e18f9")
-		(property "Reference" "C4"
+		(property "Reference" "C10"
 			(at 142.24 76.1999 0)
 			(effects
 				(font
@@ -747,16 +759,67 @@
 			)
 		)
 		(pin "2"
-			(uuid "895c42db-7f4b-413f-9b6a-9155821cfe9e")
+			(uuid "64b4cade-2a2c-4253-a41c-12caa3ac6ef3")
 		)
 		(pin "1"
-			(uuid "6defd26b-6f34-4cb3-9a29-a85875094306")
+			(uuid "6addce31-c139-42c4-a453-c71053edded1")
 		)
 		(instances
-			(project ""
-				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
-					(reference "C4")
+			(project "example_kicad_project"
+				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/0f8673e0-e78a-49db-bb03-1ef92ea13213"
+					(reference "C10")
 					(unit 1)
+				)
+			)
+		)
+	)
+	(sheet
+		(at 171.45 72.39)
+		(size 22.86 21.59)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "03fa150b-e2a6-4139-82b7-099a32122e43")
+		(property "Sheetname" "power3"
+			(at 171.45 71.6784 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "power2.kicad_sch"
+			(at 171.45 94.5646 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(pin "Vout" input
+			(at 171.45 78.74 180)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+			(uuid "0788f61f-2793-436f-ab4a-b21aa19c9d25")
+		)
+		(instances
+			(project "example_kicad_project"
+				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
+					(page "8")
+				)
+				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/0f8673e0-e78a-49db-bb03-1ef92ea13213"
+					(page "9")
 				)
 			)
 		)

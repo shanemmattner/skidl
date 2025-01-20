@@ -596,8 +596,20 @@
       "wire_conn_test"
     ],
     [
+      "0f8673e0-e78a-49db-bb03-1ef92ea13213",
+      "resistor_divider1"
+    ],
+    [
       "90ceafd8-bd42-443d-a247-0a105a926b0c",
       "labels_testing"
+    ],
+    [
+      "03fa150b-e2a6-4139-82b7-099a32122e43",
+      "power3"
+    ],
+    [
+      "03fa150b-e2a6-4139-82b7-099a32122e43",
+      "power3"
     ]
   ],
   "text_variables": {}

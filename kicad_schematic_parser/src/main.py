@@ -14,7 +14,8 @@ def main(file_path, debug=False):
     """
     def analyze_schematics_recursive(file_path, base_path, depth=0, debug=False):
         try:
-            print(f"/n/r*****************  {'  ' * depth}Analyzing: {file_path}  *****************")
+            print("\n" + "-" * 80)
+            print(f"*******  {'  ' * depth}Analyzing: {file_path}  *******")
             schematic = Schematic().from_file(file_path)
             analyze_schematic(schematic, base_path, debug=debug)  # Your existing analysis function
 

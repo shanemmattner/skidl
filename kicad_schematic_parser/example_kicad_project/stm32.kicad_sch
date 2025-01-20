@@ -1913,6 +1913,16 @@
 	)
 	(wire
 		(pts
+			(xy 73.66 82.55) (xy 102.87 82.55)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6e8967bb-3648-4ff3-b9a9-9ff4bd795b87")
+	)
+	(wire
+		(pts
 			(xy 115.57 25.4) (xy 102.87 25.4)
 		)
 		(stroke
@@ -2807,6 +2817,54 @@
 				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0"
 					(reference "#PWR05")
 					(unit 1)
+				)
+			)
+		)
+	)
+	(sheet
+		(at 55.88 74.93)
+		(size 17.78 20.32)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "0f8673e0-e78a-49db-bb03-1ef92ea13213")
+		(property "Sheetname" "resistor_divider1"
+			(at 55.88 74.2184 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "resistor_divider.kicad_sch"
+			(at 55.88 95.8346 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(pin "R1_2-R2_1" input
+			(at 73.66 82.55 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+			(uuid "8fe19b9c-0eec-4c2a-b482-0c1cef2e9ffe")
+		)
+		(instances
+			(project "example_kicad_project"
+				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0"
+					(page "6")
 				)
 			)
 		)
