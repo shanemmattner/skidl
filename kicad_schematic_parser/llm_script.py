@@ -20,12 +20,12 @@ TARGET_FILES = [
     'geometry.py',               # Utility functions for geometric calculations
     
     # KiCad Schematic Files
-    'example_kicad_project.kicad_sch',     # Top level schematic showing hierarchical sheets
-    'labels_testing.kicad_sch',            # Sheet demonstrating label connections
-    'power2.kicad_sch',                    # Sheet with power regulation circuit
-    'resistor_divider.kicad_sch',          # Sheet with voltage divider circuit
-    'stm32.kicad_sch',                     # Sheet with microcontroller circuit
-    'wire_conn_test.kicad_sch',            # Sheet testing wire connections
+    # 'example_kicad_project.kicad_sch',     # Top level schematic showing hierarchical sheets
+    # 'labels_testing.kicad_sch',            # Sheet demonstrating label connections
+    # 'power2.kicad_sch',                    # Sheet with power regulation circuit
+    # 'resistor_divider.kicad_sch',          # Sheet with voltage divider circuit
+    # 'stm32.kicad_sch',                     # Sheet with microcontroller circuit
+    # 'wire_conn_test.kicad_sch',            # Sheet testing wire connections
     
     # Output Files
     'hierarchy.txt',              # Parser output showing hierarchical connections
