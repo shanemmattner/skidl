@@ -101,15 +101,22 @@ def parse_component_properties(lines: List[str], line_num: int = 1) -> ParseResu
     
     try:
         for i, line in enumerate(lines[1:], start=1):
-            # Check indentation
-            if not line.startswith("    "):
-                result.add_error(line_num + i, line, "Property line must be indented with 4 spaces")
+            line = line.rstrip()  # Remove trailing whitespace
+            if not line:  # Skip empty lines
+                continue
+
+            # Get the indented content, handling both tabs and spaces
+            stripped_line = line.lstrip('\t ')
+            
+            # Skip non-property lines
+            if not stripped_line or ':' not in stripped_line:
                 continue
 
             # Split into key/value
-            parts = line[4:].split(": ", 1)  # Skip indentation
+            parts = stripped_line.split(':', 1)  # Split on first colon
+
+            # Skip lines that aren't properties (like Position, Unit)
             if len(parts) != 2:
-                result.add_error(line_num + i, line, "Property line must be in format 'Key: Value'")
                 continue
 
             key, value = parts[0].strip(), parts[1].strip()
