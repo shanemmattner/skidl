@@ -4,188 +4,56 @@
 	(generator_version "8.0")
 	(uuid "139408cf-b4ac-4ccf-8751-afbb6def1f13")
 	(paper "A4")
-	(lib_symbols
-		(symbol "power:+VDC"
-			(power)
-			(pin_numbers hide)
-			(pin_names
-				(offset 0) hide)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(property "Reference" "#PWR"
-				(at 0 -2.54 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Value" "+VDC"
-				(at 0 6.35 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Datasheet" ""
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Description" "Power symbol creates a global label with name \"+VDC\""
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "ki_keywords" "global power"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(symbol "+VDC_0_1"
-				(polyline
-					(pts
-						(xy -1.143 3.175) (xy 1.143 3.175)
-					)
-					(stroke
-						(width 0.508)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 0) (xy 0 1.27)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 2.032) (xy 0 4.318)
-					)
-					(stroke
-						(width 0.508)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(circle
-					(center 0 3.175)
-					(radius 1.905)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-			)
-			(symbol "+VDC_1_1"
-				(pin power_in line
-					(at 0 0 90)
-					(length 0)
-					(name "~"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-		)
-	)
+	(lib_symbols)
 	(wire
 		(pts
-			(xy 107.95 54.61) (xy 111.76 54.61)
+			(xy 133.35 66.04) (xy 137.16 66.04)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "09123bfc-98ab-45d5-93a2-ec4907f3ec93")
+		(uuid "35f20bcc-9448-4756-a147-633224e50854")
 	)
 	(wire
 		(pts
-			(xy 57.15 55.88) (xy 57.15 40.64)
+			(xy 137.16 57.15) (xy 133.35 57.15)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "23f01822-7f98-40bb-8915-75a0aca8c76a")
+		(uuid "4a815971-39da-4ed6-9819-a56e969a28ab")
 	)
 	(wire
 		(pts
-			(xy 153.67 54.61) (xy 161.29 54.61)
+			(xy 166.37 53.34) (xy 162.56 53.34)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "5c88449c-d7c4-432f-96e6-1fea6343ce89")
+		(uuid "53fe7994-b10b-46e9-b8ea-28219cb3cf84")
 	)
 	(wire
 		(pts
-			(xy 107.95 40.64) (xy 107.95 54.61)
+			(xy 96.52 54.61) (xy 92.71 54.61)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "ac137208-ddb4-4f08-a7f2-36c0908d0436")
+		(uuid "6ec4d0c2-6ac5-4aa1-ae88-c73df8cf02a7")
 	)
 	(wire
 		(pts
-			(xy 167.64 109.22) (xy 173.99 109.22)
+			(xy 96.52 57.15) (xy 92.71 57.15)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "b88f12ff-49f2-4a4f-888b-d9d5f0e622f4")
+		(uuid "a42c5854-c863-4f2d-bb55-e09514a22b3f")
 	)
 	(wire
 		(pts
@@ -199,25 +67,25 @@
 	)
 	(wire
 		(pts
-			(xy 57.15 55.88) (xy 54.61 55.88)
+			(xy 133.35 68.58) (xy 137.16 68.58)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "e4ac251f-c686-4a44-84b0-90116fbddc3f")
+		(uuid "e26ef038-0f67-4596-b4bc-0c04fa8f7f76")
 	)
 	(wire
 		(pts
-			(xy 57.15 40.64) (xy 107.95 40.64)
+			(xy 166.37 55.88) (xy 162.56 55.88)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "fab76d43-6375-4a84-ac6f-20bc7d78cda8")
+		(uuid "feb2b032-d231-48f0-bf58-30c545639ef5")
 	)
-	(label "VDD_MONITOR"
+	(label "3v3_monitor"
 		(at 137.16 60.96 0)
 		(fields_autoplaced yes)
 		(effects
@@ -228,8 +96,8 @@
 		)
 		(uuid "2a9ff045-7a6d-4344-b1fc-1bd0a27572f9")
 	)
-	(label "VDD_MONITOR"
-		(at 173.99 109.22 0)
+	(label "D-"
+		(at 137.16 68.58 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -237,77 +105,77 @@
 			)
 			(justify left bottom)
 		)
-		(uuid "4888b37e-f99b-4764-94ae-31d50eeb8280")
+		(uuid "37fe1136-8ff8-4757-ae52-0dd0b3bbb1ec")
 	)
-	(symbol
-		(lib_id "power:+VDC")
-		(at 153.67 54.61 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
+	(label "D+"
+		(at 162.56 53.34 180)
 		(fields_autoplaced yes)
-		(uuid "325246c9-db83-4995-9d50-b873facea96a")
-		(property "Reference" "#PWR03"
-			(at 153.67 57.15 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
+		(effects
+			(font
+				(size 1.27 1.27)
 			)
+			(justify right bottom)
 		)
-		(property "Value" "+VDC"
-			(at 153.67 46.99 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
+		(uuid "76f48a24-dc32-4bd8-b3cf-e0906753a19d")
+	)
+	(label "5v_monitor"
+		(at 137.16 57.15 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
 			)
+			(justify left bottom)
 		)
-		(property "Footprint" ""
-			(at 153.67 54.61 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
+		(uuid "7da106c1-73a6-4b02-b15c-0a53c00bd5c1")
+	)
+	(label "5v_monitor"
+		(at 96.52 54.61 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
 			)
+			(justify left bottom)
 		)
-		(property "Datasheet" ""
-			(at 153.67 54.61 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
+		(uuid "8d8da313-d7cf-496c-af85-a5a28f8d0c43")
+	)
+	(label "D+"
+		(at 137.16 66.04 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
 			)
+			(justify left bottom)
 		)
-		(property "Description" "Power symbol creates a global label with name \"+VDC\""
-			(at 153.67 54.61 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
+		(uuid "9644e561-f5c5-43cc-b4b6-764d64f9ebe3")
+	)
+	(label "3v3_monitor"
+		(at 96.52 57.15 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
 			)
+			(justify left bottom)
 		)
-		(pin "1"
-			(uuid "57273797-6f48-43fc-8542-e5cc73ab7582")
-		)
-		(instances
-			(project ""
-				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13"
-					(reference "#PWR03")
-					(unit 1)
-				)
+		(uuid "a1671066-b18b-4193-96b5-cbd4d7b62445")
+	)
+	(label "D-"
+		(at 162.56 55.88 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
 			)
+			(justify right bottom)
 		)
+		(uuid "a5fee130-1c2f-42a4-a871-e0596003c549")
 	)
 	(sheet
-		(at 36.83 48.26)
-		(size 17.78 20.32)
+		(at 78.74 48.26)
+		(size 13.97 22.86)
 		(fields_autoplaced yes)
 		(stroke
 			(width 0.1524)
@@ -316,9 +184,9 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "7dcd522d-d03d-41f6-bad3-56f1f937b049")
-		(property "Sheetname" "resistor_divider"
-			(at 36.83 47.5484 0)
+		(uuid "7a16d2b9-1ea1-4c05-9c09-25544e050e50")
+		(property "Sheetname" "3v3_regulator"
+			(at 78.74 47.5484 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -326,92 +194,34 @@
 				(justify left bottom)
 			)
 		)
-		(property "Sheetfile" "resistor_divider.kicad_sch"
-			(at 36.83 69.1646 0)
+		(property "Sheetfile" "power2.kicad_sch"
+			(at 78.74 71.7046 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left top)
 			)
-		)
-		(pin "R1_2-R2_1" input
-			(at 54.61 55.88 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-			(uuid "8d8ee59b-4d1a-4a57-9097-ba22b5e75d32")
-		)
-		(instances
-			(project "example_kicad_project"
-				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13"
-					(page "3")
-				)
-			)
-		)
-	)
-	(sheet
-		(at 161.29 48.26)
-		(size 13.97 21.59)
-		(fields_autoplaced yes)
-		(stroke
-			(width 0.1524)
-			(type solid)
-		)
-		(fill
-			(color 0 0 0 0.0000)
-		)
-		(uuid "8234fcde-2a25-40ed-bf1a-aa4bf9bd93ad")
-		(property "Sheetname" "wire_conn_test"
-			(at 161.29 47.5484 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Sheetfile" "wire_conn_test.kicad_sch"
-			(at 161.29 70.4346 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left top)
-			)
-		)
-		(pin "VIN" input
-			(at 161.29 54.61 180)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-			(uuid "2b199957-c8d8-4c7c-9a60-964923fa1020")
 		)
 		(pin "5v_monitor" input
-			(at 175.26 60.96 0)
+			(at 92.71 54.61 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "01b8100b-fee6-410e-acc3-9883f741f6ef")
+			(uuid "b99079f2-aec9-4add-861e-df79ed240fa3")
 		)
 		(pin "3v3_monitor" input
-			(at 175.26 63.5 0)
+			(at 92.71 57.15 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "47ee69c7-f1ec-436c-9edc-92281fa4de31")
+			(uuid "7451d16f-e1d9-40bc-82ed-046bf8702f6b")
 		)
 		(instances
 			(project "example_kicad_project"
@@ -422,8 +232,8 @@
 		)
 	)
 	(sheet
-		(at 152.4 104.14)
-		(size 15.24 15.24)
+		(at 166.37 46.99)
+		(size 20.32 26.67)
 		(fields_autoplaced yes)
 		(stroke
 			(width 0.1524)
@@ -432,9 +242,9 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "90ceafd8-bd42-443d-a247-0a105a926b0c")
-		(property "Sheetname" "labels_testing"
-			(at 152.4 103.4284 0)
+		(uuid "86dcdd56-4325-4acf-86b9-d97ccccee45f")
+		(property "Sheetname" "USB"
+			(at 166.37 46.2784 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -442,8 +252,8 @@
 				(justify left bottom)
 			)
 		)
-		(property "Sheetfile" "labels_testing.kicad_sch"
-			(at 152.4 119.9646 0)
+		(property "Sheetfile" "usb.kicad_sch"
+			(at 166.37 74.2446 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -451,58 +261,30 @@
 				(justify left top)
 			)
 		)
-		(pin "3v3_monitor" input
-			(at 167.64 109.22 0)
+		(pin "D+" input
+			(at 166.37 53.34 180)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify right)
+				(justify left)
 			)
-			(uuid "f871e7e3-b9d1-4ca8-96cc-dcf4117975fa")
+			(uuid "603b1cbd-e83a-4352-a5c3-eee31b2f07f8")
+		)
+		(pin "D-" input
+			(at 166.37 55.88 180)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+			(uuid "d1f3146e-52f8-4edf-b10a-ac6a1a672611")
 		)
 		(instances
 			(project "example_kicad_project"
 				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13"
-					(page "7")
-				)
-			)
-		)
-	)
-	(sheet
-		(at 72.39 46.99)
-		(size 22.86 21.59)
-		(fields_autoplaced yes)
-		(stroke
-			(width 0.1524)
-			(type solid)
-		)
-		(fill
-			(color 0 0 0 0.0000)
-		)
-		(uuid "bb878e8b-3ef6-45c7-bc17-d62b28e24d94")
-		(property "Sheetname" "power2"
-			(at 72.39 46.2784 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Sheetfile" "power2.kicad_sch"
-			(at 72.39 69.1646 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left top)
-			)
-		)
-		(instances
-			(project "example_kicad_project"
-				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13"
-					(page "2")
+					(page "6")
 				)
 			)
 		)
@@ -519,7 +301,7 @@
 			(color 0 0 0 0.0000)
 		)
 		(uuid "e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0")
-		(property "Sheetname" "stm32"
+		(property "Sheetname" "esp32s3mini1"
 			(at 111.76 45.0084 0)
 			(effects
 				(font
@@ -528,7 +310,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Sheetfile" "stm32.kicad_sch"
+		(property "Sheetfile" "esp32s3mini1.kicad_sch"
 			(at 111.76 71.7046 0)
 			(effects
 				(font
@@ -547,15 +329,35 @@
 			)
 			(uuid "07aab0d4-78c3-4900-8b73-3e2535a98882")
 		)
-		(pin "HW_VER" input
-			(at 111.76 54.61 180)
+		(pin "5v_monitor" input
+			(at 133.35 57.15 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
+				(justify right)
 			)
-			(uuid "a5980c16-7dce-4e10-b4a4-8add3a91b0bf")
+			(uuid "4c885d4b-445c-462d-ab0d-6c69f6b0eb62")
+		)
+		(pin "D+" input
+			(at 133.35 66.04 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+			(uuid "1db54b71-1ddb-4986-863a-3a3032ec7448")
+		)
+		(pin "D-" input
+			(at 133.35 68.58 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+			(uuid "6de2798b-2b35-47e3-a3a9-c2dd7379e871")
 		)
 		(instances
 			(project "example_kicad_project"

@@ -26,6 +26,23 @@ def find_symbol_definition(schematic, lib_nickname, entry_name):
             return symbol
     return None
 
+
+def natural_sort_key(pin_info):
+    """
+    Create a natural sort key for pin numbers that can handle both 
+    numeric (1,2,3) and alphanumeric (A1, B1, etc) pin numbers
+    """
+    pin_num = pin_info['pin_number']
+    # Handle pure numeric values
+    try:
+        return (0, int(pin_num))  # Pure numbers come first
+    except ValueError:
+        # Handle alphanumeric values like 'A1', 'B1'
+        # Extract any numeric portion for secondary sorting
+        numeric_part = ''.join(c for c in pin_num if c.isdigit())
+        alpha_part = ''.join(c for c in pin_num if c.isalpha())
+        return (1, alpha_part, int(numeric_part) if numeric_part else 0)
+
 def get_component_pins(schematic):
     """
     Extract and calculate absolute positions for all component pins in the schematic
@@ -69,8 +86,10 @@ def get_component_pins(schematic):
             }
             component_pins[component.properties[0].value].append(pin_info)
             
+        # Use natural sort for the pin numbers
         component_pins[component.properties[0].value].sort(
-            key=lambda x: int(x['pin_number'])
+            key=natural_sort_key
         )
     
     return component_pins
+

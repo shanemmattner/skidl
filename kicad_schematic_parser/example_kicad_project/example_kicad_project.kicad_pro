@@ -580,36 +580,20 @@
       "Root"
     ],
     [
-      "bb878e8b-3ef6-45c7-bc17-d62b28e24d94",
-      "power2"
-    ],
-    [
-      "7dcd522d-d03d-41f6-bad3-56f1f937b049",
-      "resistor_divider"
-    ],
-    [
       "e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0",
-      "stm32"
+      "esp32s3mini1"
     ],
     [
-      "8234fcde-2a25-40ed-bf1a-aa4bf9bd93ad",
-      "wire_conn_test"
+      "7a16d2b9-1ea1-4c05-9c09-25544e050e50",
+      "3v3_regulator"
     ],
     [
       "0f8673e0-e78a-49db-bb03-1ef92ea13213",
       "resistor_divider1"
     ],
     [
-      "90ceafd8-bd42-443d-a247-0a105a926b0c",
-      "labels_testing"
-    ],
-    [
-      "03fa150b-e2a6-4139-82b7-099a32122e43",
-      "power3"
-    ],
-    [
-      "03fa150b-e2a6-4139-82b7-099a32122e43",
-      "power3"
+      "86dcdd56-4325-4acf-86b9-d97ccccee45f",
+      "USB"
     ]
   ],
   "text_variables": {}

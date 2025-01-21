@@ -495,7 +495,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "7195a35a-200e-45a0-b43f-9512bdf8f4bd")
-		(property "Reference" "#PWR07"
+		(property "Reference" "#PWR028"
 			(at 138.43 87.63 0)
 			(effects
 				(font
@@ -544,10 +544,6 @@
 		)
 		(instances
 			(project "example_kicad_project"
-				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
-					(reference "#PWR07")
-					(unit 1)
-				)
 				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/0f8673e0-e78a-49db-bb03-1ef92ea13213"
 					(reference "#PWR028")
 					(unit 1)
@@ -565,7 +561,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "870fdb49-13fc-4325-933e-2afd85657a76")
-		(property "Reference" "R2"
+		(property "Reference" "R10"
 			(at 124.46 80.0099 0)
 			(effects
 				(font
@@ -574,7 +570,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "R"
+		(property "Value" "1k"
 			(at 124.46 82.5499 0)
 			(effects
 				(font
@@ -618,10 +614,6 @@
 		)
 		(instances
 			(project "example_kicad_project"
-				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
-					(reference "R2")
-					(unit 1)
-				)
 				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/0f8673e0-e78a-49db-bb03-1ef92ea13213"
 					(reference "R10")
 					(unit 1)
@@ -639,7 +631,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "aa69fac3-2603-4df3-806f-6632d2bb71f8")
-		(property "Reference" "R1"
+		(property "Reference" "R9"
 			(at 124.46 62.2299 0)
 			(effects
 				(font
@@ -648,7 +640,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "R"
+		(property "Value" "2k"
 			(at 124.46 64.7699 0)
 			(effects
 				(font
@@ -692,10 +684,6 @@
 		)
 		(instances
 			(project "example_kicad_project"
-				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
-					(reference "R1")
-					(unit 1)
-				)
 				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/0f8673e0-e78a-49db-bb03-1ef92ea13213"
 					(reference "R9")
 					(unit 1)
@@ -722,7 +710,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "C"
+		(property "Value" "100nF"
 			(at 142.24 78.7399 0)
 			(effects
 				(font
@@ -769,57 +757,6 @@
 				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/0f8673e0-e78a-49db-bb03-1ef92ea13213"
 					(reference "C10")
 					(unit 1)
-				)
-			)
-		)
-	)
-	(sheet
-		(at 171.45 72.39)
-		(size 22.86 21.59)
-		(fields_autoplaced yes)
-		(stroke
-			(width 0.1524)
-			(type solid)
-		)
-		(fill
-			(color 0 0 0 0.0000)
-		)
-		(uuid "03fa150b-e2a6-4139-82b7-099a32122e43")
-		(property "Sheetname" "power3"
-			(at 171.45 71.6784 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Sheetfile" "power2.kicad_sch"
-			(at 171.45 94.5646 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left top)
-			)
-		)
-		(pin "Vout" input
-			(at 171.45 78.74 180)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-			(uuid "0788f61f-2793-436f-ab4a-b21aa19c9d25")
-		)
-		(instances
-			(project "example_kicad_project"
-				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
-					(page "8")
-				)
-				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/0f8673e0-e78a-49db-bb03-1ef92ea13213"
-					(page "9")
 				)
 			)
 		)
