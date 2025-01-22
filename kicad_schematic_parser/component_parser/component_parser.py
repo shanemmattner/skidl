@@ -101,6 +101,10 @@ def parse_component_properties(lines: List[str], line_num: int = 1) -> ParseResu
     
     try:
         for i, line in enumerate(lines[1:], start=1):
+            # Check for proper indentation
+            if not line.startswith('    ') and not line.startswith('\t'):
+                result.add_error(line_num + i, line, f"Property line must be indented: {line}")
+            
             line = line.rstrip()  # Remove trailing whitespace
             if not line:  # Skip empty lines
                 continue
@@ -108,18 +112,27 @@ def parse_component_properties(lines: List[str], line_num: int = 1) -> ParseResu
             # Get the indented content, handling both tabs and spaces
             stripped_line = line.lstrip('\t ')
             
-            # Skip non-property lines
-            if not stripped_line or ':' not in stripped_line:
+            # Validate property line format
+            if ':' not in stripped_line:
+                result.add_error(line_num + i, line, f"Property line must be in format 'Key: Value': {line}")
                 continue
 
             # Split into key/value
             parts = stripped_line.split(':', 1)  # Split on first colon
 
-            # Skip lines that aren't properties (like Position, Unit)
+            # Validate key and value
             if len(parts) != 2:
+                result.add_error(line_num + i, line, f"Property line must be in format 'Key: Value': {line}")
                 continue
 
             key, value = parts[0].strip(), parts[1].strip()
+            
+            # Validate key and value are not empty
+            if not key:
+                result.add_error(line_num + i, line, f"Property key cannot be empty: {line}")
+            
+            if not value:
+                result.add_error(line_num + i, line, f"Property value cannot be empty: {line}")
             
             # Set component attribute based on property key
             if key == "Reference":
@@ -138,6 +151,9 @@ def parse_component_properties(lines: List[str], line_num: int = 1) -> ParseResu
         # Validate required fields
         if not component.reference or not component.value:
             result.add_error(line_num, str(lines), "Component must have Reference and Value")
+
+        # If any errors occurred, return without setting data
+        if result.errors:
             return result
 
         result.data = component
