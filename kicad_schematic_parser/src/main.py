@@ -4,7 +4,7 @@ import os
 import argparse
 from kiutils.schematic import Schematic
 from kicad_hierarchy_parser import analyze_schematic
-from skidl_generator.component_parser.component_parser import parse_component_name, parse_component_properties
+from skidl_generator.component_parser.component_parser import parse_component_name, parse_component_properties, parse_component_block
 
 def process_kicad_to_text(file_path, debug=False):
     """
@@ -38,74 +38,95 @@ def process_kicad_to_text(file_path, debug=False):
     base_path = os.path.dirname(file_path)
     analyze_schematics_recursive(file_path, base_path, debug=debug)
 
+
+
 def process_text_to_skidl(file_path, debug=False):
     """
     Process a text file containing component information and convert it to SKiDL code
-    
-    Args:
-        file_path: Path to the text file containing component information
-        debug: Enable debug output
     """
     try:
         with open(file_path, 'r') as f:
             lines = f.readlines()
         
-        # Process components
-        current_component = None
-        property_lines = []
         components = []
+        current_component = None
+        current_lines = []
+        in_components_section = False
         
         for i, line in enumerate(lines):
-            line = line.strip()
-            if not line:
+            line = line.rstrip()
+            
+            # Start of components section
+            if line == "=== Components ===":
+                in_components_section = True
                 continue
                 
-            if line.startswith("Component:"):
-                # Process previous component if exists
-                if current_component and property_lines:
-                    prop_result = parse_component_properties(property_lines, line_num=i-len(property_lines))
-                    if prop_result.success:
-                        components.append(prop_result.data)
-                    else:
-                        for error in prop_result.errors:
-                            print(f"Error parsing properties: {error.message}")
+            if not in_components_section:
+                continue
                 
-                # Start new component
-                result = parse_component_name(line, line_num=i+1)
-                if result.success:
-                    current_component = result.data
-                    property_lines = []
-                else:
-                    print(f"Error parsing component name: {result.errors[0].message}")
-                    
-            elif line == "Properties:":
-                property_lines = [line]
-            elif current_component and property_lines:
-                property_lines.append(line)
-        
+            # Start of new component
+            if line.startswith("Component:"):
+                # Process previous component if it exists
+                if current_lines:  # Changed from current_component check
+                    result = parse_component_block(current_lines)
+                    if result.success:
+                        components.append(result.data)
+                    else:
+                        for error in result.errors:
+                            print(f"Error parsing component: {error.message}")
+                
+                current_lines = [line]
+                continue
+                
+            # Add lines to current component until we hit a new component or section
+            if line and not line.startswith("==="):
+                current_lines.append(line)
+            elif line.startswith("==="):
+                # Process final component
+                if current_lines:
+                    result = parse_component_block(current_lines)
+                    if result.success:
+                        components.append(result.data)
+                    else:
+                        for error in result.errors:
+                            print(f"Error parsing component: {error.message}")
+                in_components_section = False
+                
         # Process final component if exists
-        if current_component and property_lines:
-            prop_result = parse_component_properties(property_lines)
-            if prop_result.success:
-                components.append(prop_result.data)
+        if current_lines:
+            result = parse_component_block(current_lines)
+            if result.success:
+                components.append(result.data)
             else:
-                for error in prop_result.errors:
-                    print(f"Error parsing properties: {error.message}")
+                for error in result.errors:
+                    print(f"Error parsing component: {error.message}")
         
-        # Print results
+        # Print out the parsed components
         print("\nParsed Components:")
         for comp in components:
-            print(f"\nReference: {comp.reference}")
-            print(f"Value: {comp.value}")
+            print(f"\nComponent: {comp.library}/{comp.name}")
+            print(f"  Reference: {comp.reference}")
+            print(f"  Value: {comp.value}")
             if comp.footprint:
-                print(f"Footprint: {comp.footprint}")
-            if comp.library:
-                print(f"Library: {comp.library}")
-            if comp.name:
-                print(f"Name: {comp.name}")
-                
+                print(f"  Footprint: {comp.footprint}")
+            if comp.datasheet:
+                print(f"  Datasheet: {comp.datasheet}")
+            if comp.description:
+                print(f"  Description: {comp.description}")
+            if comp.position:
+                print(f"  Position: {comp.position}")
+            if comp.angle is not None:
+                print(f"  Angle: {comp.angle}")
+        
+        if not components:
+            print("\nNo components were successfully parsed.")
+            
+        return components
+        
     except Exception as e:
         print(f"Error processing text file: {str(e)}")
+        return []
+    
 
 def main():
     """Main entry point for the KiCad schematic parser"""

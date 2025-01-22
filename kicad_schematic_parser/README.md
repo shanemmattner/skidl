@@ -15,7 +15,7 @@ A Python module for SKiDL that parses and analyzes KiCad schematic files, conver
 - ✅ Support for hierarchical sheets
 
 ### Text to SKiDL (In Progress)
-- ✅ Component parsing
+- 🚧 Component parsing
 - 🚧 Pin and connection parsing (Planned)
 - 🚧 Net parsing (Planned)
 - 🚧 Sheet structure parsing (Planned)

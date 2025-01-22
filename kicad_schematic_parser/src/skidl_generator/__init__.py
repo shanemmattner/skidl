@@ -4,6 +4,7 @@ SKiDL Generator package for converting KiCad hierarchy text files to SKiDL Pytho
 
 from .component_parser.component_parser import (
     parse_component_name,
+    parse_component_block,
     parse_component_properties,
     Component,
     ParseResult,
@@ -12,6 +13,7 @@ from .component_parser.component_parser import (
 
 __all__ = [
     'parse_component_name',
+    'parse_component_block',
     'parse_component_properties',
     'Component',
     'ParseResult',

@@ -27,9 +27,95 @@ class Component:
     footprint: Optional[str] = None
     datasheet: Optional[str] = None
     description: Optional[str] = None
-    uuid: Optional[str] = None
-    library: Optional[str] = None
-    name: Optional[str] = None
+    library: Optional[str] = None  # e.g. "Device"
+    name: Optional[str] = None     # e.g. "R"
+    position: Optional[tuple] = None
+    angle: Optional[float] = None
+
+
+def parse_component_block(lines: List[str]) -> ParseResult:
+    """Parse a complete component block including header, properties, and position."""
+    result = ParseResult()
+    component = Component(reference="", value="")
+    
+    try:
+        if not lines:
+            result.add_error(0, "", "Empty component block")
+            return result
+            
+        # Parse component header (library/name)
+        header = lines[0].strip()
+        name_result = parse_component_name(header)
+        if not name_result.success:
+            result.errors.extend(name_result.errors)
+            return result
+            
+        library, name = name_result.data
+        component.library = library
+        component.name = name
+        
+        # Find property section
+        prop_start = None
+        for i, line in enumerate(lines):
+            if line.strip() == "Properties:":
+                prop_start = i
+                break
+                
+        if prop_start is None:
+            result.add_error(0, str(lines), "No Properties section found")
+            return result
+            
+        # Parse properties
+        prop_lines = []
+        i = prop_start + 1
+        while i < len(lines) and lines[i].strip() and not lines[i].startswith("Position:"):
+            line = lines[i].strip()
+            if line:  # Skip empty lines
+                prop_lines.append(line)
+            i += 1
+            
+        # Parse position if present
+        for line in lines:
+            line = line.strip()
+            if line.startswith("Position:"):
+                try:
+                    # Extract position and angle from format: Position: (x, y), Angle: z
+                    pos_str = line[line.find("(")+1:line.find(")")]
+                    pos_angle = [float(x.strip()) for x in pos_str.split(",")]
+                    component.position = (pos_angle[0], pos_angle[1])
+                    if "Angle:" in line:
+                        component.angle = float(line.split("Angle:")[-1].strip())
+                except Exception as e:
+                    result.add_error(0, line, f"Error parsing position: {str(e)}")
+                    
+        # Process properties
+        for line in prop_lines:
+            if ":" not in line:
+                continue
+            key, value = [x.strip() for x in line.split(":", 1)]
+            
+            if key == "Reference":
+                component.reference = value
+            elif key == "Value":
+                component.value = value
+            elif key == "Footprint":
+                component.footprint = value
+            elif key == "Datasheet":
+                component.datasheet = value
+            elif key == "Description":
+                component.description = value
+                
+        # Validate required fields
+        if not component.reference or not component.value:
+            result.add_error(0, str(lines), "Component must have Reference and Value")
+            return result
+            
+        result.data = component
+        return result
+        
+    except Exception as e:
+        result.add_error(0, str(lines), f"Error parsing component block: {str(e)}")
+        return result
 
 def parse_component_name(line: str, line_num: int = 1) -> ParseResult:
     """Parse a component line to extract library and part name.
