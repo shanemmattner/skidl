@@ -1,77 +1,33 @@
-# Project Progress
+## Net Parsing Improvements Progress
 
-## Completed Features
-### KiCad to Text Conversion
-- [x] Component extraction with detailed properties
-- [x] Pin position calculation
-- [x] Wire connection analysis
-- [x] Label parsing (local, hierarchical, power)
-- [x] Net connectivity analysis
-- [x] Support for hierarchical sheets
+### Completed
+- Identified net naming priority issues
+- Established test infrastructure
+- Developed test matrix covering key scenarios
 
-### SKiDL Generator
-- [x] Component Parser
-  * Parse component names
-  * Extract component properties
-  * Validate component data format
-  * Handle library and component name parsing
+### Test Coverage
+| Schematic | Status | Coverage Details |
+|-----------|--------|------------------|
+| resistor_divider | ✓ | Basic net formation, label priority |
+| power2 | ✓ | Multi-rail power distribution |
+| stm32 | ✓ | Hierarchical sheet connections |
 
-## In Progress
-### Text to SKiDL Conversion
-- [ ] Pin Parsing
-  * Track pin electrical types
-  * Manage pin positions
-  * Handle pin-to-pin connections
+### Current Challenges
+- Import module resolution in test suite
+- Finalizing net naming algorithm
+- Ensuring cross-sheet label propagation
 
-- [ ] Net Parsing
-  * Parse net names and connections
-  * Handle power, local, and hierarchical nets
-  * Track net connectivity
+### Upcoming Milestones
+1. Resolve test import issues
+2. Complete net naming priority implementation
+3. Validate recursive connectivity tracing
+4. Refactor net parsing module for improved modularity
+5. Expand test coverage with additional edge cases
 
-- [ ] Sheet Parsing
-  * Parse sheet definitions and boundaries
-  * Manage sheet properties and metadata
-  * Track parent-child sheet relationships
+### Known Limitations
+- Current parsing may misidentify power vs hierarchical labels
+- Incomplete connectivity analysis across sheet boundaries
 
-- [ ] Hierarchy Building
-  * Construct complete circuit hierarchy
-  * Resolve cross-sheet connections
-
-- [ ] Code Generation
-  * Generate SKiDL Python code
-  * Create subcircuit functions
-  * Handle component instantiation
-
-## Known Limitations
-- Labels placed in the middle of a wire may not be detected
-- Label transfer between connections might be incomplete
-- Incomplete information extraction (missing position and UUID)
-
-## Development Priorities
-1. Improve Information Extraction
-   - Add position tracking for components
-   - Capture UUID for components
-   - Enhance label detection mechanisms
-
-2. Testing and Validation
-   - Develop comprehensive test suite
-   - Verify existing functionality
-   - Cover edge cases in parsing logic
-
-3. Project Improvements
-   - Rename project components for clarity
-   - Integrate hierarchy logic parser
-   - Update documentation
-   - Prepare for KiCad project import
-
-## Potential Edge Cases to Address
-- Handling labels in the middle of nets
-- Parsing logic for complex schematic structures
-- Compatibility with various KiCad schematic designs
-
-## Next Steps
-1. Enhance test coverage
-2. Improve parsing robustness
-3. Implement missing information extraction
-4. Develop subsequent parsing modules
-5. Prepare for SKiDL code generation
+### Performance Considerations
+- Optimize recursive tracing algorithm
+- Minimize computational overhead in net formation

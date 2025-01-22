@@ -1,63 +1,41 @@
-# System Architecture
+## Net Parsing Architecture
 
-## Core Modules
-1. KiCad Hierarchy Parser
-   - Responsible for parsing KiCad schematic files
-   - Extracts component, pin, and connection information
-   - Handles wire connections and net analysis
-   - Processes different types of schematic labels
+### Parsing Strategy
+- **Hierarchical Approach**: Multi-level net tracing
+- **Priority-Based Naming**: Strict label resolution hierarchy
+- **Recursive Connectivity**: Comprehensive net connection tracking
 
-2. SKiDL Generator
-   - Converts text representation to SKiDL Python code
-   - Modular approach with six distinct parsing phases:
-     * Component Parsing
-     * Pin Parsing
-     * Net Parsing
-     * Sheet Parsing
-     * Hierarchy Building
-     * Code Generation
+### Key Design Principles
+1. **KISS (Keep It Simple, Stupid)**
+   - Minimal test cases
+   - Focused parsing logic
+   
+2. **YAGNI (You Aren't Gonna Need It)**
+   - Only implement currently required functionality
+   - Avoid over-engineering
 
-## Parsing Stages Detailed
-### Component Parsing (Current Status: Complete)
-- Extracts component properties
-- Validates component data format
-- Handles library and component name parsing
-- Captures reference, value, and other properties
+3. **SOLID Principles**
+   - Single Responsibility: Separate concerns in parsing
+   - Open/Closed: Extensible parsing framework
+   - Dependency Inversion: Loose coupling between parsing components
 
-### Planned Parsing Stages
-1. Pin Parsing
-   - Track pin electrical types
-   - Manage pin positions
-   - Handle pin-to-pin connections
+### Net Naming Priority
+```
+1. Sheet Pins
+2. Hierarchical Labels
+3. Power Labels
+4. Local Labels
+5. Generated ID
+```
 
-2. Net Parsing
-   - Parse net names and connections
-   - Handle power, local, and hierarchical nets
-   - Track net connectivity
+### Connectivity Analysis
+- Recursive wire/pin traversal
+- Cross-sheet label propagation
+- Comprehensive net formation algorithm
 
-3. Sheet Parsing
-   - Parse sheet definitions and boundaries
-   - Manage sheet properties and metadata
-   - Track parent-child sheet relationships
-
-4. Hierarchy Building
-   - Construct complete circuit hierarchy
-   - Resolve cross-sheet connections
-
-5. Code Generation
-   - Generate SKiDL Python code
-   - Create subcircuit functions
-   - Handle component instantiation
-
-## Key Design Patterns
-- Modular Architecture
-- Separation of Concerns
-- Incremental Parsing
-- Test-Driven Development
-- Phased Implementation Strategy
-
-## Error Handling Considerations
-- Graceful handling of parsing limitations
-- Detailed error reporting
-- Support for manual verification and correction
-- Flexible parsing with success/failure results
+### Test Infrastructure
+- Location: `src/kicad_hierarchy_parser/tests/net_parsing_tests/`
+- Principles:
+  * Focused test scenarios
+  * Reproducible test cases
+  * Snapshot-based validation

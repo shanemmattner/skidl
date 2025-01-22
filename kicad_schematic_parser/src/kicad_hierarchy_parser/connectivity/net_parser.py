@@ -259,7 +259,7 @@ def merge_connected_nets(net_groups, wire_connections, labels):
                     point_labels = find_labels_for_position(point, labels, wire_connections)
                     other_labels.update(point_labels)
                 
-                # Check if any labels match, considering connectivity rules
+                # Check if any labels match
                 for label1 in net_labels:
                     for label2 in other_labels:
                         # Direct match - same type and name
@@ -267,52 +267,6 @@ def merge_connected_nets(net_groups, wire_connections, labels):
                             connected.update(get_connected_nets(other_id, processed, visited_points))
                             connected_found = True
                             break
-                            
-                        # Local label to power label connection
-                        if ((label1[0] == 'local' and label2[0] == 'power') or
-                            (label2[0] == 'local' and label1[0] == 'power')):
-                            local_label = label1[1] if label1[0] == 'local' else label2[1]
-                            power_label = label2[1] if label2[0] == 'power' else label1[1]
-                            
-                            # If the names match exactly, connect them
-                            if local_label == power_label:
-                                connected.update(get_connected_nets(other_id, processed, visited_points))
-                                connected_found = True
-                                break
-                            
-                        # Hierarchical label to local label connection
-                        if ((label1[0] == 'hierarchical' and label2[0] == 'local') or
-                            (label1[0] == 'local' and label2[0] == 'hierarchical')):
-                            hier_label = label1[1] if label1[0] == 'hierarchical' else label2[1]
-                            local_label = label2[1] if label2[0] == 'local' else label1[1]
-                            
-                            # If the names match exactly, connect them
-                            if hier_label == local_label:
-                                connected.update(get_connected_nets(other_id, processed, visited_points))
-                                connected_found = True
-                                break
-
-                        # Enhanced sheet pin and hierarchical label connection
-                        if label1[0] == 'hierarchical' and label2[0] == 'hierarchical':
-                            # Check if both are sheet pins or hierarchical labels
-                            label1_info = next((l for l in labels['hierarchical'] if l['text'] == label1[1]), None)
-                            label2_info = next((l for l in labels['hierarchical'] if l['text'] == label2[1]), None)
-                            
-                            if label1_info and label2_info:
-                                # Connect hierarchical labels with the same name across different sheets
-                                # This includes both sheet pins and hierarchical labels
-                                if (label1_info.get('sheet_name') != label2_info.get('sheet_name') and 
-                                    label1_info['text'] == label2_info['text']):
-                                    connected.update(get_connected_nets(other_id, processed, visited_points))
-                                    connected_found = True
-                                    break
-                                
-                                # Additional connection rule for hierarchical labels
-                                # Allow connection if the labels are the same, regardless of sheet
-                                if label1_info['text'] == label2_info['text']:
-                                    connected.update(get_connected_nets(other_id, processed, visited_points))
-                                    connected_found = True
-                                    break
                     if connected_found:
                         break
                 
@@ -378,16 +332,20 @@ def calculate_pin_connectivity(component_pins, wire_connections, labels):
             else:
                 local_labels.append(label_name)
         
-        # Choose primary net name based on any available label
-        net_name = None
-        if power_labels:
-            net_name = power_labels[0]
+        # Prefer hierarchical labels from sheet pins first, then other labels
+        net_name = net_id
+        
+        # Check for hierarchical labels from sheet pins
+        sheet_labels = [l[1] for l in net_info['labels']
+                      if l[0] == 'hierarchical' and l[1].startswith("Sheet_")]
+        if sheet_labels:
+            net_name = sheet_labels[0]
         elif hier_labels:
             net_name = hier_labels[0]
+        elif power_labels:
+            net_name = power_labels[0]
         elif local_labels:
             net_name = local_labels[0]
-        else:
-            net_name = net_id
             
         # Skip empty nets
         if not net_info['pins'] and not power_labels and not hier_labels and not local_labels:
