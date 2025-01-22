@@ -1,106 +1,97 @@
 # SKiDL KiCad Schematic Parser
 
-A Python module for SKiDL that parses and analyzes KiCad schematic files. This module enables SKiDL to extract comprehensive information about components, pins, connections, and labels from KiCad schematics, allowing for circuit definition in code.
+A Python module for SKiDL that parses and analyzes KiCad schematic files, converting them to SKiDL Python code. This module operates in two stages:
+1. KiCad Schematic to Text: Extracts comprehensive information about components, pins, connections, and labels from KiCad schematics
+2. Text to SKiDL: Converts the extracted information into SKiDL Python code for circuit definition
 
-## Next Steps
-- Parse output text file from processing KiCAD schematic into a SKiDL file
-- 
-## Features
+## Current Status
 
-- Component extraction with detailed properties
-- Pin position calculation with support for rotated components
-- Wire connection analysis
-- Label parsing (local, hierarchical, and power labels)
-- Net connectivity analysis
-- Support for hierarchical sheets
+### KiCad to Text (Complete)
+- ✅ Component extraction with detailed properties
+- ✅ Pin position calculation with support for rotated components
+- ✅ Wire connection analysis
+- ✅ Label parsing (local, hierarchical, and power labels)
+- ✅ Net connectivity analysis
+- ✅ Support for hierarchical sheets
 
-## Known Bugs
-- Lables placed in the middle of a wire do not always get detected
-- Labels might not transfer when connected
-  - ie 5v connected to label1, then label1 connected to label2.  label2 might not be connected to 5v
-
-## Project Structure
-
-```
-src/
-├── main.py                     # Main entry point
-└── skidl_kicad_parser/        # Main package for SKiDL integration
-    ├── __init__.py            # Package initialization
-    ├── parser.py              # Main parser functionality
-    ├── components/            # Component parsing
-    │   └── component_parser.py
-    ├── connectivity/          # Wire and net analysis
-    │   ├── wire_parser.py
-    │   └── net_parser.py
-    ├── labels/                # Label parsing
-    │   └── label_parser.py
-    ├── utils/                 # Utility functions
-    │   └── geometry.py
-    └── tests/                 # Test files
-        ├── conftest.py
-        ├── pin_placement_tests/   # Tests for component pin positions
-        │   ├── test_pin_positions.py
-        │   ├── power2.kicad_sch
-        │   ├── resistor_divider.kicad_sch
-        │   └── stm32.kicad_sch
-        └── wire_connection_tests/ # Tests for wire and net connectivity
-            ├── test_wire_connections.py
-            └── wire_conn_test.kicad_sch
-```
+### Text to SKiDL (In Progress)
+- ✅ Component parsing
+- 🚧 Pin and connection parsing (Planned)
+- 🚧 Net parsing (Planned)
+- 🚧 Sheet structure parsing (Planned)
+- 🚧 Circuit hierarchy building (Planned)
+- 🚧 SKiDL code generation (Planned)
 
 ## Usage
 
+The tool supports two modes of operation:
+
+### 1. KiCad to Text Conversion
 ```bash
-python src/main.py <schematic_file_path>
+python src/main.py --mode kicad2text <schematic_file_path>
 ```
 
-The tool will analyze the schematic and output:
+This will analyze the schematic and output a text file containing:
 - Component list with properties
 - Pin details including positions and types
 - Wire connections
 - Label information (local, hierarchical, power)
 - Complete netlist showing connectivity
 
-## Example Output
+### 2. Text to SKiDL Conversion (Coming Soon)
+```bash
+python src/main.py --mode text2skidl <text_file_path>
+```
+
+This will convert the text representation into SKiDL Python code.
+
+## Project Structure
 
 ```
-=== Components ===
-Component: Device/C
-Properties:
-  Reference: C11
-  Value: C
-  Footprint: Capacitor_SMD:C_0603_1608Metric
-...
-
-=== Pin Details ===
-Component: C11
-  Pin 1 (~):
-    Position: (133.35, 68.58)
-    Type: passive
-...
-
-=== Labels ===
-Local Labels:
-  label_test_power3 at (193.04, 99.06)
-...
-
-=== Netlist ===
-+3V3:
-  Pins:
-    C11 Pin 1 (~)
-    U4 Pin 2 (VO)
-  Power Labels:
-    +3V3
-...
+src/
+├── main.py                     # Main entry point with dual mode support
+├── kicad_hierarchy_parser/     # KiCad to Text conversion
+│   ├── parser.py              # Main parser functionality
+│   ├── components/            # Component parsing
+│   │   └── component_parser.py
+│   ├── connectivity/          # Wire and net analysis
+│   │   ├── wire_parser.py
+│   │   └── net_parser.py
+│   ├── labels/                # Label parsing
+│   │   └── label_parser.py
+│   └── utils/                 # Utility functions
+│       └── geometry.py
+└── skidl_generator/           # Text to SKiDL conversion
+    ├── component_parser/      # Phase 1: Parse component information
+    ├── pin_parser/           # Phase 2: Parse pin information
+    ├── net_parser/           # Phase 3: Parse net information
+    ├── sheet_parser/         # Phase 4: Parse sheet structure
+    ├── hierarchy_builder/    # Phase 5: Build circuit hierarchy
+    └── code_generator/       # Phase 6: Generate SKiDL code
 ```
+
+## Known Bugs
+
+### KiCad to Text
+- Labels placed in the middle of a wire do not always get detected
+- Labels might not transfer when connected
+  - ie 5v connected to label1, then label1 connected to label2. label2 might not be connected to 5v
 
 ## Development
 
-The project is organized into modules:
-- `components`: Handles component and pin parsing
-- `connectivity`: Manages wire connections and net analysis
-- `labels`: Processes different types of schematic labels
-- `utils`: Contains common utility functions
+The project is organized into two main modules:
+
+### KiCad Hierarchy Parser
+- Handles KiCad schematic file parsing
+- Extracts component and pin information
+- Analyzes wire connections and nets
+- Processes different types of schematic labels
+
+### SKiDL Generator
+- Converts text representation to SKiDL code
+- Follows modular approach with separate parsers
+- Handles component properties and connections
+- Manages circuit hierarchy and sheet structure
 
 ### Running Tests
 
@@ -131,8 +122,6 @@ Wire Connection Tests:
 - Local and hierarchical label connections
 - Tests using voltage monitoring and power supply circuits
 
-Test schematics are included in their respective test directories.
-
 ## Dependencies
 
 - Python 3.6+
@@ -148,7 +137,3 @@ This module is designed to be integrated with SKiDL, a Python package that allow
 3. Enable hybrid workflows combining code-defined and schematic-captured circuits
 
 For more information about SKiDL, visit: [SKiDL Documentation](https://xesscorp.github.io/skidl/docs/_site/)
-
-## License
-
-[Add your license information here]

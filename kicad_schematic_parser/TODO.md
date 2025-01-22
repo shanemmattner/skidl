@@ -6,4 +6,5 @@
 - start thinking of edge cases for import
   - like we know that labels in the middle of nets don't register as part of the net
     - There might be some bugs in goofy parsing logic as well
-- 
+- re-name parts of the project to make thier responsibilities more clear
+- make sure readme's are updated
