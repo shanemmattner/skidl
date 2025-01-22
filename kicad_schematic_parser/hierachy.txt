@@ -85,8 +85,8 @@ Power Labels:
 === Netlist ===
 
 5v_monitor:
-	Sheet_esp32s3mini1 Pin 1 (5v_monitor)
 	Sheet_3v3_regulator Pin 1 (5v_monitor)
+	Sheet_esp32s3mini1 Pin 1 (5v_monitor)
 	Hierarchical Labels:
 		5v_monitor
 	Local Labels:
@@ -101,8 +101,8 @@ Power Labels:
 		3v3_monitor
 
 D+:
-	Sheet_USB Pin 1 (D+)
 	Sheet_esp32s3mini1 Pin 1 (D+)
+	Sheet_USB Pin 1 (D+)
 	Hierarchical Labels:
 		D+
 	Local Labels:
