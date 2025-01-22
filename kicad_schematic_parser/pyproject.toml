@@ -1,13 +1,27 @@
 [project]
-name = "skidl_kicad_parser"
+name = "kicad-skidl-converter"
 version = "0.1.0"
-description = "KiCad schematic parser module for SKiDL"
+description = "KiCad schematic parser and SKiDL code generator"
 dependencies = [
     "skidl",
     "kiutils",
     "pytest"
 ]
 
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = [
+    "kicad_hierarchy_parser",
+    "skidl_generator"
+]
+package-dir = {"" = "src"}
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-testpaths = ["src/skidl_kicad_parser/tests"]
+testpaths = [
+    "src/kicad_hierarchy_parser/tests",
+    "src/skidl_generator/component_parser"
+]
