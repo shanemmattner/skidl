@@ -3,9 +3,8 @@
 A Python module for SKiDL that parses and analyzes KiCad schematic files. This module enables SKiDL to extract comprehensive information about components, pins, connections, and labels from KiCad schematics, allowing for circuit definition in code.
 
 ## Next Steps
-- Hierarchical projects
-  - print out all schematic sheets recursively
-  - detect connection of hierarchical labels with wires or local labels or hierarchical labels
+- Parse output text file from processing KiCAD schematic into a SKiDL file
+- 
 ## Features
 
 - Component extraction with detailed properties
