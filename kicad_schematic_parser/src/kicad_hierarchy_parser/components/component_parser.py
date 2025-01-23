@@ -2,10 +2,35 @@ import math
 
 def calculate_pin_position(component_position, pin_position, component_angle=0):
     """
-    Return pin position from KiCad schematic data
-    KiCad stores pin positions in absolute coordinates, so we just return them directly
+    Transform pin position from component-relative to absolute coordinates
+    
+    Args:
+        component_position: Component's position in schematic
+        pin_position: Pin's position relative to component origin
+        component_angle: Component's rotation angle in degrees
+    
+    Returns:
+        tuple: Absolute (x,y) position of pin in schematic coordinates
     """
-    return (pin_position.X, pin_position.Y)
+    # Convert angle to radians
+    angle_rad = math.radians(component_angle)
+    
+    # Get pin position relative to component
+    rel_x = float(pin_position.X)
+    rel_y = float(pin_position.Y)
+    
+    # Rotate pin position if component is rotated
+    if component_angle != 0:
+        rot_x = rel_x * math.cos(angle_rad) - rel_y * math.sin(angle_rad)
+        rot_y = rel_x * math.sin(angle_rad) + rel_y * math.cos(angle_rad)
+        rel_x = rot_x
+        rel_y = rot_y
+    
+    # Add component position to get absolute coordinates
+    abs_x = float(component_position.X) + rel_x
+    abs_y = float(component_position.Y) + rel_y
+    
+    return (abs_x, abs_y)
 
 def find_symbol_definition(schematic, lib_nickname, entry_name):
     """
