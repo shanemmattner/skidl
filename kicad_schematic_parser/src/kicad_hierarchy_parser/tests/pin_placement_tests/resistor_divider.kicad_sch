@@ -483,6 +483,12 @@
 					(unit 1)
 				)
 			)
+			(project "resistor_divider"
+				(path "/79184b99-9948-45fc-a6af-b44b525efa8a"
+					(reference "#PWR01")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -546,6 +552,12 @@
 			(project "example_kicad_project"
 				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
 					(reference "#PWR07")
+					(unit 1)
+				)
+			)
+			(project "resistor_divider"
+				(path "/79184b99-9948-45fc-a6af-b44b525efa8a"
+					(reference "#PWR02")
 					(unit 1)
 				)
 			)
@@ -615,6 +627,12 @@
 		(instances
 			(project "example_kicad_project"
 				(path "/139408cf-b4ac-4ccf-8751-afbb6def1f13/7dcd522d-d03d-41f6-bad3-56f1f937b049"
+					(reference "R2")
+					(unit 1)
+				)
+			)
+			(project "resistor_divider"
+				(path "/79184b99-9948-45fc-a6af-b44b525efa8a"
 					(reference "R2")
 					(unit 1)
 				)
@@ -689,6 +707,12 @@
 					(unit 1)
 				)
 			)
+			(project "resistor_divider"
+				(path "/79184b99-9948-45fc-a6af-b44b525efa8a"
+					(reference "R1")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -759,6 +783,17 @@
 					(unit 1)
 				)
 			)
+			(project "resistor_divider"
+				(path "/79184b99-9948-45fc-a6af-b44b525efa8a"
+					(reference "C1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
 		)
 	)
 )
