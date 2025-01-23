@@ -117,11 +117,11 @@ def create_initial_nets(component_pins, wire_connections, labels):
     for component, pins in component_pins.items():
         for pin in pins:
             pin_pos = pin['absolute_position']
-            pin_pos_key = (round(pin_pos[0], 2), round(pin_pos[1], 2))
+            pin_pos_key = (round(pin_pos[0], 4), round(pin_pos[1], 4))
             
             # Get all physically connected points
             connected_points = get_all_connected_points(pin_pos)
-            connected_point_keys = {(round(p[0], 2), round(p[1], 2)) for p in connected_points}
+            connected_point_keys = {(round(p[0], 4), round(p[1], 4)) for p in connected_points}
             
             # Find if any points are already assigned to a net
             existing_nets = set()

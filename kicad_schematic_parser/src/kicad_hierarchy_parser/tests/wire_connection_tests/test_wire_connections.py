@@ -32,8 +32,8 @@ def test_wire_connections():
     # NOTE: These connections for resistors and capacitors are opposite of the expected order
     expected_3v3_monitor = {
         ('J1', '2'),      # Pin 2 of connector J1
-        ('R5', '2'),      # Top pin of R5 (voltage divider)
-        ('R6', '1'),      # Top pin of R6
-        ('C4', '2')       # Top pin of C4 (filtering cap)
+        ('R5', '1'),      # Top pin of R5 (voltage divider)
+        ('R6', '2'),      # Top pin of R6
+        ('C4', '1')       # Top pin of C4 (filtering cap)
     }
     assert set((comp["component"], comp["pin_number"]) for comp in three_v3_monitor["pins"]) == expected_3v3_monitor

@@ -1,5 +1,6 @@
 import math
 
+
 def calculate_pin_position(component_position, pin_position, component_angle=0):
     """
     Transform pin position from component-relative to absolute coordinates
@@ -26,9 +27,9 @@ def calculate_pin_position(component_position, pin_position, component_angle=0):
         rel_x = rot_x
         rel_y = rot_y
     
-    # Add component position to get absolute coordinates
-    abs_x = float(component_position.X) + rel_x
-    abs_y = float(component_position.Y) + rel_y
+    # Add component position to get absolute coordinates and round to 4 decimal places
+    abs_x = round(float(component_position.X) + rel_x, 4)
+    abs_y = round(float(component_position.Y) - rel_y, 4)
     
     return (abs_x, abs_y)
 
@@ -59,10 +60,9 @@ def natural_sort_key(pin_info):
         alpha_part = ''.join(c for c in pin_num if c.isalpha())
         return (1, alpha_part, int(numeric_part) if numeric_part else 0)
 
+
 def get_component_pins(schematic):
-    """
-    Extract and calculate absolute positions for all component pins in the schematic
-    """
+    """Extract and calculate absolute positions for all component pins in the schematic"""
     component_pins = {}
     
     for component in schematic.schematicSymbols:
@@ -83,6 +83,9 @@ def get_component_pins(schematic):
         component_pins[component.properties[0].value] = []
         
         for pin in pins:
+            print(f"Component {component.properties[0].value} Pin {pin.number}:")
+            print(f"  Name: {pin.number}")
+            print(f"  Position: {pin.position.X}, {pin.position.Y}")
             absolute_pos = calculate_pin_position(
                 component.position,
                 pin.position,
@@ -101,10 +104,5 @@ def get_component_pins(schematic):
                 ] if hasattr(pin, 'alternatePins') else []
             }
             component_pins[component.properties[0].value].append(pin_info)
-            
-        # Use natural sort for the pin numbers
-        component_pins[component.properties[0].value].sort(
-            key=natural_sort_key
-        )
-    
+
     return component_pins

@@ -63,17 +63,17 @@ def test_resistor_divider_schematic_pins():
         "#PWR04": [(121.92, 85.09, "power_in")],  # Pin 1
         "#PWR07": [(138.43, 81.28, "power_in")],  # Pin 1
         "R2": [
+            (121.92, 77.47, "passive"),  # Pin 1
             (121.92, 85.09, "passive"),   # Pin 2
-            (121.92, 77.47, "passive")  # Pin 1
         ],
         "R1": [
+            (121.92, 59.69, "passive"),  # Pin 1
             (121.92, 67.31, "passive"),   # Pin 2
-            (121.92, 59.69, "passive")  # Pin 1
             
         ],
         "C4": [
+            (138.43, 73.66, "passive"),  # Pin 1
             (138.43, 81.28, "passive"),   # Pin 2
-            (138.43, 73.66, "passive")  # Pin 1
             
         ]
     }
