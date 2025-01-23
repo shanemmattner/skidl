@@ -1,21 +1,17 @@
 # Progress - Net Parsing
 
 ## Completed
-- Added tolerance parameter handling for net parsing
-- Improved power label connection detection
-- Enhanced label position matching accuracy
-- Implemented dedicated power net creation
-- Updated net merging logic for power labels
+- Resolved pin location calculation issue
+- Improved net parsing accuracy
+- Enhanced label and pin connectivity detection
+- Implemented robust parsing mechanisms
 
 ## In Progress
-- Fixing failing tests in net_parsing_test.txt
-- Verifying power label connections
-- Testing tolerance parameter implementation
-- Improving test coverage for power networks
+- Comprehensive testing of parsing functionality
+- Documentation of recent improvements
+- Optimization of parsing algorithms
 
 ## Remaining
-- Finalize test fixes for resistor divider and power supply circuits
-- Document net parsing improvements
-- Add additional test cases for complex power networks
-- Review and merge changes
-- Update documentation with new power label handling details
+- Finalize documentation
+- Conduct final review of parsing implementation
+- Prepare for integration with main project

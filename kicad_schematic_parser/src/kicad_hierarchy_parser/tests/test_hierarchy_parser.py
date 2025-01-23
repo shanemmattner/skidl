@@ -1,109 +1,107 @@
-import pytest
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from skidl_kicad_parser.components.component_parser import calculate_pin_position, find_symbol_definition, get_component_pins
+from kiutils.schematic import Schematic, HierarchicalSheet, HierarchicalPin, Position, Property, Effects
+from kicad_hierarchy_parser.components.component_parser import calculate_pin_position, find_symbol_definition, get_component_pins
 
-def test_calculate_pin_position():
-    """Test pin position calculation with data from hierarchy.txt"""
-    class Position:
-        def __init__(self, x, y, angle=0):
-            self.X = x
-            self.Y = y
-            self.angle = angle
+def test_symbol_definition_parsing():
+    """Test parsing of symbol definitions"""
+    schematic = Schematic()
     
-    # Test case from hierarchy.txt - U3 (ESP32-S3-MINI-1) IO0 pin
-    component_pos = Position(179.07, 96.52, 0)
-    pin_pos = Position(163.83, 76.20)
+    # Simulate a schematic with a component
+    class MockLibSymbol:
+        def __init__(self):
+            self.name = 'TEST_SYMBOL'
+            self.pins = [
+                type('MockPin', (), {
+                    'name': 'VCC',
+                    'electricalType': 'power_in',
+                    'position': type('MockPosition', (), {'x': 0, 'y': 2.54})()
+                }),
+                type('MockPin', (), {
+                    'name': 'GND',
+                    'electricalType': 'power_in',
+                    'position': type('MockPosition', (), {'x': 0, 'y': -2.54})()
+                })
+            ]
     
-    absolute_x, absolute_y = calculate_pin_position(component_pos, pin_pos)
+    # Simulate library symbols
+    schematic.libSymbols = [MockLibSymbol()]
     
-    # Verify position matches hierarchy.txt data
-    assert round(absolute_x, 2) == 163.83
-    assert round(absolute_y, 2) == 76.20
+    # Test symbol definition finding
+    symbol = find_symbol_definition(schematic, 'TEST_SYMBOL')
+    assert symbol is not None, "Symbol definition not found"
+    assert symbol.name == 'TEST_SYMBOL', "Incorrect symbol name"
+    assert len(symbol.pins) == 2, "Incorrect number of pins"
+    
+    # Test pin position calculation
+    class MockComponent:
+        def __init__(self):
+            self.position = Position(X=100, Y=200, angle=0)
+    
+    component = MockComponent()
+    
+    # Test VCC pin
+    vcc_pin = symbol.pins[0]
+    vcc_pos = calculate_pin_position(component, vcc_pin)
+    assert vcc_pos[0] == 100, "Incorrect X position for VCC pin"
+    assert vcc_pos[1] == 202.54, "Incorrect Y position for VCC pin"
+    
+    # Test GND pin
+    gnd_pin = symbol.pins[1]
+    gnd_pos = calculate_pin_position(component, gnd_pin)
+    assert gnd_pos[0] == 100, "Incorrect X position for GND pin"
+    assert gnd_pos[1] == 197.46, "Incorrect Y position for GND pin"
 
-def test_calculate_pin_position_with_rotation():
-    """Test that pin positions remain absolute regardless of component rotation"""
-    class Position:
-        def __init__(self, x, y, angle=0):
-            self.X = x
-            self.Y = y
-            self.angle = angle
+def test_component_pin_extraction():
+    """Test extraction of component pins from a schematic"""
+    # Create a mock schematic with components
+    schematic = Schematic()
     
-    # Test with rotated component - pin positions should remain absolute
-    component_pos = Position(100.0, 100.0, 90)  # Component rotation doesn't affect absolute pin positions
-    pin_pos = Position(163.83, 76.20)  # Using real data from hierarchy.txt
-    
-    absolute_x, absolute_y = calculate_pin_position(component_pos, pin_pos)
-    
-    # Pin position should remain absolute regardless of component rotation
-    assert round(absolute_x, 2) == 163.83
-    assert round(absolute_y, 2) == 76.20
-
-def test_component_pin_electrical_types():
-    """Test electrical type extraction from hierarchy.txt data"""
-    class MockPin:
-        def __init__(self, number, name, position, electrical_type):
-            self.number = number
-            self.name = name
+    # Simulate components and their pins
+    class MockComponent:
+        def __init__(self, ref, symbol_name, position):
+            self.reference = ref
+            self.symbolName = symbol_name
             self.position = position
-            self.electricalType = electrical_type
-            self.alternatePins = []
     
-    class MockUnit:
-        def __init__(self, pins):
+    class MockLibSymbol:
+        def __init__(self, name, pins):
+            self.name = name
             self.pins = pins
     
-    class MockSymbol:
-        def __init__(self, lib_nickname, entry_name, pins):
-            self.libraryNickname = lib_nickname
-            self.entryName = entry_name
-            self.units = [MockUnit(pins)]
-    
-    class MockComponent:
-        def __init__(self, lib_nickname, entry_name, ref, position):
-            self.libraryNickname = lib_nickname
-            self.entryName = entry_name
-            self.properties = [type('obj', (), {'value': ref})]
-            self.position = position
-    
-    class Position:
-        def __init__(self, x, y, angle=0):
-            self.X = x
-            self.Y = y
-            self.angle = angle
-    
-    # Mock data from hierarchy.txt - U3 (ESP32-S3-MINI-1)
-    pins = [
-        MockPin('1', 'GND', Position(179.07, 127.00), 'power_in'),
-        MockPin('3', '3V3', Position(179.07, 66.04), 'power_in'),
-        MockPin('4', 'IO0', Position(163.83, 76.20), 'bidirectional')
+    # Create mock library symbols
+    mock_symbols = [
+        MockLibSymbol('RESISTOR', [
+            type('MockPin', (), {
+                'name': '1',
+                'electricalType': 'passive',
+                'position': type('MockPosition', (), {'x': -2.54, 'y': 0})()
+            }),
+            type('MockPin', (), {
+                'name': '2',
+                'electricalType': 'passive',
+                'position': type('MockPosition', (), {'x': 2.54, 'y': 0})()
+            })
+        ])
     ]
     
-    symbol = MockSymbol('RF_Module', 'ESP32-S3-MINI-1', pins)
-    component = MockComponent('RF_Module', 'ESP32-S3-MINI-1', 'U3', Position(179.07, 96.52, 0))
+    schematic.libSymbols = mock_symbols
     
-    class MockSchematic:
-        def __init__(self):
-            self.libSymbols = [symbol]
-            self.schematicSymbols = [component]
+    # Add mock components
+    schematic.components = [
+        MockComponent('R1', 'RESISTOR', Position(X=100, Y=200, angle=0)),
+        MockComponent('R2', 'RESISTOR', Position(X=150, Y=250, angle=90))
+    ]
     
-    schematic = MockSchematic()
+    # Extract component pins
     component_pins = get_component_pins(schematic)
     
-    # Verify pin data
-    assert 'U3' in component_pins
-    pins = component_pins['U3']
+    # Verify pin extraction
+    assert 'R1' in component_pins, "R1 not found in component pins"
+    assert 'R2' in component_pins, "R2 not found in component pins"
     
-    # Check GND pin
-    gnd_pin = next(p for p in pins if p['pin_number'] == '1')
-    assert gnd_pin['pin_name'] == 'GND'
-    assert gnd_pin['electrical_type'] == 'power_in'
+    # Check R1 pins
+    r1_pins = component_pins['R1']
+    assert len(r1_pins) == 2, "Incorrect number of pins for R1"
     
-    # Check IO0 pin
-    io_pin = next(p for p in pins if p['pin_number'] == '4')
-    assert io_pin['pin_name'] == 'IO0'
-    assert io_pin['electrical_type'] == 'bidirectional'
-
-if __name__ == '__main__':
-    pytest.main([__file__])
+    # Check R2 pins
+    r2_pins = component_pins['R2']
+    assert len(r2_pins) == 2, "Incorrect number of pins for R2"

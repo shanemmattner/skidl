@@ -2,7 +2,10 @@ import pytest
 from kiutils.schematic import Schematic
 import math
 import os
-from skidl_kicad_parser.components.component_parser import (
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from kicad_hierarchy_parser.components.component_parser import (
     get_component_pins,
     find_symbol_definition
 )

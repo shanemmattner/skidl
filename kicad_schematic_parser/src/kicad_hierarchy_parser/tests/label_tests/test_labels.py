@@ -1,6 +1,6 @@
 import pytest
 from kiutils.schematic import Schematic, HierarchicalSheet, HierarchicalPin, Position, Property, Effects
-from skidl_kicad_parser.labels.label_parser import parse_labels
+from kicad_hierarchy_parser.labels.label_parser import parse_labels
 
 def test_sheet_pin_parsing():
     """Test parsing of sheet pins into hierarchical labels"""

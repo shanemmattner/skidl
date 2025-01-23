@@ -2,10 +2,10 @@ import pytest
 from kiutils.schematic import Schematic
 import math
 import os
-from skidl_kicad_parser.components.component_parser import get_component_pins
-from skidl_kicad_parser.connectivity.net_parser import calculate_pin_connectivity
-from skidl_kicad_parser.connectivity.wire_parser import get_wire_connections
-from skidl_kicad_parser.labels.label_parser import parse_labels
+from kicad_hierarchy_parser.components.component_parser import get_component_pins
+from kicad_hierarchy_parser.connectivity.net_parser import calculate_pin_connectivity
+from kicad_hierarchy_parser.connectivity.wire_parser import get_wire_connections
+from kicad_hierarchy_parser.labels.label_parser import parse_labels
 
 # Test data directory
 TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))

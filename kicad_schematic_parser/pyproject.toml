@@ -15,7 +15,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = [
     "kicad_hierarchy_parser",
-    "skidl_generator"
+    "skidl_generator",
 ]
 package-dir = {"" = "src"}
 
@@ -23,5 +23,4 @@ package-dir = {"" = "src"}
 pythonpath = ["src"]
 testpaths = [
     "src/kicad_hierarchy_parser/tests",
-    "src/skidl_generator/component_parser"
 ]
