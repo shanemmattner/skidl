@@ -4,7 +4,7 @@ import os
 import argparse
 from kiutils.schematic import Schematic
 from kicad_hierarchy_parser import analyze_schematic
-from skidl_generator.component_parser.component_parser import parse_component_name, parse_component_properties, parse_component_block
+from skidl_generator.component_parser.component_parser import parse_component_name, parse_component_properties, parse_component_block, generate_component_hash
 
 def process_kicad_to_text(file_path, debug=False):
     """
@@ -44,68 +44,66 @@ def process_kicad_to_text(file_path, debug=False):
 def process_text_to_skidl(file_path, debug=False):
     """
     Process a text file containing component information and convert it to SKiDL code
+    
+    Args:
+        file_path: Path to text file containing component information
+        debug: Enable debug output
+        
+    Returns:
+        List of parsed Component objects
     """
     try:
         with open(file_path, 'r') as f:
             lines = f.readlines()
         
         components = []
-        current_component = None
         current_lines = []
         in_components_section = False
+        seen_hashes = set()
         
-        for i, line in enumerate(lines):
+        def process_current_component():
+            if current_lines:
+                result = parse_component_block(current_lines)
+                if result.success:
+                    component_hash = generate_component_hash(result.data)
+                    if component_hash not in seen_hashes:
+                        seen_hashes.add(component_hash)
+                        components.append(result.data)
+                    else:
+                        print(f"Warning: Skipping duplicate component {result.data.reference}")
+                else:
+                    for error in result.errors:
+                        print(f"Error parsing component: {error.message}")
+        
+        for line in lines:
             line = line.rstrip()
             
             # Start of components section
             if line == "=== Components ===":
                 in_components_section = True
                 continue
-                
+            
             if not in_components_section:
                 continue
                 
-            # Start of new component
+            # Start of new component or new section
             if line.startswith("Component:"):
-                # Process previous component if it exists
-                if current_lines:  # Changed from current_component check
-                    result = parse_component_block(current_lines)
-                    if result.success:
-                        components.append(result.data)
-                    else:
-                        for error in result.errors:
-                            print(f"Error parsing component: {error.message}")
-                
+                process_current_component()  # Process previous component if it exists
                 current_lines = [line]
-                continue
-                
-            # Add lines to current component until we hit a new component or section
-            if line and not line.startswith("==="):
-                current_lines.append(line)
             elif line.startswith("==="):
-                # Process final component
-                if current_lines:
-                    result = parse_component_block(current_lines)
-                    if result.success:
-                        components.append(result.data)
-                    else:
-                        for error in result.errors:
-                            print(f"Error parsing component: {error.message}")
+                process_current_component()  # Process final component in section
                 in_components_section = False
-                
+                current_lines = []
+            elif line:  # Add non-empty lines to current component
+                current_lines.append(line)
+        
         # Process final component if exists
-        if current_lines:
-            result = parse_component_block(current_lines)
-            if result.success:
-                components.append(result.data)
-            else:
-                for error in result.errors:
-                    print(f"Error parsing component: {error.message}")
+        process_current_component()
         
         # Print out the parsed components
         print("\nParsed Components:")
         for comp in components:
-            print(f"\nComponent: {comp.library}/{comp.name}")
+            print(f"Component: {comp.library}/{comp.name}")
             print(f"  Reference: {comp.reference}")
             print(f"  Value: {comp.value}")
             if comp.footprint:
@@ -127,7 +125,7 @@ def process_text_to_skidl(file_path, debug=False):
     except Exception as e:
         print(f"Error processing text file: {str(e)}")
         return []
-    
+     
 
 def main():
     """Main entry point for the KiCad schematic parser"""

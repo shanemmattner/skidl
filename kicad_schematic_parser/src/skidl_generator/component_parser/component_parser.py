@@ -1,5 +1,520 @@
 from dataclasses import dataclass
 from typing import List, Optional
+import hashlib
+import json
+
+@dataclass
+class ParseError:
+    """Class to store parsing error details"""
+    line_num: int
+    line: str
+    message: str
+
+class ParseResult:
+    """Class to store parsing results and any errors"""
+    def __init__(self):
+        self.success = True
+        self.errors = []
+        self.data = None
+    
+    def add_error(self, line_num: int, line: str, message: str):
+        self.errors.append(ParseError(line_num, line, message))
+        self.success = False
+
+@dataclass
+class Component:
+    """Class to store component data"""
+    reference: str
+    value: str
+    footprint: Optional[str] = None
+    datasheet: Optional[str] = None
+    description: Optional[str] = None
+    library: Optional[str] = None  # e.g. "Device"
+    name: Optional[str] = None     # e.g. "R"
+    position: Optional[tuple] = None
+    angle: Optional[float] = None
+    uuid: Optional[str] = None
+
+def generate_component_hash(component: Component) -> str:
+    """Generate a unique hash for a component to help identify duplicates."""
+    # Create a deterministic JSON representation of key component attributes
+    hash_dict = {
+        'library': component.library,
+        'name': component.name,
+        'reference': component.reference,
+        'value': component.value,
+        'position': component.position,
+        'footprint': component.footprint,
+        'angle': component.angle
+    }
+    # Convert to a sorted JSON string to ensure consistent hashing
+    hash_string = json.dumps(hash_dict, sort_keys=True)
+    return hashlib.md5(hash_string.encode()).hexdigest()
+from dataclasses import dataclass
+from typing import List, Optional
+import hashlib
+import json
+
+@dataclass
+class ParseError:
+    """Class to store parsing error details"""
+    line_num: int
+    line: str
+    message: str
+
+class ParseResult:
+    """Class to store parsing results and any errors"""
+    def __init__(self):
+        self.success = True
+        self.errors = []
+        self.data = None
+    
+    def add_error(self, line_num: int, line: str, message: str):
+        self.errors.append(ParseError(line_num, line, message))
+        self.success = False
+
+@dataclass
+class Component:
+    """Class to store component data"""
+    reference: str
+    value: str
+    footprint: Optional[str] = None
+    datasheet: Optional[str] = None
+    description: Optional[str] = None
+    library: Optional[str] = None  # e.g. "Device"
+    name: Optional[str] = None     # e.g. "R"
+    position: Optional[tuple] = None
+    angle: Optional[float] = None
+    uuid: Optional[str] = None
+
+def generate_component_hash(component: Component) -> str:
+    """Generate a unique hash for a component to help identify duplicates."""
+    # Create a deterministic JSON representation of key component attributes
+    hash_dict = {
+        'library': component.library,
+        'name': component.name,
+        'reference': component.reference,
+        'value': component.value,
+        'position': component.position,
+        'footprint': component.footprint,
+        'angle': component.angle
+    }
+    # Convert to a sorted JSON string to ensure consistent hashing
+    hash_string = json.dumps(hash_dict, sort_keys=True)
+    return hashlib.md5(hash_string.encode()).hexdigest()
+from dataclasses import dataclass
+from typing import List, Optional
+import hashlib
+import json
+
+@dataclass
+class ParseError:
+    """Class to store parsing error details"""
+    line_num: int
+    line: str
+    message: str
+
+class ParseResult:
+    """Class to store parsing results and any errors"""
+    def __init__(self):
+        self.success = True
+        self.errors = []
+        self.data = None
+    
+    def add_error(self, line_num: int, line: str, message: str):
+        self.errors.append(ParseError(line_num, line, message))
+        self.success = False
+
+@dataclass
+class Component:
+    """Class to store component data"""
+    reference: str
+    value: str
+    footprint: Optional[str] = None
+    datasheet: Optional[str] = None
+    description: Optional[str] = None
+    library: Optional[str] = None  # e.g. "Device"
+    name: Optional[str] = None     # e.g. "R"
+    position: Optional[tuple] = None
+    angle: Optional[float] = None
+    uuid: Optional[str] = None
+
+def generate_component_hash(component: Component) -> str:
+    """Generate a unique hash for a component to help identify duplicates."""
+    # Create a deterministic JSON representation of key component attributes
+    hash_dict = {
+        'library': component.library,
+        'name': component.name,
+        'reference': component.reference,
+        'value': component.value,
+        'position': component.position,
+        'footprint': component.footprint,
+        'angle': component.angle
+    }
+    # Convert to a sorted JSON string to ensure consistent hashing
+    hash_string = json.dumps(hash_dict, sort_keys=True)
+    return hashlib.md5(hash_string.encode()).hexdigest()
+from dataclasses import dataclass
+from typing import List, Optional
+import hashlib
+import json
+
+@dataclass
+class ParseError:
+    """Class to store parsing error details"""
+    line_num: int
+    line: str
+    message: str
+
+class ParseResult:
+    """Class to store parsing results and any errors"""
+    def __init__(self):
+        self.success = True
+        self.errors = []
+        self.data = None
+    
+    def add_error(self, line_num: int, line: str, message: str):
+        self.errors.append(ParseError(line_num, line, message))
+        self.success = False
+
+@dataclass
+class Component:
+    """Class to store component data"""
+    reference: str
+    value: str
+    footprint: Optional[str] = None
+    datasheet: Optional[str] = None
+    description: Optional[str] = None
+    library: Optional[str] = None  # e.g. "Device"
+    name: Optional[str] = None     # e.g. "R"
+    position: Optional[tuple] = None
+    angle: Optional[float] = None
+    uuid: Optional[str] = None
+
+def generate_component_hash(component: Component) -> str:
+    """Generate a unique hash for a component to help identify duplicates."""
+    # Create a deterministic JSON representation of key component attributes
+    hash_dict = {
+        'library': component.library,
+        'name': component.name,
+        'reference': component.reference,
+        'value': component.value,
+        'position': component.position,
+        'footprint': component.footprint,
+        'angle': component.angle
+    }
+    # Convert to a sorted JSON string to ensure consistent hashing
+    hash_string = json.dumps(hash_dict, sort_keys=True)
+    return hashlib.md5(hash_string.encode()).hexdigest()
+from dataclasses import dataclass
+from typing import List, Optional
+import hashlib
+import json
+
+@dataclass
+class ParseError:
+    """Class to store parsing error details"""
+    line_num: int
+    line: str
+    message: str
+
+class ParseResult:
+    """Class to store parsing results and any errors"""
+    def __init__(self):
+        self.success = True
+        self.errors = []
+        self.data = None
+    
+    def add_error(self, line_num: int, line: str, message: str):
+        self.errors.append(ParseError(line_num, line, message))
+        self.success = False
+
+@dataclass
+class Component:
+    """Class to store component data"""
+    reference: str
+    value: str
+    footprint: Optional[str] = None
+    datasheet: Optional[str] = None
+    description: Optional[str] = None
+    library: Optional[str] = None  # e.g. "Device"
+    name: Optional[str] = None     # e.g. "R"
+    position: Optional[tuple] = None
+    angle: Optional[float] = None
+    uuid: Optional[str] = None
+
+def generate_component_hash(component: Component) -> str:
+    """Generate a unique hash for a component to help identify duplicates."""
+    # Create a deterministic JSON representation of key component attributes
+    hash_dict = {
+        'library': component.library,
+        'name': component.name,
+        'reference': component.reference,
+        'value': component.value,
+        'position': component.position,
+        'footprint': component.footprint,
+        'angle': component.angle
+    }
+    # Convert to a sorted JSON string to ensure consistent hashing
+    hash_string = json.dumps(hash_dict, sort_keys=True)
+    return hashlib.md5(hash_string.encode()).hexdigest()
+from dataclasses import dataclass
+from typing import List, Optional
+import hashlib
+import json
+
+@dataclass
+class ParseError:
+    """Class to store parsing error details"""
+    line_num: int
+    line: str
+    message: str
+
+class ParseResult:
+    """Class to store parsing results and any errors"""
+    def __init__(self):
+        self.success = True
+        self.errors = []
+        self.data = None
+    
+    def add_error(self, line_num: int, line: str, message: str):
+        self.errors.append(ParseError(line_num, line, message))
+        self.success = False
+
+@dataclass
+class Component:
+    """Class to store component data"""
+    reference: str
+    value: str
+    footprint: Optional[str] = None
+    datasheet: Optional[str] = None
+    description: Optional[str] = None
+    library: Optional[str] = None  # e.g. "Device"
+    name: Optional[str] = None     # e.g. "R"
+    position: Optional[tuple] = None
+    angle: Optional[float] = None
+    uuid: Optional[str] = None
+
+def generate_component_hash(component: Component) -> str:
+    """Generate a unique hash for a component to help identify duplicates."""
+    # Create a deterministic JSON representation of key component attributes
+    hash_dict = {
+        'library': component.library,
+        'name': component.name,
+        'reference': component.reference,
+        'value': component.value,
+        'position': component.position,
+        'footprint': component.footprint,
+        'angle': component.angle
+    }
+    # Convert to a sorted JSON string to ensure consistent hashing
+    hash_string = json.dumps(hash_dict, sort_keys=True)
+    return hashlib.md5(hash_string.encode()).hexdigest()
+from dataclasses import dataclass
+from typing import List, Optional
+import hashlib
+import json
+
+@dataclass
+class ParseError:
+    """Class to store parsing error details"""
+    line_num: int
+    line: str
+    message: str
+
+class ParseResult:
+    """Class to store parsing results and any errors"""
+    def __init__(self):
+        self.success = True
+        self.errors = []
+        self.data = None
+    
+    def add_error(self, line_num: int, line: str, message: str):
+        self.errors.append(ParseError(line_num, line, message))
+        self.success = False
+
+@dataclass
+class Component:
+    """Class to store component data"""
+    reference: str
+    value: str
+    footprint: Optional[str] = None
+    datasheet: Optional[str] = None
+    description: Optional[str] = None
+    library: Optional[str] = None  # e.g. "Device"
+    name: Optional[str] = None     # e.g. "R"
+    position: Optional[tuple] = None
+    angle: Optional[float] = None
+    uuid: Optional[str] = None
+
+def generate_component_hash(component: Component) -> str:
+    """Generate a unique hash for a component to help identify duplicates."""
+    # Create a deterministic JSON representation of key component attributes
+    hash_dict = {
+        'library': component.library,
+        'name': component.name,
+        'reference': component.reference,
+        'value': component.value,
+        'position': component.position,
+        'footprint': component.footprint,
+        'angle': component.angle
+    }
+    # Convert to a sorted JSON string to ensure consistent hashing
+    hash_string = json.dumps(hash_dict, sort_keys=True)
+    return hashlib.md5(hash_string.encode()).hexdigest()
+from dataclasses import dataclass
+from typing import List, Optional
+import hashlib
+import json
+
+@dataclass
+class ParseError:
+    """Class to store parsing error details"""
+    line_num: int
+    line: str
+    message: str
+
+class ParseResult:
+    """Class to store parsing results and any errors"""
+    def __init__(self):
+        self.success = True
+        self.errors = []
+        self.data = None
+    
+    def add_error(self, line_num: int, line: str, message: str):
+        self.errors.append(ParseError(line_num, line, message))
+        self.success = False
+
+@dataclass
+class Component:
+    """Class to store component data"""
+    reference: str
+    value: str
+    footprint: Optional[str] = None
+    datasheet: Optional[str] = None
+    description: Optional[str] = None
+    library: Optional[str] = None  # e.g. "Device"
+    name: Optional[str] = None     # e.g. "R"
+    position: Optional[tuple] = None
+    angle: Optional[float] = None
+    uuid: Optional[str] = None
+
+def generate_component_hash(component: Component) -> str:
+    """Generate a unique hash for a component to help identify duplicates."""
+    # Create a deterministic JSON representation of key component attributes
+    hash_dict = {
+        'library': component.library,
+        'name': component.name,
+        'reference': component.reference,
+        'value': component.value,
+        'position': component.position,
+        'footprint': component.footprint,
+        'angle': component.angle
+    }
+    # Convert to a sorted JSON string to ensure consistent hashing
+    hash_string = json.dumps(hash_dict, sort_keys=True)
+    return hashlib.md5(hash_string.encode()).hexdigest()
+from dataclasses import dataclass
+from typing import List, Optional
+import hashlib
+import json
+
+from dataclasses import dataclass
+from typing import List, Optional
+
+@dataclass
+class ParseError:
+    """Class to store parsing error details"""
+    line_num: int
+    line: str
+    message: str
+
+class ParseResult:
+    """Class to store parsing results and any errors"""
+    def __init__(self):
+        self.success = True
+        self.errors = []
+        self.data = None
+    
+    def add_error(self, line_num: int, line: str, message: str):
+        self.errors.append(ParseError(line_num, line, message))
+        self.success = False
+
+@dataclass
+class Component:
+    """Class to store component data"""
+    reference: str
+    value: str
+    footprint: Optional[str] = None
+    datasheet: Optional[str] = None
+    description: Optional[str] = None
+    library: Optional[str] = None  # e.g. "Device"
+    name: Optional[str] = None     # e.g. "R"
+    position: Optional[tuple] = None
+    angle: Optional[float] = None
+    uuid: Optional[str] = None
+
+def generate_component_hash(component: Component) -> str:
+    """Generate a unique hash for a component to help identify duplicates."""
+    # Create a deterministic JSON representation of key component attributes
+    hash_dict = {
+        'library': component.library,
+        'name': component.name,
+        'reference': component.reference,
+        'value': component.value,
+        'position': component.position,
+        'footprint': component.footprint,
+        'angle': component.angle
+    }
+    # Convert to a sorted JSON string to ensure consistent hashing
+    hash_string = json.dumps(hash_dict, sort_keys=True)
+    return hashlib.md5(hash_string.encode()).hexdigest()
+
+def parse_component_block(lines: List[str]) -> ParseResult:
+    """Parse a complete component block including header, properties, and position."""
+    # Debug: Print input lines
+    print(f"DEBUG: Parsing component block:\n{json.dumps(lines, indent=2)}")
+    
+    result = ParseResult()
+    component = Component(reference="", value="")
+from dataclasses import dataclass
+from typing import List, Optional
+
+@dataclass
+class ParseError:
+    """Class to store parsing error details"""
+    line_num: int
+    line: str
+    message: str
+
+class ParseResult:
+    """Class to store parsing results and any errors"""
+    def __init__(self):
+        self.success = True
+        self.errors = []
+        self.data = None
+    
+    def add_error(self, line_num: int, line: str, message: str):
+        self.errors.append(ParseError(line_num, line, message))
+        self.success = False
+
+@dataclass
+class Component:
+    """Class to store component data"""
+    reference: str
+    value: str
+    footprint: Optional[str] = None
+    datasheet: Optional[str] = None
+    description: Optional[str] = None
+    library: Optional[str] = None  # e.g. "Device"
+    name: Optional[str] = None     # e.g. "R"
+    position: Optional[tuple] = None
+    angle: Optional[float] = None
+    uuid: Optional[str] = None
+
+
+from dataclasses import dataclass
+from typing import List, Optional
 
 @dataclass
 class ParseError:
@@ -109,8 +624,21 @@ def parse_component_block(lines: List[str]) -> ParseResult:
         if not component.reference or not component.value:
             result.add_error(0, str(lines), "Component must have Reference and Value")
             return result
-            
+        
+        # Debug: Print parsed component details
         result.data = component
+        if result.data:
+            component_hash = generate_component_hash(result.data)
+            print(f"DEBUG: Parsed Component:")
+            print(f"  Library: {result.data.library}")
+            print(f"  Name: {result.data.name}")
+            print(f"  Reference: {result.data.reference}")
+            print(f"  Value: {result.data.value}")
+            print(f"  Position: {result.data.position}")
+            print(f"  Footprint: {result.data.footprint}")
+            print(f"  Angle: {result.data.angle}")
+            print(f"  Component Hash: {component_hash}")
+        
         return result
         
     except Exception as e:
