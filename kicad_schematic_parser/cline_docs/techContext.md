@@ -16,10 +16,24 @@
 - Priority-based label resolution
 - Flexible net formation algorithm
 
+### Net Naming Implementation
+- Strict priority hierarchy:
+  1. Sheet Pins
+  2. Hierarchical Labels
+  3. Power Labels
+  4. Local Labels
+  5. Generated ID
+- Preserves all label information
+- Maintains connectivity across sheets
+
 ### Testing Strategy
 - Snapshot-based testing
 - Minimal test case generation
 - Focused on reproducibility
+- Comprehensive coverage of:
+  - Resistor divider circuits
+  - Multi-rail power supplies
+  - Complex hierarchical designs
 
 ### Module Dependencies
 - `src/kicad_hierarchy_parser/`

@@ -1,35 +1,21 @@
-## Net Parsing Development Progress
+# Progress - Net Parsing
 
-### Completed
-- Implemented net parsing test infrastructure
-- Resolved import and path resolution issues
-- Created test cases for:
-  * Resistor divider circuit
-  * Multi-rail power supply
+## Completed
+- Added tolerance parameter handling for net parsing
+- Improved power label connection detection
+- Enhanced label position matching accuracy
+- Implemented dedicated power net creation
+- Updated net merging logic for power labels
 
-### Test Coverage
-| Schematic | Status | Coverage Details |
-|-----------|--------|------------------|
-| resistor_divider | ✓ | Basic net formation, label priority |
-| power2 | ✓ | Multi-rail power distribution |
+## In Progress
+- Fixing failing tests in net_parsing_test.txt
+- Verifying power label connections
+- Testing tolerance parameter implementation
+- Improving test coverage for power networks
 
-### Current Challenges
-- Ensuring consistent path resolution
-- Handling complex hierarchical schematic structures
-- Improving net connectivity tracing
-
-### Upcoming Milestones
-1. Expand test scenarios
-2. Implement more advanced net parsing logic
-3. Add support for more complex circuit topologies
-4. Enhance error reporting and debugging
-
-### Known Limitations
-- Current parsing may miss subtle label connections
-- Limited support for complex hierarchical designs
-- Potential edge cases in multi-sheet schematics
-
-### Performance Metrics
-- Test execution time
-- Memory usage during parsing
-- Accuracy of net formation
+## Remaining
+- Finalize test fixes for resistor divider and power supply circuits
+- Document net parsing improvements
+- Add additional test cases for complex power networks
+- Review and merge changes
+- Update documentation with new power label handling details
