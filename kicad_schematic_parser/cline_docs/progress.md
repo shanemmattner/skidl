@@ -1,17 +1,19 @@
-# Progress - Net Parsing
+# KiCad Schematic Parser Development Progress
 
-## Completed
-- Resolved pin location calculation issue
-- Improved net parsing accuracy
-- Enhanced label and pin connectivity detection
-- Implemented robust parsing mechanisms
+## Recent Changes
+- Fixed import statements across test files
+- Replaced 'skidl_kicad_parser' with 'kicad_hierarchy_parser'
 
-## In Progress
-- Comprehensive testing of parsing functionality
-- Documentation of recent improvements
-- Optimization of parsing algorithms
+## Current Challenges
+- Test suite is failing due to parsing and calculation issues
+- Need to debug component, net, and wire parsing functions
 
-## Remaining
-- Finalize documentation
-- Conduct final review of parsing implementation
-- Prepare for integration with main project
+## Pending Fixes
+- Pin position calculation
+- Symbol definition parsing
+- Net connectivity detection
+- Component pin extraction
+
+## Test Coverage
+- 2/10 tests currently passing
+- Failures across multiple parsing modules

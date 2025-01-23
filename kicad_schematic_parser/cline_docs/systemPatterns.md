@@ -1,54 +1,41 @@
-## Net Parsing Architecture
+# KiCad Schematic Parser System Architecture
 
-### Parsing Strategy
-- Hierarchical, recursive net tracing
-- Priority-based label resolution
-- Comprehensive connectivity analysis
-- Enhanced power label handling
+## Core Parsing Components
+1. Component Parser
+   - Responsible for extracting component details
+   - Calculates absolute pin positions
+   - Handles symbol definitions
 
-### Net Naming Priority Hierarchy
-1. Power Labels (VIN, 3V3, 5V, GND)
-2. Sheet Pins
-3. Hierarchical Labels
-4. Local Labels
-5. Generated ID
+2. Net Parser
+   - Tracks connectivity between components
+   - Identifies and labels network connections
+   - Resolves net relationships
 
-### Key Design Principles
-1. **KISS (Keep It Simple, Stupid)**
-   - Minimal, focused parsing logic
-   - Clear, understandable code structure
+3. Wire Parser
+   - Interprets wire connections in schematic
+   - Maps wire segments and junctions
+   - Supports hierarchical and local connections
 
-2. **YAGNI (You Aren't Gonna Need It)**
-   - Implement only currently required functionality
-   - Avoid over-engineering
+## Key Parsing Strategies
+- Use of coordinate transformations
+- Support for rotated and mirrored components
+- Natural sorting of pin numbers
+- Handling of multi-unit components
 
-3. **SOLID Principles**
-   - Single Responsibility: Separate parsing concerns
-   - Open/Closed: Extensible parsing framework
-   - Dependency Inversion: Loose coupling between components
+## Parsing Workflow
+1. Extract schematic symbols
+2. Calculate pin positions
+3. Identify net connections
+4. Generate comprehensive component and net information
 
-### Connectivity Analysis Approach
-- Recursive wire/pin traversal
-- Cross-sheet label propagation
-- Multi-level net formation algorithm
-- Tolerance-based point matching (0.01mm default)
-- Dedicated power net creation
+## Current Challenges
+- Accurate pin position calculation
+- Handling component rotations
+- Resolving complex net connections
+- Supporting various KiCad schematic formats
 
-### Parsing Components
-- Label Parser: Extract and categorize labels
-- Wire Parser: Trace wire connections
-- Component Parser: Analyze component pins
-- Net Parser: Combine information into comprehensive netlist
-- Power Label Handler: Special handling for power nets
-
-### Error Handling
-- Graceful handling of missing or ambiguous connections
-- Logging of parsing anomalies
-- Configurable verbosity levels
-- Detailed test coverage for power label scenarios
-
-### Extensibility Considerations
-- Modular design for easy algorithm updates
-- Plugin-style architecture for custom parsing rules
-- Support for future KiCad schematic format changes
-- Configurable power label detection
+## Design Principles
+- Modular architecture
+- Flexible parsing approach
+- Robust error handling
+- Comprehensive test coverage
