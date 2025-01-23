@@ -1,6 +1,30 @@
 
 --------------------------------------------------------------------------------
 *******  Analyzing: example_kicad_project/resistor_divider.kicad_sch  *******
+Component #PWR025 Pin 1:
+  Name: 1
+  Position: 0, 0
+Component #PWR028 Pin 1:
+  Name: 1
+  Position: 0, 0
+Component R10 Pin 1:
+  Name: 1
+  Position: 0, 3.81
+Component R10 Pin 2:
+  Name: 2
+  Position: 0, -3.81
+Component R9 Pin 1:
+  Name: 1
+  Position: 0, 3.81
+Component R9 Pin 2:
+  Name: 2
+  Position: 0, -3.81
+Component C10 Pin 1:
+  Name: 1
+  Position: 0, 3.81
+Component C10 Pin 2:
+  Name: 2
+  Position: 0, -3.81
 
 === Sheets ===
 
@@ -41,50 +65,50 @@ Unit: 1
 Component: #PWR025
 
 	Pin 1 (~):
-		Position: (0.00, 0.00)
+		Position: (121.92, 85.09)
 		Type: power_in
 		Alternate Functions:
 
 Component: #PWR028
 
 	Pin 1 (~):
-		Position: (0.00, 0.00)
+		Position: (138.43, 81.28)
 		Type: power_in
 		Alternate Functions:
 
 Component: R10
 
 	Pin 1 (~):
-		Position: (0.00, 3.81)
+		Position: (121.92, 77.47)
 		Type: passive
 		Alternate Functions:
 
 	Pin 2 (~):
-		Position: (0.00, -3.81)
+		Position: (121.92, 85.09)
 		Type: passive
 		Alternate Functions:
 
 Component: R9
 
 	Pin 1 (~):
-		Position: (0.00, 3.81)
+		Position: (121.92, 59.69)
 		Type: passive
 		Alternate Functions:
 
 	Pin 2 (~):
-		Position: (0.00, -3.81)
+		Position: (121.92, 67.31)
 		Type: passive
 		Alternate Functions:
 
 Component: C10
 
 	Pin 1 (~):
-		Position: (0.00, 3.81)
+		Position: (138.43, 73.66)
 		Type: passive
 		Alternate Functions:
 
 	Pin 2 (~):
-		Position: (0.00, -3.81)
+		Position: (138.43, 81.28)
 		Type: passive
 		Alternate Functions:
 
@@ -102,16 +126,22 @@ Power Labels:
 
 === Netlist ===
 
-MERGED_NET_1:
-	#PWR025 Pin 1 (~)
+GND:
 	#PWR028 Pin 1 (~)
-
-MERGED_NET_2:
-	R10 Pin 1 (~)
-	R9 Pin 1 (~)
-	C10 Pin 1 (~)
-
-MERGED_NET_3:
-	R10 Pin 2 (~)
-	R9 Pin 2 (~)
 	C10 Pin 2 (~)
+	#PWR025 Pin 1 (~)
+	R10 Pin 2 (~)
+	Power Labels:
+		GND
+
+VOUT:
+	R10 Pin 1 (~)
+	R9 Pin 2 (~)
+	C10 Pin 1 (~)
+	Hierarchical Labels:
+		VOUT
+
+VIN:
+	R9 Pin 1 (~)
+	Hierarchical Labels:
+		VIN

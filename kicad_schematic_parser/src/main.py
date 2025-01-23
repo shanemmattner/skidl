@@ -21,7 +21,7 @@ def process_kicad_to_text(file_path, debug=False):
                 print(f"Parent Sheet: {parent_sheet}")
             print(f"*******  {'  ' * depth}Analyzing: {file_path}  *******")
             schematic = Schematic().from_file(file_path)
-            print(f"Schematic object: {schematic}")
+            # print(f"Schematic object: {schematic}")
             analyze_schematic(schematic, base_path, debug=debug)
 
             # Process all sub-sheets recursively

@@ -31,7 +31,7 @@ class Component:
     name: Optional[str] = None     # e.g. "R"
     position: Optional[tuple] = None
     angle: Optional[float] = None
-
+    uuid: Optional[str] = None
 
 def parse_component_block(lines: List[str]) -> ParseResult:
     """Parse a complete component block including header, properties, and position."""
