@@ -1,0 +1,654 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.1, pytest-8.3.4, pluggy-1.5.0
+rootdir: /Users/shanemattner/Desktop/skidl/kicad_schematic_parser
+configfile: pyproject.toml
+collected 8 items
+
+src/kicad_hierarchy_parser/tests/label_tests/test_labels.py ..           [ 25%]
+src/kicad_hierarchy_parser/tests/net_parsing_tests/test_net_parsing.py F [ 37%]
+F                                                                        [ 50%]
+src/kicad_hierarchy_parser/tests/pin_placement_tests/test_pin_positions.py . [ 62%]
+                                                                         [ 62%]
+src/kicad_hierarchy_parser/tests/test_hierarchy_parser.py FF             [ 87%]
+src/kicad_hierarchy_parser/tests/wire_connection_tests/test_wire_connections.py F [100%]
+
+=================================== FAILURES ===================================
+____________________________ test_resistor_divider _____________________________
+
+schematic_parser = <function schematic_parser.<locals>._parser at 0x105c3b9c0>
+
+    def test_resistor_divider(schematic_parser):
+        """Test basic resistor divider circuit net parsing"""
+        components, wires, labels = schematic_parser('/Users/shanemattner/Desktop/skidl/kicad_schematic_parser/example_kicad_project/resistor_divider.kicad_sch')
+        netlist = calculate_pin_connectivity(components, wires, labels)
+    
+        # Verify expected nets exist
+>       assert 'VIN' in netlist
+E       AssertionError: assert 'VIN' in {}
+
+src/kicad_hierarchy_parser/tests/net_parsing_tests/test_net_parsing.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+
+=== Sheets ===
+
+=== Components ===
+
+Component: Device/R
+	Properties:
+		Reference: R10
+		Value: 1k
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (121.92, 81.28), Angle: 0
+Unit: 1
+
+Component: Device/R
+	Properties:
+		Reference: R9
+		Value: 2k
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (121.92, 63.5), Angle: 0
+Unit: 1
+
+Component: Device/C
+	Properties:
+		Reference: C10
+		Value: 100nF
+		Footprint: 
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (138.43, 77.47), Angle: 0
+Unit: 1
+
+=== Pin Details ===
+
+Component: #PWR025
+
+	Pin 1 (~):
+		Position: (121.92, 85.09)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR028
+
+	Pin 1 (~):
+		Position: (138.43, 81.28)
+		Type: power_in
+		Alternate Functions:
+
+Component: R10
+
+	Pin 1 (~):
+		Position: (121.92, 85.09)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (121.92, 77.47)
+		Type: passive
+		Alternate Functions:
+
+Component: R9
+
+	Pin 1 (~):
+		Position: (121.92, 67.31)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (121.92, 59.69)
+		Type: passive
+		Alternate Functions:
+
+Component: C10
+
+	Pin 1 (~):
+		Position: (138.43, 81.28)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (138.43, 73.66)
+		Type: passive
+		Alternate Functions:
+
+=== Labels ===
+
+Local Labels:
+
+Hierarchical Labels and Sheet Pins:
+	Label: VIN (input) at (121.92, 59.69)
+	Label: VOUT (input) at (138.43, 73.66)
+
+Power Labels:
+	GND at (121.92, 85.09)
+	GND at (138.43, 81.28)
+
+=== Netlist ===
+
+GND:
+	#PWR025 Pin 1 (~)
+	R10 Pin 1 (~)
+	#PWR028 Pin 1 (~)
+	C10 Pin 1 (~)
+	Power Labels:
+		GND
+
+VOUT:
+	R10 Pin 2 (~)
+	R9 Pin 1 (~)
+	C10 Pin 2 (~)
+	Hierarchical Labels:
+		VOUT
+
+VIN:
+	R9 Pin 2 (~)
+	Hierarchical Labels:
+		VIN
+______________________________ test_power_supply _______________________________
+
+schematic_parser = <function schematic_parser.<locals>._parser at 0x105c5b6a0>
+
+    def test_power_supply(schematic_parser):
+        """Test power supply circuit with multiple voltage rails"""
+        components, wires, labels = schematic_parser('/Users/shanemattner/Desktop/skidl/kicad_schematic_parser/example_kicad_project/power2.kicad_sch')
+        netlist = calculate_pin_connectivity(components, wires, labels)
+    
+>       assert '3V3' in netlist
+E       AssertionError: assert '3V3' in {}
+
+src/kicad_hierarchy_parser/tests/net_parsing_tests/test_net_parsing.py:62: AssertionError
+----------------------------- Captured stdout call -----------------------------
+
+=== Sheets ===
+
+=== Components ===
+
+Component: Device/R
+	Properties:
+		Reference: R11
+		Value: R
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (120.65, 128.27), Angle: 0
+Unit: 1
+
+Component: Device/C
+	Properties:
+		Reference: C11
+		Value: C
+		Footprint: 
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (137.16, 124.46), Angle: 0
+Unit: 1
+
+Component: Device/R
+	Properties:
+		Reference: R2
+		Value: R
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (73.66, 111.76), Angle: 0
+Unit: 1
+
+Component: Regulator_Linear/NCP1117-3.3_SOT223
+	Properties:
+		Reference: U1
+		Value: NCP1117-3.3_SOT223
+		Footprint: Package_TO_SOT_SMD:SOT-223-3_TabPin2
+		Datasheet: http://www.onsemi.com/pub_link/Collateral/NCP1117-D.PDF
+		Description: 1A Low drop-out regulator, Fixed Output 3.3V, SOT-223
+	Position: (90.17, 63.5), Angle: 0
+Unit: 1
+
+Component: Device/C
+	Properties:
+		Reference: C2
+		Value: 10uF
+		Footprint: Capacitor_SMD:C_0603_1608Metric
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (107.95, 67.31), Angle: 0
+Unit: 1
+
+Component: Device/C
+	Properties:
+		Reference: C3
+		Value: 10uF
+		Footprint: Capacitor_SMD:C_0603_1608Metric
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (73.66, 67.31), Angle: 0
+Unit: 1
+
+Component: Device/C
+	Properties:
+		Reference: C9
+		Value: C
+		Footprint: 
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (90.17, 125.73), Angle: 0
+Unit: 1
+
+Component: Device/R
+	Properties:
+		Reference: R8
+		Value: R
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (120.65, 110.49), Angle: 0
+Unit: 1
+
+Component: Device/R
+	Properties:
+		Reference: R7
+		Value: R
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (73.66, 129.54), Angle: 0
+Unit: 1
+
+=== Pin Details ===
+
+Component: #PWR029
+
+	Pin 1 (~):
+		Position: (120.65, 93.98)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR012
+
+	Pin 1 (~):
+		Position: (73.66, 74.93)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR024
+
+	Pin 1 (~):
+		Position: (73.66, 133.35)
+		Type: power_in
+		Alternate Functions:
+
+Component: R11
+
+	Pin 1 (~):
+		Position: (120.65, 132.08)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (120.65, 124.46)
+		Type: passive
+		Alternate Functions:
+
+Component: C11
+
+	Pin 1 (~):
+		Position: (137.16, 128.27)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (137.16, 120.65)
+		Type: passive
+		Alternate Functions:
+
+Component: #PWR031
+
+	Pin 1 (~):
+		Position: (137.16, 128.27)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR09
+
+	Pin 1 (~):
+		Position: (107.95, 74.93)
+		Type: power_in
+		Alternate Functions:
+
+Component: R2
+
+	Pin 1 (~):
+		Position: (73.66, 115.57)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (73.66, 107.95)
+		Type: passive
+		Alternate Functions:
+
+Component: U1
+
+	Pin 1 (GND):
+		Position: (90.17, 55.88)
+		Type: power_in
+		Alternate Functions:
+
+	Pin 2 (VO):
+		Position: (97.79, 63.50)
+		Type: power_out
+		Alternate Functions:
+
+	Pin 3 (VI):
+		Position: (82.55, 63.50)
+		Type: power_in
+		Alternate Functions:
+
+Component: C2
+
+	Pin 1 (~):
+		Position: (107.95, 71.12)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (107.95, 63.50)
+		Type: passive
+		Alternate Functions:
+
+Component: C3
+
+	Pin 1 (~):
+		Position: (73.66, 71.12)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (73.66, 63.50)
+		Type: passive
+		Alternate Functions:
+
+Component: C9
+
+	Pin 1 (~):
+		Position: (90.17, 129.54)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (90.17, 121.92)
+		Type: passive
+		Alternate Functions:
+
+Component: #PWR026
+
+	Pin 1 (~):
+		Position: (90.17, 129.54)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR011
+
+	Pin 1 (~):
+		Position: (73.66, 63.50)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR08
+
+	Pin 1 (~):
+		Position: (107.95, 63.50)
+		Type: power_in
+		Alternate Functions:
+
+Component: R8
+
+	Pin 1 (~):
+		Position: (120.65, 114.30)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (120.65, 106.68)
+		Type: passive
+		Alternate Functions:
+
+Component: #PWR027
+
+	Pin 1 (~):
+		Position: (73.66, 95.25)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR030
+
+	Pin 1 (~):
+		Position: (120.65, 132.08)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR06
+
+	Pin 1 (~):
+		Position: (90.17, 74.93)
+		Type: power_in
+		Alternate Functions:
+
+Component: R7
+
+	Pin 1 (~):
+		Position: (73.66, 133.35)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (73.66, 125.73)
+		Type: passive
+		Alternate Functions:
+
+=== Labels ===
+
+Local Labels:
+
+Hierarchical Labels and Sheet Pins:
+	Label: 3v3_monitor (input) at (137.16, 120.65)
+	Label: 5v_monitor (input) at (90.17, 121.92)
+
+Power Labels:
+	+3V3 at (120.65, 93.98)
+	GND at (73.66, 74.93)
+	GND at (73.66, 133.35)
+	GND at (137.16, 128.27)
+	GND at (107.95, 74.93)
+	GND at (90.17, 129.54)
+	+5V at (73.66, 63.50)
+	+3V3 at (107.95, 63.50)
+	+5V at (73.66, 95.25)
+	GND at (120.65, 132.08)
+	GND at (90.17, 74.93)
+
+=== Netlist ===
+
++3V3:
+	#PWR029 Pin 1 (~)
+	R8 Pin 2 (~)
+	U1 Pin 2 (VO)
+	C2 Pin 2 (~)
+	#PWR08 Pin 1 (~)
+	Power Labels:
+		+3V3
+
+GND:
+	#PWR06 Pin 1 (~)
+	R11 Pin 1 (~)
+	#PWR030 Pin 1 (~)
+	C9 Pin 1 (~)
+	#PWR026 Pin 1 (~)
+	#PWR09 Pin 1 (~)
+	C2 Pin 1 (~)
+	C11 Pin 1 (~)
+	#PWR031 Pin 1 (~)
+	#PWR024 Pin 1 (~)
+	R7 Pin 1 (~)
+	#PWR012 Pin 1 (~)
+	C3 Pin 1 (~)
+	Power Labels:
+		GND
+
+3v3_monitor:
+	R11 Pin 2 (~)
+	C11 Pin 2 (~)
+	R8 Pin 1 (~)
+	Hierarchical Labels:
+		3v3_monitor
+
+5v_monitor:
+	R2 Pin 1 (~)
+	C9 Pin 2 (~)
+	R7 Pin 2 (~)
+	Hierarchical Labels:
+		5v_monitor
+
++5V:
+	R2 Pin 2 (~)
+	#PWR027 Pin 1 (~)
+	U1 Pin 3 (VI)
+	C3 Pin 2 (~)
+	#PWR011 Pin 1 (~)
+	Power Labels:
+		+5V
+
+MERGED_NET_6:
+	U1 Pin 1 (GND)
+________________________ test_symbol_definition_parsing ________________________
+
+    def test_symbol_definition_parsing():
+        """Test parsing of symbol definitions"""
+        schematic = Schematic()
+    
+        # Simulate a schematic with a component
+        class MockLibSymbol:
+            def __init__(self):
+                self.name = 'TEST_SYMBOL'
+                self.pins = [
+                    type('MockPin', (), {
+                        'name': 'VCC',
+                        'electricalType': 'power_in',
+                        'position': type('MockPosition', (), {'x': 0, 'y': 2.54})()
+                    }),
+                    type('MockPin', (), {
+                        'name': 'GND',
+                        'electricalType': 'power_in',
+                        'position': type('MockPosition', (), {'x': 0, 'y': -2.54})()
+                    })
+                ]
+    
+        # Simulate library symbols
+        schematic.libSymbols = [MockLibSymbol()]
+    
+        # Test symbol definition finding
+>       symbol = find_symbol_definition(schematic, 'TEST_SYMBOL')
+E       TypeError: find_symbol_definition() missing 1 required positional argument: 'entry_name'
+
+src/kicad_hierarchy_parser/tests/test_hierarchy_parser.py:29: TypeError
+________________________ test_component_pin_extraction _________________________
+
+    def test_component_pin_extraction():
+        """Test extraction of component pins from a schematic"""
+        # Create a mock schematic with components
+        schematic = Schematic()
+    
+        # Simulate components and their pins
+        class MockComponent:
+            def __init__(self, ref, symbol_name, position):
+                self.reference = ref
+                self.symbolName = symbol_name
+                self.position = position
+    
+        class MockLibSymbol:
+            def __init__(self, name, pins):
+                self.name = name
+                self.pins = pins
+    
+        # Create mock library symbols
+        mock_symbols = [
+            MockLibSymbol('RESISTOR', [
+                type('MockPin', (), {
+                    'name': '1',
+                    'electricalType': 'passive',
+                    'position': type('MockPosition', (), {'x': -2.54, 'y': 0})()
+                }),
+                type('MockPin', (), {
+                    'name': '2',
+                    'electricalType': 'passive',
+                    'position': type('MockPosition', (), {'x': 2.54, 'y': 0})()
+                })
+            ])
+        ]
+    
+        schematic.libSymbols = mock_symbols
+    
+        # Add mock components
+        schematic.components = [
+            MockComponent('R1', 'RESISTOR', Position(X=100, Y=200, angle=0)),
+            MockComponent('R2', 'RESISTOR', Position(X=150, Y=250, angle=90))
+        ]
+    
+        # Extract component pins
+        component_pins = get_component_pins(schematic)
+    
+        # Verify pin extraction
+>       assert 'R1' in component_pins, "R1 not found in component pins"
+E       AssertionError: R1 not found in component pins
+E       assert 'R1' in {}
+
+src/kicad_hierarchy_parser/tests/test_hierarchy_parser.py:98: AssertionError
+____________________________ test_wire_connections _____________________________
+
+    def test_wire_connections():
+        """Test wire connections from wire_conn_test.kicad_sch"""
+        schematic = Schematic().from_file(os.path.join(TEST_DATA_DIR, "wire_conn_test.kicad_sch"))
+        component_pins = get_component_pins(schematic)
+        wire_connections = get_wire_connections(schematic)
+        labels = parse_labels(schematic)
+        netlist = calculate_pin_connectivity(component_pins, wire_connections, labels)
+    
+        # Test specific net connections
+        assert "3v3_monitor" in netlist, "3v3_monitor net missing"
+        assert "GND" in netlist, "GND net missing"
+        assert "+5V" in netlist, "5V net missing"
+        assert "divider_2" in netlist, "divider_2 net missing"
+        assert "5v_monitor" in netlist, "5v_monitor net missing"
+        assert "+3V3" in netlist, "+3V3 net missing"
+    
+        # Test 3v3_monitor connections
+        three_v3_monitor = netlist["3v3_monitor"]
+        expected_3v3_monitor = {
+            ("J2", "2"),  # Pin 2 of J2
+            ("R6", "1"),  # Pin 1 of R6
+            ("C8", "1"),  # Pin 1 of C8
+            ("R5", "2")   # Pin 2 of R5
+        }
+>       assert set((comp["component"], comp["pin_number"]) for comp in three_v3_monitor["pins"]) == expected_3v3_monitor
+E       AssertionError: assert {('C8', '2'),..., ('R6', '2')} == {('C8', '1'),..., ('R6', '1')}
+E         
+E         Extra items in the left set:
+E         ('C8', '2')
+E         ('R5', '1')
+E         ('R6', '2')
+E         Extra items in the right set:
+E         ('C8', '1')...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+
+src/kicad_hierarchy_parser/tests/wire_connection_tests/test_wire_connections.py:37: AssertionError
+=========================== short test summary info ============================
+FAILED src/kicad_hierarchy_parser/tests/net_parsing_tests/test_net_parsing.py::test_resistor_divider
+FAILED src/kicad_hierarchy_parser/tests/net_parsing_tests/test_net_parsing.py::test_power_supply
+FAILED src/kicad_hierarchy_parser/tests/test_hierarchy_parser.py::test_symbol_definition_parsing
+FAILED src/kicad_hierarchy_parser/tests/test_hierarchy_parser.py::test_component_pin_extraction
+FAILED src/kicad_hierarchy_parser/tests/wire_connection_tests/test_wire_connections.py::test_wire_connections
+========================= 5 failed, 3 passed in 1.77s ==========================

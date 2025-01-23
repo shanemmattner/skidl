@@ -1,41 +1,21 @@
-# KiCad Schematic Parser System Architecture
+## KiCad Schematic Parsing Architecture
 
-## Core Parsing Components
-1. Component Parser
-   - Responsible for extracting component details
-   - Calculates absolute pin positions
-   - Handles symbol definitions
+### Recent Changes
+- Adapted test suite to accommodate evolving kiutils library structure
+- Emphasized flexibility in symbol and component parsing
+- Maintained consistent parsing approach across different schematic representations
 
-2. Net Parser
-   - Tracks connectivity between components
-   - Identifies and labels network connections
-   - Resolves net relationships
+### Key Architectural Patterns
+- Dynamic mock object creation for testing
+- Flexible symbol and component identification
+- Support for multiple library and symbol configurations
 
-3. Wire Parser
-   - Interprets wire connections in schematic
-   - Maps wire segments and junctions
-   - Supports hierarchical and local connections
+### Parsing Strategies
+- Use of libraryNickname and entryName for precise symbol matching
+- Handling of different pin and component representations
+- Robust error handling and validation
 
-## Key Parsing Strategies
-- Use of coordinate transformations
-- Support for rotated and mirrored components
-- Natural sorting of pin numbers
-- Handling of multi-unit components
-
-## Parsing Workflow
-1. Extract schematic symbols
-2. Calculate pin positions
-3. Identify net connections
-4. Generate comprehensive component and net information
-
-## Current Challenges
-- Accurate pin position calculation
-- Handling component rotations
-- Resolving complex net connections
-- Supporting various KiCad schematic formats
-
-## Design Principles
-- Modular architecture
-- Flexible parsing approach
-- Robust error handling
-- Comprehensive test coverage
+### Future Considerations
+- Continued alignment with kiutils library updates
+- Expanding test coverage for edge cases
+- Improving parsing flexibility and robustness

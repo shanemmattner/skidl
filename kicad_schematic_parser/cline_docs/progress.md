@@ -1,19 +1,16 @@
-# KiCad Schematic Parser Development Progress
+## Test Hierarchy Parser Refactoring
 
-## Recent Changes
-- Fixed import statements across test files
-- Replaced 'skidl_kicad_parser' with 'kicad_hierarchy_parser'
+### Status
+- [x] Updated test_hierarchy_parser.py
+- [ ] Verify component_parser.py implementation
+- [ ] Run full test suite
+- [ ] Address any remaining test failures
 
-## Current Challenges
-- Test suite is failing due to parsing and calculation issues
-- Need to debug component, net, and wire parsing functions
+### Completed Tasks
+- Migrated tests to use new kiutils Schematic object structure
+- Updated mock objects to match current library conventions
+- Ensured test cases cover key parsing scenarios
 
-## Pending Fixes
-- Pin position calculation
-- Symbol definition parsing
-- Net connectivity detection
-- Component pin extraction
-
-## Test Coverage
-- 2/10 tests currently passing
-- Failures across multiple parsing modules
+### Pending Tasks
+- Comprehensive testing of modified parsing logic
+- Potential updates to other parsing-related files

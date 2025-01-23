@@ -1,27 +1,21 @@
-# Current Task: Resolving KiCad Schematic Parser Test Failures
+## Current Task: Test Hierarchy Parser Updates
 
-## Test Failures Overview
-- Import statements were initially fixed by replacing 'skidl_kicad_parser' with 'kicad_hierarchy_parser'
-- Remaining test failures in multiple test files:
-  1. Net parsing not working correctly
-  2. Pin position calculations seem incorrect
-  3. Symbol definition and component pin extraction have issues
-  4. Wire connection parsing not matching expected results
+### Changes Made
+- Updated test_hierarchy_parser.py to match the current kiutils Schematic object structure
+- Modified test cases to use:
+  - libraryNickname and entryName for symbol identification
+  - schematicSymbols instead of components
+  - Updated mock objects to reflect the new structure
 
-## Specific Test Failures
-- `test_resistor_divider`: 'VIN' net not found
-- `test_power_supply`: '3V3' net not found
-- Pin position tests failing for various components
-- Symbol definition parsing has a missing argument
-- Component pin extraction returning empty dictionary
+### Motivation
+- Ensure test compatibility with the latest kiutils library version
+- Fix test failures caused by changes in the Schematic object representation
 
-## Potential Areas of Investigation
-- `component_parser.py`: Verify pin position calculation
-- `net_parser.py`: Check net connectivity logic
-- `wire_parser.py`: Validate wire connection parsing
-- Verify compatibility with latest kiutils library
+### Next Steps
+- Verify component_parser.py functions match the updated test structure
+- Run tests to confirm all modifications work correctly
+- Update any other related test files if necessary
 
-## Next Steps
-1. Review and potentially modify `calculate_pin_position()` function
-2. Check `find_symbol_definition()` method signature
-3. Investigate why `get_component_pins()` is returning an empty dictionary
+### Potential Improvements
+- Consider creating more comprehensive mock objects
+- Add more edge case tests for symbol and pin parsing
