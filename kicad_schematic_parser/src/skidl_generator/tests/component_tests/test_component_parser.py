@@ -1,5 +1,5 @@
 import pytest
-from component_parser import parse_component_name, parse_component_properties, Component
+from src.skidl_generator.component_parser.component_parser import parse_component_name, parse_component_properties, Component
 
 def test_valid_component():
     """Test parsing a valid component line"""

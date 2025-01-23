@@ -15,6 +15,30 @@ skidl_generator/
 └── code_generator/     # Phase 6: Generate SKiDL Python code
 ```
 
+## Testing
+
+### Test Structure
+Tests are organized into separate packages for each parsing module:
+```
+tests/
+├── component_tests/
+├── hierarchy_tests/
+├── net_tests/
+├── pin_tests/
+└── conftest.py
+```
+
+### Running Tests
+To run tests, use pytest:
+```bash
+pytest src/skidl_generator/tests
+```
+
+### Adding New Tests
+1. Create tests in the appropriate subdirectory
+2. Follow existing test patterns
+3. Use placeholder tests as a template for new modules
+
 ## Module Descriptions
 
 ### Component Parser
