@@ -27,127 +27,138 @@ class Net:
     pins: List[str]  # List of "component.pin" strings
     type: Optional[str] = None  # "power", "hierarchical", or None for local
     
-
 def parse_netlist_section(text: str) -> Dict[str, Net]:
-    """Parse netlist section to identify nets and their connections."""
     nets = {}
     current_net = None
+    in_power_section = False
     
     for line in text.split('\n'):
         line = line.strip()
-        
-        # Skip empty lines and section header
         if not line or line == "=== Netlist ===":
             continue
             
-        # Start of new net
         if line.endswith(':'):
-            current_net = line[:-1]  # Remove trailing colon
-            nets[current_net] = Net(name=current_net, pins=[])
-            continue
-            
-        # Look for pins or labels in current net
-        if current_net and "Pin" in line and not line.startswith("Power") and not line.startswith("Hierarchical"):
-            parts = line.split()
-            component = parts[0]
-            pin_num = parts[2]  # Format: "Component Pin X (~)"
-            if not component.startswith('#PWR'):  # Skip power symbols
+            if line == "Power Labels:":
+                if current_net:
+                    nets[current_net].type = "power"
+            elif line == "Hierarchical Labels:":
+                if current_net:
+                    nets[current_net].type = "hierarchical"
+            elif not line.startswith('\t'):  # New net
+                current_net = line[:-1]
+                nets[current_net] = Net(name=current_net, pins=[])
+        elif current_net and "Pin" in line and not line.startswith('\t'):
+            component = line.split()[0]
+            pin_num = line.split()[2]
+            if not component.startswith('#PWR'):
                 nets[current_net].pins.append(f"{component}.{pin_num}")
-                
-        # Check for net type
-        if current_net and "Power Labels:" in line:
-            nets[current_net].type = "power"
-        elif current_net and "Hierarchical Labels:" in line:
-            nets[current_net].type = "hierarchical"
-            
+
+    # Set GND as power net if it exists
+    if "GND" in nets:
+        nets["GND"].type = "power"
+
     return nets
 
 
 def parse_component_section(text: str) -> List[Component]:
-    """Parse components section to extract component information."""
     components = []
     current_component = None
+    in_component_section = False
     
     for line in text.split('\n'):
         line = line.strip()
         
-        # Skip empty lines and section header
-        if not line or line == "=== Components ===":
+        if line == "=== Components ===":
+            in_component_section = True
             continue
             
-        # Start of new component
+        if not in_component_section or not line:
+            continue
+            
+        if line.startswith("==="):  # End of section
+            break
+            
         if line.startswith("Component:"):
-            if current_component:  # Store previous component if exists
+            if current_component:
                 components.append(current_component)
-            # Parse "Component: Library/Part"
-            parts = line.split(': ')[1].split('/')
-            current_component = Component(
-                library=parts[0],
-                part=parts[1],
-                reference='',
-                value=''
-            )
+            lib_part = line.split(': ')[1]
+            if '/' in lib_part:
+                lib, part = lib_part.split('/')
+                current_component = Component(
+                    library=lib.strip(),
+                    part=part.strip(),
+                    reference='',
+                    value='',
+                    footprint=None
+                )
+        elif current_component and line.startswith('Properties:'):
             continue
-            
-        # Parse component properties
-        if current_component and ':' in line:
+        elif current_component and '\t' in line and ':' in line:
             key, value = [x.strip() for x in line.split(':', 1)]
             if key == 'Reference':
                 current_component.reference = value
             elif key == 'Value':
                 current_component.value = value
             elif key == 'Footprint':
-                current_component.footprint = value
+                current_component.footprint = value if value else None
                 
-    # Add final component
     if current_component:
         components.append(current_component)
         
     return components
 
-
 def generate_skidl_code(name: str, components: List[Component], nets: Dict[str, Net]) -> str:
-    """Generate SKiDL code from parsed components and nets."""
-    # Determine circuit inputs/outputs from hierarchical nets
+    # Find hierarchical nets (inputs/outputs)
     inputs = []
     outputs = []
     for net in nets.values():
         if net.type == "hierarchical":
-            if len(net.pins) == 1:  # Simple heuristic - single pin is input
-                inputs.append(net.name.lower())
+            net_name = net.name.lower()
+            if len(net.pins) == 1:
+                inputs.append(net_name)
             else:
-                outputs.append(net.name.lower())
+                outputs.append(net_name)
+
+    # Sort params for consistent output
+    params = ', '.join(sorted(inputs) + sorted(outputs))
     
-    # Start with function definition
-    params = ', '.join(inputs + outputs)
     code = [
         "@subcircuit",
         f"def {name}({params}):",
         "    # Create components"
     ]
     
-    # Add component instantiations
-    for comp in components:
+    # Sort components by reference for consistent output
+    for comp in sorted(components, key=lambda x: x.reference.lower()):
         ref = comp.reference.lower()
         code.append(f"    {ref} = Part('{comp.library}', '{comp.part}', value='{comp.value}')")
     
-    # Add connections
     code.append("\n    # Connect nets")
-    for net_name, net in nets.items():
-        if net.pins:  # Only generate connections for nets with pins
-            pins = [p.lower() for p in net.pins]
-            if net.type == "hierarchical":
-                # Connect first pin to net and rest of pins
-                code.append(f"    {pins[0]} += {net_name.lower()}" + 
-                          (f", {', '.join(pins[1:])}" if len(pins) > 1 else ""))
-            elif net.type == "power":
-                code.append(f"    {pins[0]} += {net_name}" + 
-                          (f", {', '.join(pins[1:])}" if len(pins) > 1 else ""))
-            else:
-                code.append(f"    {pins[0]} += {', '.join(pins[1:])}")
     
+    # Sort nets for consistent output
+    for net_name, net in sorted(nets.items(), key=lambda x: x[0]):
+        if not net.pins:
+            continue
+            
+        # Convert pin format from comp.pin to comp[pin]
+        formatted_pins = []
+        for pin in net.pins:
+            comp, pin_num = pin.split('.')
+            formatted_pins.append(f"{comp.lower()}[{pin_num}]")
+            
+        if net_name == "GND":
+            pin_str = ', '.join(sorted(formatted_pins))
+            if pin_str:
+                first_pin, *rest_pins = pin_str.split(', ')
+                code.append(f"    {first_pin} += GND" + (f", {', '.join(rest_pins)}" if rest_pins else ""))
+        elif net.type == "hierarchical":
+            pin_str = ', '.join(sorted(formatted_pins))
+            if pin_str:
+                first_pin, *rest_pins = pin_str.split(', ')
+                code.append(f"    {first_pin} += {net_name.lower()}" + 
+                          (f", {', '.join(rest_pins)}" if rest_pins else ""))
+            
     return '\n'.join(code)
-
 
 def sheet_to_skidl(sheet_name: str, text: str) -> str:
     """Convert a sheet description to SKiDL code.
