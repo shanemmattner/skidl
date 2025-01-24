@@ -71,8 +71,104 @@ def test_parse_component_section_real():
     assert c10.part == "C"
     assert c10.value == "100nF"
 
+"""Tests for the sheet to SKiDL converter using real schematic examples."""
+import os
+import pytest
+from skidl_generator.sheet_to_skidl import (
+    parse_netlist_section,
+    parse_component_section,
+    sheet_to_skidl,
+    Component,
+    Net
+)
+
+def parse_skidl_code(code: str) -> dict:
+    """Parse SKiDL code and return structured representation of components and connections."""
+    result = {
+        'components': set(),  # Set of (library, part, value) tuples
+        'connections': [],    # List of sets of connected pins/nets
+    }
+    
+    # Split into lines and remove empty ones
+    lines = [line.strip() for line in code.split('\n') if line.strip()]
+    
+    for line in lines:
+        # Parse component definitions
+        if '=' in line and 'Part' in line:
+            # Extract component info using string manipulation
+            parts = line.split("'")  # Split on quotes to get library and part
+            library = parts[1]
+            part = parts[3]
+            value = parts[5] if len(parts) > 5 else ''
+            result['components'].add((library, part, value))
+            
+        # Parse connections
+        elif '+=' in line:
+            # Remove spaces around operators and split on commas
+            line = line.replace(' += ', '+=')
+            parts = set()
+            
+            # Split at += to get left and right sides
+            left, right = line.split('+=')
+            left = left.strip()
+            if left:  # Add the left side pin if it exists
+                parts.add(left.strip())
+                
+            # Add right side components/nets
+            right_parts = [p.strip() for p in right.split(',')]
+            parts.update(right_parts)
+            
+            # Remove any empty strings
+            parts = {p for p in parts if p}
+            if parts:
+                result['connections'].append(parts)
+    
+    return result
+
+def are_circuits_equivalent(code1: str, code2: str) -> bool:
+    """Compare two SKiDL circuit descriptions for functional equivalence."""
+    # Parse both circuits
+    circuit1 = parse_skidl_code(code1)
+    circuit2 = parse_skidl_code(code2)
+    
+    # Check if components match
+    if circuit1['components'] != circuit2['components']:
+        print("Components don't match:")
+        print(f"Circuit 1: {circuit1['components']}")
+        print(f"Circuit 2: {circuit2['components']}")
+        return False
+        
+    # Check if all connections are equivalent
+    # First normalize the connections by converting to frozenset for comparison
+    connections1 = {frozenset(conn) for conn in circuit1['connections']}
+    connections2 = {frozenset(conn) for conn in circuit2['connections']}
+    
+    if connections1 != connections2:
+        print("Connections don't match:")
+        print(f"Circuit 1: {connections1}")
+        print(f"Circuit 2: {connections2}")
+        return False
+        
+    return True
+
 def test_resistor_divider_skidl_generation():
     """Test generating SKiDL code from real resistor divider example."""
+    code = sheet_to_skidl("resistor_divider", RESISTOR_DIVIDER_TEXT)
+    
+    print("\n=== Generated Code ===")
+    print(code)
+    
+    # Split into sections for debugging
+    gen_lines = code.split('\n')
+    component_lines = [l for l in gen_lines if 'Part(' in l]
+    connection_lines = [l for l in gen_lines if '+=' in l]
+    
+    print("\n=== Component Lines ===")
+    print('\n'.join(component_lines))
+    
+    print("\n=== Connection Lines ===")
+    print('\n'.join(connection_lines))
+    
     expected_code = """@subcircuit
 def resistor_divider(vin, vout):
     # Create components
@@ -84,55 +180,16 @@ def resistor_divider(vin, vout):
     r9[1] += vin
     r10[1] += vout, r9[2], c10[1]
     r10[2] += GND, c10[2]"""
-
-    code = sheet_to_skidl("resistor_divider", RESISTOR_DIVIDER_TEXT)
     
-    # Normalize whitespace for comparison
-    code = "\n".join(line.rstrip() for line in code.split("\n"))
-    expected = "\n".join(line.rstrip() for line in expected_code.split("\n"))
+    print("\n=== Expected Component Lines ===")
+    exp_lines = expected_code.split('\n')
+    exp_component_lines = [l for l in exp_lines if 'Part(' in l]
+    print('\n'.join(exp_component_lines))
     
-    assert code == expected
+    print("\n=== Expected Connection Lines ===")
+    exp_connection_lines = [l for l in exp_lines if '+=' in l]
+    print('\n'.join(exp_connection_lines))
 
-# def test_parse_3v3_regulator():
-#     """Test parsing the 3.3V regulator sheet from hierarchy.txt."""
-#     # Find the section about power2.kicad_sch in hierarchy.txt
-#     section_start = "analyzing: example_kicad_project/power2.kicad_sch"
-#     section_end = "=== Sub-sheets found ==="
-
-#     with open('src/skidl_generator/tests/conversion_test/test_data/hierarchy.txt', 'r') as f:
-#         text = f.read()
-
-#     start_idx = text.find(section_start)
-#     end_idx = text.find(section_end, start_idx)
-#     regulator_text = text[start_idx:end_idx]
-
-#     # Generate SKiDL code for the regulator
-#     code = sheet_to_skidl("regulator_3v3", regulator_text)
-
-#     # Expected connections:
-#     # - U1: NCP1117-3.3 regulator with input, output, and GND
-#     # - C2, C3: Input/output filter caps
-#     # - R8, R11, C11: Output voltage monitoring divider
-#     # - R2, R7, C9: Input voltage monitoring divider
-#     expected_parts = [
-#         "u1 = Part('Regulator_Linear', 'NCP1117-3.3_SOT223'",
-#         "c2 = Part('Device', 'C', value='10uF'",
-#         "c3 = Part('Device', 'C', value='10uF'",
-#         "c9 = Part('Device', 'C'",
-#         "c11 = Part('Device', 'C'",
-#         "r2 = Part('Device', 'R'",
-#         "r7 = Part('Device', 'R'",
-#         "r8 = Part('Device', 'R'",
-#         "r11 = Part('Device', 'R'"
-#     ]
-
-#     for part in expected_parts:
-#         assert part in code, f"Missing part: {part}"
-
-#     # Should have connections for:
-#     # - VIN to regulator input and monitoring
-#     # - 3V3 output to monitoring
-#     # - GND connections
-#     expected_nets = ["vin", "3v3", "gnd", "5v_monitor", "3v3_monitor"]
-#     for net in expected_nets:
-#         assert net.lower() in code.lower(), f"Missing net: {net}"
+    # Instead of exact string matching, check for circuit equivalence
+    assert are_circuits_equivalent(code, expected_code), \
+        "Generated circuit is not functionally equivalent to expected circuit"

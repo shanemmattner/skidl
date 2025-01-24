@@ -112,8 +112,17 @@ def parse_component_section(text: str) -> List[Component]:
         
     return components
 
-
 def generate_skidl_code(name: str, components: List[Component], nets: Dict[str, Net]) -> str:
+    """Generate SKiDL code from component and net information.
+    
+    Args:
+        name: Name of the subcircuit to generate
+        components: List of Component objects defining the circuit elements
+        nets: Dictionary of Net objects defining connections
+        
+    Returns:
+        String containing complete SKiDL subcircuit code
+    """
     # Find hierarchical nets (inputs/outputs)
     inputs = []
     outputs = []
@@ -128,56 +137,70 @@ def generate_skidl_code(name: str, components: List[Component], nets: Dict[str, 
     # Sort params for consistent output
     params = ', '.join(sorted(inputs + outputs))
     
+    # Start building code sections
     lines = [
         "@subcircuit",
         f"def {name}({params}):",
         "    # Create components"
     ]
     
-    # Sort components by reference for consistent output
+    # Add component definitions - ensuring they exist before net references
     for comp in sorted(components, key=lambda x: x.reference.lower()):
         ref = comp.reference.lower()
         lines.append(f"    {ref} = Part('{comp.library}', '{comp.part}', value='{comp.value}')")
     
-    lines.append("\n    # Connect nets")
+    # Add empty line between sections for readability
+    lines.append("")
     
-    # Process local nets first, then power nets, then hierarchical nets
+    # Add net section header
+    lines.append("    # Connect nets")
+
     def format_pin(pin: str) -> str:
+        """Helper function to format pin references consistently."""
         comp, pin_num = pin.split('.')
         return f"{comp.lower()}[{pin_num}]"
+
+    # Process nets in a deterministic order
+    processed_nets = {}
     
-    # Handle hierarchical pins (VIN, VOUT)
-    for net_name, net in sorted(nets.items(), key=lambda x: x[0].lower()):
-        if net.type == "hierarchical":
-            formatted_pins = [format_pin(pin) for pin in sorted(net.pins)]
-            if len(formatted_pins) == 1:  # Input net
-                lines.append(f"    {formatted_pins[0]} += {net_name.lower()}")
-            
-    # Handle internal connections and power nets
-    for net_name, net in sorted(nets.items(), key=lambda x: x[0].lower()):
+    # First process hierarchical inputs
+    for net_name, net in sorted(nets.items()):
         if net.type == "hierarchical" and len(net.pins) == 1:
-            continue  # Skip input nets already handled
-            
-        formatted_pins = [format_pin(pin) for pin in sorted(net.pins)]
-        if not formatted_pins:
+            pin = format_pin(net.pins[0])
+            processed_nets[net_name] = f"    {pin} += {net_name.lower()}"
+
+    # Then process hierarchical outputs and local nets
+    for net_name, net in sorted(nets.items()):
+        if net_name in processed_nets or not net.pins:
             continue
             
-        first_pin, *rest_pins = formatted_pins
-        if net_name == "GND":
-            suffix = f", GND"
-        elif net.type == "hierarchical":
-            suffix = f", {net_name.lower()}"
-        else:
-            suffix = ""
+        if net.type != "power":
+            pins = [format_pin(pin) for pin in sorted(net.pins)]
+            first_pin = pins[0]
+            other_parts = pins[1:]
             
-        line = f"    {first_pin} +="
-        if rest_pins:
-            line += " " + ", ".join(rest_pins)
-        if suffix:
-            line += suffix
+            if net.type == "hierarchical":
+                other_parts.append(net_name.lower())
+                
+            if other_parts:  # Only create connection if there are pins to connect
+                processed_nets[net_name] = f"    {first_pin} += {', '.join(other_parts)}"
+
+    # Finally process power nets (like GND)
+    for net_name, net in sorted(nets.items()):
+        if net_name in processed_nets or not net.pins:
+            continue
             
-        lines.append(line)
-    
+        if net.type == "power":
+            pins = [format_pin(pin) for pin in sorted(net.pins)]
+            first_pin = pins[0]
+            other_parts = pins[1:] + ["GND"]
+            if other_parts:  # Only create connection if there are pins to connect
+                processed_nets[net_name] = f"    {first_pin} += {', '.join(other_parts)}"
+
+    # Add nets in sorted order for consistent output
+    for name in sorted(processed_nets):
+        lines.append(processed_nets[name])
+
     return '\n'.join(lines)
 
 
@@ -200,7 +223,7 @@ def sheet_to_skidl(sheet_name: str, text: str) -> str:
         if line.startswith('==='):
             if current_section:
                 sections[current_section] = '\n'.join(current_lines)
-            current_section = line.strip('= ')
+            current_section = line.strip()
             current_lines = []
         else:
             current_lines.append(line)
@@ -208,9 +231,10 @@ def sheet_to_skidl(sheet_name: str, text: str) -> str:
     if current_section:
         sections[current_section] = '\n'.join(current_lines)
         
-    # Parse sections
-    components = parse_component_section(sections.get('Components', ''))
-    nets = parse_netlist_section(sections.get('Netlist', ''))
+    # Parse sections - pass the complete section text including header
+    components = parse_component_section(text)  # Pass full text to let parser handle section detection
+    nets = parse_netlist_section(text)  # Pass full text to let parser handle section detection
     
     # Generate code
     return generate_skidl_code(sheet_name, components, nets)
+
