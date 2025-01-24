@@ -59,29 +59,32 @@ def parse_netlist_section(text: str) -> Dict[str, Net]:
 
     return nets
 
-
 def parse_component_section(text: str) -> List[Component]:
     components = []
     current_component = None
     in_component_section = False
+    in_properties = False
     
     for line in text.split('\n'):
-        line = line.strip()
+        line_stripped = line.strip()
         
-        if line == "=== Components ===":
+        if not line_stripped:
+            continue
+            
+        if line_stripped == "=== Components ===":
             in_component_section = True
             continue
             
-        if not in_component_section or not line:
+        if not in_component_section:
             continue
             
-        if line.startswith("==="):  # End of section
+        if line_stripped.startswith("=== ") and line_stripped != "=== Components ===":
             break
             
-        if line.startswith("Component:"):
+        if line_stripped.startswith("Component:"):
             if current_component:
                 components.append(current_component)
-            lib_part = line.split(': ')[1]
+            lib_part = line_stripped.split(': ')[1]
             if '/' in lib_part:
                 lib, part = lib_part.split('/')
                 current_component = Component(
@@ -91,21 +94,24 @@ def parse_component_section(text: str) -> List[Component]:
                     value='',
                     footprint=None
                 )
-        elif current_component and line.startswith('Properties:'):
-            continue
-        elif current_component and '\t' in line and ':' in line:
-            key, value = [x.strip() for x in line.split(':', 1)]
+        elif current_component and line_stripped == "Properties:":
+            in_properties = True
+        elif current_component and in_properties and line.startswith('\t\t'):  # Check for double tab
+            key, value = [x.strip() for x in line_stripped.split(':', 1)]
             if key == 'Reference':
                 current_component.reference = value
             elif key == 'Value':
                 current_component.value = value
             elif key == 'Footprint':
                 current_component.footprint = value if value else None
+        elif not line.startswith('\t'):  # Reset properties flag when indentation ends
+            in_properties = False
                 
     if current_component:
         components.append(current_component)
         
     return components
+
 
 def generate_skidl_code(name: str, components: List[Component], nets: Dict[str, Net]) -> str:
     # Find hierarchical nets (inputs/outputs)
@@ -120,9 +126,9 @@ def generate_skidl_code(name: str, components: List[Component], nets: Dict[str, 
                 outputs.append(net_name)
 
     # Sort params for consistent output
-    params = ', '.join(sorted(inputs) + sorted(outputs))
+    params = ', '.join(sorted(inputs + outputs))
     
-    code = [
+    lines = [
         "@subcircuit",
         f"def {name}({params}):",
         "    # Create components"
@@ -131,34 +137,49 @@ def generate_skidl_code(name: str, components: List[Component], nets: Dict[str, 
     # Sort components by reference for consistent output
     for comp in sorted(components, key=lambda x: x.reference.lower()):
         ref = comp.reference.lower()
-        code.append(f"    {ref} = Part('{comp.library}', '{comp.part}', value='{comp.value}')")
+        lines.append(f"    {ref} = Part('{comp.library}', '{comp.part}', value='{comp.value}')")
     
-    code.append("\n    # Connect nets")
+    lines.append("\n    # Connect nets")
     
-    # Sort nets for consistent output
-    for net_name, net in sorted(nets.items(), key=lambda x: x[0]):
-        if not net.pins:
+    # Process local nets first, then power nets, then hierarchical nets
+    def format_pin(pin: str) -> str:
+        comp, pin_num = pin.split('.')
+        return f"{comp.lower()}[{pin_num}]"
+    
+    # Handle hierarchical pins (VIN, VOUT)
+    for net_name, net in sorted(nets.items(), key=lambda x: x[0].lower()):
+        if net.type == "hierarchical":
+            formatted_pins = [format_pin(pin) for pin in sorted(net.pins)]
+            if len(formatted_pins) == 1:  # Input net
+                lines.append(f"    {formatted_pins[0]} += {net_name.lower()}")
+            
+    # Handle internal connections and power nets
+    for net_name, net in sorted(nets.items(), key=lambda x: x[0].lower()):
+        if net.type == "hierarchical" and len(net.pins) == 1:
+            continue  # Skip input nets already handled
+            
+        formatted_pins = [format_pin(pin) for pin in sorted(net.pins)]
+        if not formatted_pins:
             continue
             
-        # Convert pin format from comp.pin to comp[pin]
-        formatted_pins = []
-        for pin in net.pins:
-            comp, pin_num = pin.split('.')
-            formatted_pins.append(f"{comp.lower()}[{pin_num}]")
-            
+        first_pin, *rest_pins = formatted_pins
         if net_name == "GND":
-            pin_str = ', '.join(sorted(formatted_pins))
-            if pin_str:
-                first_pin, *rest_pins = pin_str.split(', ')
-                code.append(f"    {first_pin} += GND" + (f", {', '.join(rest_pins)}" if rest_pins else ""))
+            suffix = f", GND"
         elif net.type == "hierarchical":
-            pin_str = ', '.join(sorted(formatted_pins))
-            if pin_str:
-                first_pin, *rest_pins = pin_str.split(', ')
-                code.append(f"    {first_pin} += {net_name.lower()}" + 
-                          (f", {', '.join(rest_pins)}" if rest_pins else ""))
+            suffix = f", {net_name.lower()}"
+        else:
+            suffix = ""
             
-    return '\n'.join(code)
+        line = f"    {first_pin} +="
+        if rest_pins:
+            line += " " + ", ".join(rest_pins)
+        if suffix:
+            line += suffix
+            
+        lines.append(line)
+    
+    return '\n'.join(lines)
+
 
 def sheet_to_skidl(sheet_name: str, text: str) -> str:
     """Convert a sheet description to SKiDL code.
