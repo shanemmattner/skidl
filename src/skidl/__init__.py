@@ -27,6 +27,7 @@ from .interface import Interface
 from .logger import erc_logger
 from .net import Net
 from .netclass import NetClass
+from .netlist_to_skidl import netlist_to_skidl
 from .network import Network, tee
 from .part import LIBRARY, NETLIST, TEMPLATE, Part, PartTmplt, SkidlPart
 from .part_query import (

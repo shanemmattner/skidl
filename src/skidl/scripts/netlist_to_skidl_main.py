@@ -12,7 +12,7 @@ import os
 import shutil
 import sys
 
-from skidl.netlist_to_skidl import netlist_to_skidl_project
+from skidl.netlist_to_skidl import netlist_to_skidl
 from skidl.pckg_info import __version__
 
 
@@ -66,7 +66,7 @@ def main():
 
     args = parser.parse_args()
 
-    logger = logging.getLogger("netlist_to_skidl_project")
+    logger = logging.getLogger("netlist_to_skidl")
     if args.debug is not None:
         log_level = logging.DEBUG + 1 - args.debug
         handler = logging.StreamHandler(sys.stdout)
@@ -101,7 +101,7 @@ def main():
                         break  # Backup done, so break out of loop.
                     index += 1  # Else keep looking for an unused backup file name.
 
-    skidl_code = netlist_to_skidl_project(args.input[0], args.output)
+    skidl_code = netlist_to_skidl(args.input[0])
     open(args.output[0], "w").write(skidl_code)
 
 
