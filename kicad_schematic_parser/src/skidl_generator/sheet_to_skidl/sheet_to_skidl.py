@@ -10,14 +10,55 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 
+from abc import ABC, abstractmethod
+
+class ParserStrategy(ABC):
+    """Abstract base class for component parsing strategies."""
+    @abstractmethod
+    def parse(self, line: str, component: "Component") -> None:
+        pass
+
+class BasicComponentParser(ParserStrategy):
+    """Default strategy for parsing standard components"""
+    def parse(self, line: str, component: "Component") -> None:
+        key, value = [x.strip() for x in line.split(':', 1)]
+        if key == 'Reference':
+            component.reference = value
+        elif key == 'Value':
+            component.value = value
+        elif key == 'Footprint':
+            component.footprint = value if value else None
+
+    def parse_expression(self, component: "Component") -> str:
+        return f"Part('{component.library}', '{component.part}', value='{component.value}')"
+
+class BaseComponent(ABC):
+    """Abstract base class for component representations."""
+    @property
+    @abstractmethod
+    def skidl_part_expression(self) -> str:
+        pass
+
 @dataclass
-class Component:
-    """Simple data class for component information."""
+class Component(BaseComponent):
+    """Concrete component implementation for KiCad schematic data."""
     library: str
     part: str  
     reference: str
     value: str
     footprint: Optional[str] = None
+    _parser_strategy: ParserStrategy = BasicComponentParser()
+
+    @classmethod
+    def set_parser_strategy(cls, strategy: ParserStrategy):
+        cls._parser_strategy = strategy
+
+    @property
+    def skidl_part_expression(self) -> str:
+        return self._parser_strategy.parse_expression(self)
+
+    def parse_property(self, line: str):
+        self._parser_strategy.parse(line, self)
 
 
 @dataclass
@@ -59,11 +100,26 @@ def parse_netlist_section(text: str) -> Dict[str, Net]:
 
     return nets
 
-def parse_component_section(text: str) -> List[Component]:
+class ComponentValidator:
+    """Validation layer for component data integrity"""
+    @classmethod
+    def validate(cls, component: Component) -> bool:
+        """Check required fields and basic formatting"""
+        if not all([component.library, component.part, component.reference]):
+            print(f"Invalid component missing required fields: {component}")
+            return False
+        if component.footprint and not component.footprint.startswith(':'):
+            print(f"Invalid footprint format for {component.reference}: {component.footprint}")
+            return False
+        return True
+
+def parse_component_section(text: str, validator: ComponentValidator = ComponentValidator()) -> List[Component]:
+    """Parse components section with validation and error handling"""
     components = []
     current_component = None
     in_component_section = False
     in_properties = False
+    error_count = 0
     
     for line in text.split('\n'):
         line_stripped = line.strip()
@@ -97,18 +153,17 @@ def parse_component_section(text: str) -> List[Component]:
         elif current_component and line_stripped == "Properties:":
             in_properties = True
         elif current_component and in_properties and line.startswith('\t\t'):  # Check for double tab
-            key, value = [x.strip() for x in line_stripped.split(':', 1)]
-            if key == 'Reference':
-                current_component.reference = value
-            elif key == 'Value':
-                current_component.value = value
-            elif key == 'Footprint':
-                current_component.footprint = value if value else None
+            current_component.parse_property(line_stripped)
         elif not line.startswith('\t'):  # Reset properties flag when indentation ends
             in_properties = False
                 
+    # Validate and add component
     if current_component:
-        components.append(current_component)
+        if validator.validate(current_component):
+            components.append(current_component)
+        else:
+            error_count += 1
+            print(f"Skipping invalid component: {current_component.reference}")
         
     return components
 
@@ -237,4 +292,3 @@ def sheet_to_skidl(sheet_name: str, text: str) -> str:
     
     # Generate code
     return generate_skidl_code(sheet_name, components, nets)
-
