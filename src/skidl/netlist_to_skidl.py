@@ -141,25 +141,20 @@ class HierarchicalConverter:
         return ""
 
     def legalize_name(self, name: str, is_filename: bool = False) -> str:
-        """Convert KiCad names to valid Python identifiers.
-        Only modifies names that start with numbers or special characters.
-        Leaves valid Python identifiers unchanged."""
+        """Convert KiCad names to valid Python identifiers."""
+        # Handle power nets first
+        if name.startswith('+'):
+            return f"net_{name.lstrip('+').replace('-', '_').lower()}"
         
         # Strip any leading slashes and spaces
         name = name.lstrip('/ ')
         
-        # Only modify if name starts with a number or special character
-        if name and (name[0].isdigit() or not name[0].isalpha() and name[0] != '_'):
-            # Handle power nets (e.g., +3.3V, +5V)
-            if name.startswith('+'):
-                name = f"net_{name.lstrip('+').lower()}"
-            else:
-                # For other cases, prefix with underscore
-                # First convert any special chars at start to underscore
-                name = re.sub(r'^[^a-zA-Z0-9_]+', '_', name)
-                # If still starts with digit, add underscore
-                if name[0].isdigit():
-                    name = '_' + name
+        # Replace all non-alphanum/underscore with underscores
+        name = re.sub(r'[^a-zA-Z0-9_]+', '_', name)
+        
+        # Prepend underscore if starts with digit
+        if name and name[0].isdigit():
+            name = '_' + name
         
         return name
 
