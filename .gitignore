@@ -185,4 +185,4 @@ bin
 uno_r3
 *.bak
 *.pkl
-
+.DS_Store
