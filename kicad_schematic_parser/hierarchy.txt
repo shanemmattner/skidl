@@ -85,8 +85,8 @@ Power Labels:
 === Netlist ===
 
 5v_monitor:
-	Sheet_3v3_regulator Pin 1 (5v_monitor)
 	Sheet_esp32s3mini1 Pin 1 (5v_monitor)
+	Sheet_3v3_regulator Pin 1 (5v_monitor)
 	Hierarchical Labels:
 		5v_monitor
 	Local Labels:
@@ -109,8 +109,8 @@ D+:
 		D+
 
 D-:
-	Sheet_esp32s3mini1 Pin 1 (D-)
 	Sheet_USB Pin 1 (D-)
+	Sheet_esp32s3mini1 Pin 1 (D-)
 	Hierarchical Labels:
 		D-
 	Local Labels:
@@ -521,29 +521,29 @@ Power Labels:
 === Netlist ===
 
 +3V3:
-	#PWR029 Pin 1 (~)
-	R8 Pin 1 (~)
 	U1 Pin 2 (VO)
 	C2 Pin 1 (~)
 	#PWR08 Pin 1 (~)
+	#PWR029 Pin 1 (~)
+	R8 Pin 1 (~)
 	Power Labels:
 		+3V3
 
 GND:
 	#PWR012 Pin 1 (~)
 	C3 Pin 2 (~)
-	U1 Pin 1 (GND)
-	#PWR06 Pin 1 (~)
-	#PWR024 Pin 1 (~)
-	R7 Pin 2 (~)
-	#PWR09 Pin 1 (~)
-	C2 Pin 2 (~)
-	R11 Pin 2 (~)
-	#PWR030 Pin 1 (~)
 	C11 Pin 2 (~)
 	#PWR031 Pin 1 (~)
 	C9 Pin 2 (~)
 	#PWR026 Pin 1 (~)
+	#PWR09 Pin 1 (~)
+	C2 Pin 2 (~)
+	U1 Pin 1 (GND)
+	#PWR06 Pin 1 (~)
+	#PWR024 Pin 1 (~)
+	R7 Pin 2 (~)
+	R11 Pin 2 (~)
+	#PWR030 Pin 1 (~)
 	Power Labels:
 		GND
 
@@ -809,16 +809,16 @@ Power Labels:
 === Netlist ===
 
 GND:
-	#PWR07 Pin 1 (~)
-	R1 Pin 2 (~)
-	C4 Pin 2 (~)
-	#PWR023 Pin 1 (~)
 	#PWR022 Pin 1 (~)
 	P1 Pin A1 (GND)
 	P1 Pin A12 (GND)
 	P1 Pin B1 (GND)
 	P1 Pin B12 (GND)
 	P1 Pin S1 (SHIELD)
+	C4 Pin 2 (~)
+	#PWR023 Pin 1 (~)
+	#PWR07 Pin 1 (~)
+	R1 Pin 2 (~)
 	Power Labels:
 		GND
 
@@ -1586,8 +1586,6 @@ Power Labels:
 === Netlist ===
 
 GND:
-	#PWR02 Pin 1 (~)
-	C1 Pin 2 (~)
 	U3 Pin 1 (GND)
 	U3 Pin 2 (GND)
 	U3 Pin 42 (GND)
@@ -1615,6 +1613,8 @@ GND:
 	#PWR04 Pin 1 (~)
 	J1 Pin 4 (Pin_4)
 	#PWR010 Pin 1 (~)
+	#PWR02 Pin 1 (~)
+	C1 Pin 2 (~)
 	Power Labels:
 		GND
 
@@ -1683,13 +1683,13 @@ MERGED_NET_21:
 	U3 Pin 29 (IO34)
 
 VIN:
+	J1 Pin 2 (Pin_2)
+	#PWR05 Pin 1 (~)
+	#PWR046 Pin 1 (~)
+	Sheet_resistor_divider1 Pin 1 (VIN)
 	U3 Pin 3 (3V3)
 	C1 Pin 1 (~)
 	#PWR01 Pin 1 (~)
-	#PWR046 Pin 1 (~)
-	Sheet_resistor_divider1 Pin 1 (VIN)
-	J1 Pin 2 (Pin_2)
-	#PWR05 Pin 1 (~)
 	Power Labels:
 		+3V3
 	Hierarchical Labels:
@@ -1723,8 +1723,8 @@ MERGED_NET_31:
 	U3 Pin 38 (IO42)
 
 TX:
-	J1 Pin 3 (Pin_3)
 	U3 Pin 39 (TXD0)
+	J1 Pin 3 (Pin_3)
 	Local Labels:
 		TX
 
@@ -1747,8 +1747,8 @@ MERGED_NET_36:
 	U3 Pin 44 (IO46)
 
 EN:
-	J1 Pin 1 (Pin_1)
 	U3 Pin 45 (EN)
+	J1 Pin 1 (Pin_1)
 	Local Labels:
 		EN
 
@@ -1906,10 +1906,10 @@ Power Labels:
 === Netlist ===
 
 GND:
-	#PWR025 Pin 1 (~)
-	R10 Pin 2 (~)
 	#PWR028 Pin 1 (~)
 	C10 Pin 2 (~)
+	#PWR025 Pin 1 (~)
+	R10 Pin 2 (~)
 	Power Labels:
 		GND
 
