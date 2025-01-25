@@ -15,10 +15,10 @@ def get_kicad_cli_path():
     if Path(default_path).exists():
         return default_path
         
-    raise FileNotFoundError("KiCad CLI not found. Set KICAD8_SYMBOL_DIR or install KiCad")
+    raise FileNotFoundError("KiCad CLI not found. Set KICAD8_SYMBOL_DIR or install KiCad kicadsexpr")
 
 def main():
-    parser = argparse.ArgumentParser(description='Export KiCad schematic to SPICE netlist')
+    parser = argparse.ArgumentParser(description='Export KiCad schematic to KiCAD ')
     parser.add_argument('schematic', help='Path to KiCad schematic file (.kicad_sch)')
     parser.add_argument('-o', '--output', help='Output netlist path (.net)')
 
@@ -36,7 +36,7 @@ def main():
         
         result = subprocess.run(
             [kicad_cli, 'sch', 'export', 'netlist',
-             '--format', 'spice',
+             '--format', 'kicadsexpr',
              '--output', str(output_path),
              str(schematic_path)],
             capture_output=True,
