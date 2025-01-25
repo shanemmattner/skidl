@@ -141,26 +141,26 @@ class HierarchicalConverter:
         return ""
 
     def legalize_name(self, name: str, is_filename: bool = False) -> str:
-        """Convert KiCad names to valid Python identifiers."""
+        """Convert KiCad names to valid Python identifiers.
+        Only modifies names that start with numbers or special characters.
+        Leaves valid Python identifiers unchanged."""
+        
         # Strip any leading slashes and spaces
         name = name.lstrip('/ ')
         
-        # Handle power nets
-        if name.startswith('+'):
-            name = f"net_{name.lstrip('+').lower()}"
+        # Only modify if name starts with a number or special character
+        if name and (name[0].isdigit() or not name[0].isalpha() and name[0] != '_'):
+            # Handle power nets (e.g., +3.3V, +5V)
+            if name.startswith('+'):
+                name = f"net_{name.lstrip('+').lower()}"
+            else:
+                # For other cases, prefix with underscore
+                # First convert any special chars at start to underscore
+                name = re.sub(r'^[^a-zA-Z0-9_]+', '_', name)
+                # If still starts with digit, add underscore
+                if name[0].isdigit():
+                    name = '_' + name
         
-        # Replace non-alphanumeric with underscore
-        name = re.sub(r'[^a-zA-Z0-9_]', '_', name.lower())
-        
-        if is_filename:
-            # For filenames, prefix with 'v' if starts with number (e.g. v3v3_regulator.py)
-            if name[0].isdigit():
-                name = 'v' + name
-        else:
-            # For variables/functions, use standard prefixing
-            if name[0].isdigit():
-                name = '_' + name
-                
         return name
 
     def convert(self, output_dir: str = None):
@@ -190,22 +190,71 @@ class HierarchicalConverter:
                 return self.generate_sheet_code(main_sheet)
             return ""
 
-    def create_main_file(self, output_dir: str):
-        """Create the main.py file that ties everything together."""
-        main_sheet = next((s for s in self.sheets.values() if not s.parent), None)
-        if not main_sheet:
-            return
-        
+    # Update generate_sheet_code method to avoid circular imports
+    def generate_sheet_code(self, sheet: Sheet) -> str:
+        """Generate SKiDL code for a specific sheet."""
         code = [
             "# -*- coding: utf-8 -*-\n",
             "from skidl import *\n"
         ]
         
-        # Import all sheet modules with correct filenames
+        # Only import parent sheets to avoid circular imports
+        if sheet.parent:
+            parent_sheet = next((s for s in self.sheets.values() if s.path == sheet.parent), None)
+            if parent_sheet:
+                module_name = self.legalize_name(parent_sheet.name)
+                code.append(f"from {module_name} import {module_name}\n")
+        
+        code.append("\n@subcircuit\n")
+        
+        # Function definition with proper names
+        params = []
+        for net in sorted(list(sheet.imported_nets)):
+            if not net.startswith('unconnected'):
+                params.append(self.legalize_name(net))
+        if 'gnd' not in params:
+            params.append('gnd')
+        
+        function_name = self.legalize_name(sheet.name)
+        code.append(f"def {function_name}({', '.join(params)}):\n")
+        
+        # Components
+        if sheet.components:
+            code.append(f"{self.tab}# Components\n")
+            for comp in sorted(sheet.components, key=lambda x: x.ref):
+                code.append(self.component_to_skidl(comp))
+            code.append("\n")
+        
+        # Local nets
+        local_nets = {net for net in sheet.local_nets if not net.startswith('unconnected')}
+        if local_nets:
+            code.append(f"{self.tab}# Local nets\n")
+            for net in sorted(local_nets):
+                code.append(f"{self.tab}{self.legalize_name(net)} = Net('{net}')\n")
+            code.append("\n")
+        
+        # Connections
+        code.append(f"{self.tab}# Connections\n")
+        for net in self.netlist.nets:
+            conn = self.net_to_skidl(net, sheet)
+            if conn:
+                code.append(conn)
+        
+        return "".join(code)
+
+    # Update create_main_file method to include all differential pair nets
+    def create_main_file(self, output_dir: str):
+        """Create the main.py file that ties everything together."""
+        code = [
+            "# -*- coding: utf-8 -*-\n",
+            "from skidl import *\n"
+        ]
+        
+        # Import all sheet modules without main import
         for sheet in self.sheets.values():
-            module_name = self.legalize_name(sheet.name, is_filename=True)
-            function_name = self.legalize_name(sheet.name)
-            code.append(f"from {module_name} import {function_name}\n")
+            if sheet.name != 'main':
+                module_name = self.legalize_name(sheet.name)
+                code.append(f"from {module_name} import {module_name}\n")
         
         code.extend([
             "\ndef main():\n",
@@ -213,12 +262,18 @@ class HierarchicalConverter:
             f"{self.tab}gnd = Net('GND')\n"
         ])
         
-        # Create nets with better naming
+        # Create nets with differential pair handling
         all_nets = set()
         for sheet in self.sheets.values():
             for net in sheet.imported_nets:
                 if not net.startswith('unconnected'):
                     all_nets.add(net)
+        
+        # Add differential pair nets
+        if 'd_' in all_nets:
+            all_nets.add('d_p')  # D+
+            all_nets.add('d_n')  # D-
+            all_nets.remove('d_')
         
         for net in sorted(all_nets):
             if net != 'gnd':
@@ -228,14 +283,15 @@ class HierarchicalConverter:
         code.append(f"\n{self.tab}# Create subcircuits\n")
         sheet_order = self.get_hierarchical_order()
         for sheet in sheet_order:
-            params = []
-            for net in sorted(list(sheet.imported_nets)):
-                if not net.startswith('unconnected'):
-                    params.append(self.legalize_name(net))
-            if 'gnd' not in params:
-                params.append('gnd')
-            function_name = self.legalize_name(sheet.name)
-            code.append(f"{self.tab}{function_name}({', '.join(params)})\n")
+            if sheet.name != 'main':  # Skip main sheet since we're in it
+                params = []
+                for net in sorted(list(sheet.imported_nets)):
+                    if not net.startswith('unconnected'):
+                        params.append(self.legalize_name(net))
+                if 'gnd' not in params:
+                    params.append('gnd')
+                function_name = self.legalize_name(sheet.name)
+                code.append(f"{self.tab}{function_name}({', '.join(params)})\n")
         
         code.extend([
             "\nif __name__ == \"__main__\":\n",
@@ -245,7 +301,7 @@ class HierarchicalConverter:
         
         main_path = Path(output_dir) / "main.py"
         main_path.write_text("".join(code))
-
+        
     def get_hierarchical_order(self):
         """Return sheets in correct hierarchical order."""
         ordered_sheets = []
@@ -268,56 +324,6 @@ class HierarchicalConverter:
             
         return ordered_sheets
 
-    def generate_sheet_code(self, sheet: Sheet) -> str:
-        """Generate SKiDL code for a specific sheet."""
-        code = [
-            "# -*- coding: utf-8 -*-\n",
-            "from skidl import *\n"
-        ]
-        
-        # Add imports from parent/child sheets with correct filenames
-        for s in self.sheets.values():
-            if s.parent == sheet.path or sheet.parent == s.path:
-                module_name = self.legalize_name(s.name, is_filename=True)
-                function_name = self.legalize_name(s.name)
-                code.append(f"from {module_name} import {function_name}\n")
-        
-        code.append("\n@subcircuit\n")
-        
-        # Function definition with proper names
-        params = []
-        for net in sorted(list(sheet.imported_nets)):
-            if not net.startswith('unconnected'):
-                params.append(self.legalize_name(net))
-        if 'gnd' not in params:
-            params.append('gnd')
-        
-        function_name = self.legalize_name(sheet.name)
-        code.append(f"def {function_name}({', '.join(params)}):\n")
-        
-        # Components (make sure they're all included)
-        if sheet.components:
-            code.append(f"{self.tab}# Components\n")
-            for comp in sorted(sheet.components, key=lambda x: x.ref):
-                code.append(self.component_to_skidl(comp))
-            code.append("\n")
-        
-        # Local nets (excluding unconnected)
-        local_nets = {net for net in sheet.local_nets if not net.startswith('unconnected')}
-        if local_nets:
-            code.append(f"{self.tab}# Local nets\n")
-            for net in sorted(local_nets):
-                code.append(f"{self.tab}{self.legalize_name(net)} = Net('{net}')\n")
-            code.append("\n")
-        
-        # Connections
-        code.append(f"{self.tab}# Connections\n")
-        for net in self.netlist.nets:
-            conn = self.net_to_skidl(net, sheet)
-            if conn:
-                code.append(conn)
-        
-        return "".join(code)
 
 
 def netlist_to_skidl(netlist_src: str, output_dir: str = None):
