@@ -8,6 +8,7 @@ Convert a netlist into an equivalent SKiDL program.
 
 import re
 import os
+from pathlib import Path
 from kinparse import parse_netlist
 
 from .part import TEMPLATE
@@ -15,7 +16,7 @@ from .utilities import export_to_all
 
 
 @export_to_all
-def netlist_to_skidl(netlist_src):
+def netlist_to_skidl(netlist_src, output_dir=None):
     tab = " " * 4
 
     def legalize(name):
@@ -71,6 +72,39 @@ def netlist_to_skidl(netlist_src):
             return f"{ltab}{net_name} += {pin_list}\n"
         return ""
 
+    def create_subcircuit_file(sheet_name, content, output_dir):
+        """Create a Python file for the subcircuit."""
+        file_path = Path(output_dir) / f"{sheet_name}.py"
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(content)
+        
+    def create_main_file(sheet_name, output_dir):
+        """Create the main.py file that imports and calls the subcircuit."""
+        main_content = [
+            "# -*- coding: utf-8 -*-\n",
+            "from skidl import *\n",
+            f"from .{sheet_name} import {sheet_name}\n\n",
+            "def create_circuit():\n",
+            f"{tab}# Create nets\n",
+            f"{tab}vcc = Net('VCC')\n",
+            f"{tab}gnd = Net('GND')\n",
+            f"{tab}vin = Net('VIN')\n",
+            f"{tab}vout = Net('VOUT')\n\n",
+            f"{tab}# Instantiate subcircuit\n",
+            f"{tab}{sheet_name}(vin=vin, vout=vout, gnd=gnd)\n\n",
+            'if __name__ == "__main__":\n',
+            f"{tab}create_circuit()\n",
+            f"{tab}generate_netlist()\n"
+        ]
+        
+        main_path = Path(output_dir) / "main.py"
+        main_path.write_text("".join(main_content))
+
+    def create_init_file(output_dir):
+        """Create an empty __init__.py file."""
+        init_path = Path(output_dir) / "__init__.py"
+        init_path.touch()
+
     # Parse the netlist
     ntlst = parse_netlist(netlist_src)
     
@@ -81,7 +115,7 @@ def netlist_to_skidl(netlist_src):
     net_params = get_unique_nets(ntlst)
     param_list = ", ".join(net_params + ["gnd"])
 
-    # Create the output
+    # Create the subcircuit content
     skidl = []
     
     # Add header
@@ -106,12 +140,20 @@ def netlist_to_skidl(netlist_src):
     net_statements = sorted([net_to_skidl(n) for n in ntlst.nets])
     skidl.extend([stmt for stmt in net_statements if stmt])  # Filter empty statements
 
-    # Add main section if this is the root sheet
-    skidl.extend([
-        "\n\n",
-        'if __name__ == "__main__":\n',
-        f"{tab}{sheet_name}()\n",
-        f"{tab}generate_netlist()\n"
-    ])
-
-    return "".join(skidl)
+    # If output_dir is specified, create the file structure
+    if output_dir:
+        # Create the directory structure
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Create the subcircuit file
+        create_subcircuit_file(sheet_name, "".join(skidl), output_dir)
+        
+        # Create main.py
+        create_main_file(sheet_name, output_dir)
+        
+        # Create __init__.py
+        create_init_file(output_dir)
+        
+        return None  # Return None since files are written directly
+    
+    return "".join(skidl)  # Return content if no output_dir specified
