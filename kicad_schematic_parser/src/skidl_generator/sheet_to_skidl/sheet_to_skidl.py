@@ -6,6 +6,8 @@ of a schematic sheet and generates equivalent SKiDL code.
 Follows KISS and YAGNI principles - implements only what's needed with minimal complexity.
 """
 
+import re
+
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
@@ -28,9 +30,6 @@ class BasicComponentParser(ParserStrategy):
             component.value = value
         elif key == 'Footprint':
             component.footprint = value if value else None
-
-    def parse_expression(self, component: "Component") -> str:
-        return f"Part('{component.library}', '{component.part}', value='{component.value}')"
 
 class BaseComponent(ABC):
     """Abstract base class for component representations."""
@@ -74,29 +73,46 @@ def parse_netlist_section(text: str) -> Dict[str, Net]:
     in_power_section = False
     
     for line in text.split('\n'):
-        line = line.strip()
-        if not line or line == "=== Netlist ===":
+        line_stripped = line.strip()
+        if not line_stripped or line_stripped == "=== Netlist ===":
             continue
-            
+
         if line.endswith(':'):
-            if line == "Power Labels:":
-                if current_net:
-                    nets[current_net].type = "power"
-            elif line == "Hierarchical Labels:":
+            # Handle section headers and net names
+            if line_stripped == "Hierarchical Labels:":
                 if current_net:
                     nets[current_net].type = "hierarchical"
-            elif not line.startswith('\t'):  # New net
-                current_net = line[:-1]
+                current_net = None
+            else:
+                # New net definition (line ends with ':')
+                current_net = line_stripped[:-1].strip()  # Remove colon and whitespace
                 nets[current_net] = Net(name=current_net, pins=[])
-        elif current_net and "Pin" in line and not line.startswith('\t'):
-            component = line.split()[0]
-            pin_num = line.split()[2]
-            if not component.startswith('#PWR'):
-                nets[current_net].pins.append(f"{component}.{pin_num}")
+        elif current_net and line.startswith('\t'):
+            # Process pin lines (indented with tab)
+            pin_line = line_stripped
+            if "Pin" in pin_line:
+                try:
+                    # Split on colon to separate pin info from position
+                    pin_info = pin_line.split(':', 1)[0].strip()
+                    parts = pin_info.split()
+                    if len(parts) >= 3 and parts[1] == 'Pin':
+                        component = parts[0]
+                        pin_num = parts[2].strip('()~:')
+                        if not component.startswith('#PWR'):
+                            nets[current_net].pins.append(f"{component}.{pin_num}")
+                except (IndexError, ValueError) as e:
+                    print(f"Warning: Skipping malformed pin line: {pin_line}")
+                    continue
 
-    # Set GND as power net if it exists
-    if "GND" in nets:
-        nets["GND"].type = "power"
+    # Detect power nets using expanded regex pattern
+    POWER_NET_PATTERN = re.compile(
+        r'^(\+?\d+\.?\d*[vV](?:olt)?s?|GND|gnd|ground)$',  # Matches +5V, 3.3V, +3.3Volts, GND, etc.
+        flags=re.IGNORECASE
+    )
+    
+    for net in nets.values():
+        if POWER_NET_PATTERN.match(net.name):
+            net.type = "power"
 
     return nets
 
@@ -107,9 +123,6 @@ class ComponentValidator:
         """Check required fields and basic formatting"""
         if not all([component.library, component.part, component.reference]):
             print(f"Invalid component missing required fields: {component}")
-            return False
-        if component.footprint and not component.footprint.startswith(':'):
-            print(f"Invalid footprint format for {component.reference}: {component.footprint}")
             return False
         return True
 
@@ -248,7 +261,11 @@ def generate_skidl_code(name: str, components: List[Component], nets: Dict[str, 
         if net.type == "power":
             pins = [format_pin(pin) for pin in sorted(net.pins)]
             first_pin = pins[0]
-            other_parts = pins[1:] + ["GND"]
+            other_parts = pins[1:]
+            
+            # Add power net connection
+            other_parts.append(net.name)
+                
             if other_parts:  # Only create connection if there are pins to connect
                 processed_nets[net_name] = f"    {first_pin} += {', '.join(other_parts)}"
 
