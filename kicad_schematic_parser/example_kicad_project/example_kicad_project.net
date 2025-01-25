@@ -1,0 +1,20 @@
+.title KiCad schematic
+U3 __U3
+C1 +3V3 GND C
+J1 __J1
+C3 +5V GND 10u
+U1 __U1
+C9 /5v_monitor GND C
+R7 /5v_monitor GND R
+R2 +5V /5v_monitor R
+R8 +3V3 /3v3_monitor R
+C2 +3V3 GND 10u
+R11 /3v3_monitor GND R
+C11 /3v3_monitor GND C
+R9 +3V3 /esp32s3mini1/HW_VER 2k
+R10 /esp32s3mini1/HW_VER GND 1k
+C10 /esp32s3mini1/HW_VER GND 100n
+P1 __P1
+C4 +5V GND 10u
+R1 Net-_P1-CC_ GND 5.1k
+.end
