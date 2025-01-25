@@ -57,7 +57,7 @@ def netlist_to_skidl(netlist_src, output_dir=None):
     def net_to_skidl(net):
         """Convert net to SKiDL connections using += operator."""
         ltab = tab
-        net_name = net.name.lstrip('/')  # Remove leading slash
+        net_name = net.name.lstrip('/').lower()  # Convert to lowercase for consistency
         
         # Build list of pins
         pins = []
@@ -83,10 +83,9 @@ def netlist_to_skidl(netlist_src, output_dir=None):
         main_content = [
             "# -*- coding: utf-8 -*-\n",
             "from skidl import *\n",
-            f"from .{sheet_name} import {sheet_name}\n\n",
+            f"from {sheet_name} import {sheet_name}\n\n",
             "def create_circuit():\n",
             f"{tab}# Create nets\n",
-            f"{tab}vcc = Net('VCC')\n",
             f"{tab}gnd = Net('GND')\n",
             f"{tab}vin = Net('VIN')\n",
             f"{tab}vout = Net('VOUT')\n\n",
@@ -99,11 +98,6 @@ def netlist_to_skidl(netlist_src, output_dir=None):
         
         main_path = Path(output_dir) / "main.py"
         main_path.write_text("".join(main_content))
-
-    def create_init_file(output_dir):
-        """Create an empty __init__.py file."""
-        init_path = Path(output_dir) / "__init__.py"
-        init_path.touch()
 
     # Parse the netlist
     ntlst = parse_netlist(netlist_src)
@@ -150,9 +144,6 @@ def netlist_to_skidl(netlist_src, output_dir=None):
         
         # Create main.py
         create_main_file(sheet_name, output_dir)
-        
-        # Create __init__.py
-        create_init_file(output_dir)
         
         return None  # Return None since files are written directly
     
