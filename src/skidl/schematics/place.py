@@ -118,6 +118,68 @@ def snap_to_grid(part_or_blk):
     snap_tx = Tx(dx=mv.x, dy=mv.y)
     part_or_blk.tx *= snap_tx
 
+def angle_to_dir(angle):
+    """Convert angle in degrees to cardinal direction.
+    
+    Args:
+        angle: Angle in degrees (0, 90, 180, 270)
+        
+    Returns:
+        str: Cardinal direction ('R', 'U', 'L', 'D')
+    """
+    angle = int(angle) % 360
+    return {
+        0: 'R',    # Right
+        90: 'U',   # Up 
+        180: 'L',  # Left
+        270: 'D'   # Down
+    }[angle]
+
+
+def calc_pin_dir(pin):
+    """Calculate pin direction accounting for part transformation matrix."""
+
+    # If pin has numeric angle orientation, convert it
+    if hasattr(pin, 'angle'):
+        return angle_to_dir(pin.angle)
+        
+    # If pin has string orientation, use it directly
+    if hasattr(pin, 'orientation'):
+        if pin.orientation in ('U', 'D', 'L', 'R'):
+            return pin.orientation
+        try:
+            # Try converting numeric string to angle
+            angle = float(pin.orientation)
+            return angle_to_dir(angle)
+        except (ValueError, TypeError):
+            pass
+
+    # Copy the part trans. matrix, but remove the translation vector, leaving only scaling/rotation stuff.
+    tx = pin.part.tx
+    tx = Tx(a=tx.a, b=tx.b, c=tx.c, d=tx.d)
+
+    # Use the pin orientation to compute the pin direction vector.
+    pin_vector = {
+        "U": Point(0, 1),
+        "D": Point(0, -1),
+        "L": Point(-1, 0),
+        "R": Point(1, 0),
+    }[pin.orientation]
+
+    # Rotate the direction vector using the part rotation matrix.
+    pin_vector = pin_vector * tx
+
+    # Create an integer tuple from the rotated direction vector.
+    pin_vector = (int(round(pin_vector.x)), int(round(pin_vector.y)))
+
+    # Return the pin orientation based on its rotated direction vector.
+    return {
+        (0, 1): "U",
+        (0, -1): "D",
+        (-1, 0): "L",
+        (1, 0): "R",
+    }[pin_vector]
+
 
 def add_placement_bboxes(parts, **options):
     """Expand part bounding boxes to include space for subsequent routing."""
@@ -132,7 +194,8 @@ def add_placement_bboxes(parts, **options):
         padding = {"U": 1, "D": 1, "L": 1, "R": 1}  # Min padding of 1 channel per side.
         for pin in part:
             if pin.stub is False and pin.is_connected():
-                padding[pin.orientation] += 1
+                pin_dir = calc_pin_dir(pin)
+                padding[pin_dir] += 1
 
         # expansion_factor > 1 is used to expand the area for routing around each part,
         # usually in response to a failed routing phase. But don't expand the routing
@@ -154,7 +217,6 @@ def add_placement_bboxes(parts, **options):
             - (Point(padding["R"], padding["U"]) * GRID * expansion_factor)
         )
 
-
 def get_enclosing_bbox(parts):
     """Return bounding box that encloses all the parts."""
     return BBox().add(*(part.place_bbox * part.tx for part in parts))
@@ -174,16 +236,17 @@ def add_anchor_pull_pins(parts, nets, **options):
 
         pin.route_pt = pin.pt  # For drawing of nets during debugging.
         pin.place_pt = Point(pin.pt.x, pin.pt.y)
-        if pin.orientation == "U":
+        if pin.orientation == "U" or pin.orientation == 0:
             pin.place_pt.y = part.place_bbox.min.y
-        elif pin.orientation == "D":
+        elif pin.orientation == "D" or pin.orientation == 180:
             pin.place_pt.y = part.place_bbox.max.y
-        elif pin.orientation == "L":
+        elif pin.orientation == "L" or pin.orientation == 270:
             pin.place_pt.x = part.place_bbox.max.x
-        elif pin.orientation == "R":
+        elif pin.orientation == "R" or pin.orientation == 90:
             pin.place_pt.x = part.place_bbox.min.x
         else:
-            raise RuntimeError("Unknown pin orientation.")
+            print(f"Unknown pin orientation: {pin.orientation} for pin {pin.name} on part {pin.part.ref}")
+            raise RuntimeError(f"Unknown pin orientation: {pin.orientation}")
 
     # Remove any existing anchor and pull pins before making new ones.
     rmv_attr(parts, ("anchor_pins", "pull_pins"))
