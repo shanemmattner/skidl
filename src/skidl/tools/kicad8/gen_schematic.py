@@ -6,6 +6,7 @@
 import datetime
 import os.path
 import re
+import shutil
 import time
 from collections import Counter, OrderedDict
 
@@ -703,6 +704,13 @@ def gen_schematic(
     from skidl.logger import active_logger
     from skidl.tools import tool_modules
     from skidl.schematics.node import Node
+
+    # Copy blank KiCad project template to destination directory
+    active_logger.warning("Copying blank KiCad project template to destination directory.")
+    template_dir = os.path.join(os.path.dirname(__file__), 'kicad_blank_project')
+    dest_dir = os.path.abspath(filepath)
+    if os.path.exists(template_dir):
+        shutil.copytree(template_dir, dest_dir, dirs_exist_ok=True)
 
     active_logger.warning("Schematic generation is not implemented for KiCad version 8.")
     return
