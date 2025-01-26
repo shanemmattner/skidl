@@ -465,7 +465,7 @@
     "last_paths": {
       "gencad": "",
       "idf": "",
-      "netlist": "../test_skidl_circuit.net",
+      "netlist": "../main.net",
       "plot": "",
       "pos_files": "",
       "specctra_dsn": "",

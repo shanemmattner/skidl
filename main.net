@@ -1,7 +1,7 @@
 (export (version D)
   (design
     (source "/Users/shanemattner/Desktop/skidl/example_kicad_project_SKIDL/main.py")
-    (date "01/25/2025 07:08 PM")
+    (date "01/25/2025 07:12 PM")
     (tool "SKiDL (2.0.1)"))
   (components
     (comp (ref "C1")
