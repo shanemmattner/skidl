@@ -144,7 +144,7 @@ class HierarchicalConverter:
 
     def component_to_skidl(self, comp: object) -> str:
         """Convert component to SKiDL instantiation with all properties."""
-        ref = self.legalize_name(comp.ref)
+        ref = comp.ref  # Keep original reference
         props = []
         
         # Basic properties
@@ -164,8 +164,23 @@ class HierarchicalConverter:
         if desc:
             props.append(f"description='{desc}'")
             
+        # Add tag for reference
+        props.append(f"tag='{ref}'")  # Preserve reference designator
+            
+        # Add all additional properties from netlist
+        if hasattr(comp, 'properties'):
+            for prop in comp.properties:
+                if prop.name not in ['Reference', 'Value', 'Footprint', 'Datasheet', 'Description']:
+                    # Always quote values for certain properties
+                    if prop.name in ['Sheetname', 'Sheetfile'] or prop.name.startswith('ki_'):
+                        value = f"'{prop.value}'"
+                    else:
+                        # Quote property values that contain spaces
+                        value = f"'{prop.value}'" if ' ' in prop.value else prop.value
+                    props.append(f"{prop.name}={value}")
+            
         # Join all properties
-        return f"{self.tab}{ref} = Part({', '.join(props)})\n"
+        return f"{self.tab}{self.legalize_name(ref)} = Part({', '.join(props)})\n"
 
     def net_to_skidl(self, net: object, sheet: Sheet) -> str:
         """Convert net to SKiDL connections."""
