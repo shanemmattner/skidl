@@ -15,5 +15,5 @@ shanemattner@Shanes-MacBook-Pro skidl % kicad-cli sch export netlist -o resistor
 after more aliasing:
 
 ```
- kicad-to-netlist esp32s3mini.net kicad_schematic_parser/example_kicad_project/esp32s3mini1.kicad_sch
- ```
+kicad-to-netlist example_kicad_project.net example_kicad_project/example_kicad_project.kicad_sch
+```
