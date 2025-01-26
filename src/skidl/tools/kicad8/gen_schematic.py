@@ -59,20 +59,40 @@ def gen_schematic(
     # Find the root directory (where setup.py is located)
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
-    # Define the blank project directory path
-    blank_project_dir = "/Users/shanemattner/Desktop/skidl/kicad_blank_project"
-    
-    active_logger.warning(f"Using KiCad blank project directory: {blank_project_dir}")
-    
-    # Create directory if it doesn't exist
-    os.makedirs(blank_project_dir, exist_ok=True)
+    def copy_blank_project_template(src_dir, dest_dir):
+        """Copy the entire KiCad blank project template to destination.
+        
+        Args:
+            src_dir (str): Path to source template directory
+            dest_dir (str): Path to destination directory
+            
+        Returns:
+            str: Path to the copied project directory
+        """
+        try:
+            # Remove destination if it exists
+            if os.path.exists(dest_dir):
+                shutil.rmtree(dest_dir)
+            
+            # Copy entire template directory
+            shutil.copytree(src_dir, dest_dir)
+            active_logger.info(f"Copied KiCad blank project template to {dest_dir}")
+            return dest_dir
+        except Exception as e:
+            active_logger.error(f"Error copying blank project template: {str(e)}")
+            raise
 
-    # Create a KiCad project file
-    project_name = os.path.basename(blank_project_dir)
-    project_file_path = os.path.join(blank_project_dir, f"{project_name}.kicad_pro")
-    if not os.path.exists(project_file_path):
-        with open(project_file_path, 'w') as f:
-            f.write('{\n  "board": {\n    "design_settings": {}\n  }\n}')
+    # Define paths
+    template_dir = os.path.join(os.path.dirname(__file__), "kicad_blank_project")
+    blank_project_dir = os.path.join(filepath, "kicad_blank_project")
+    
+    # Copy the blank project template
+    try:
+        blank_project_dir = copy_blank_project_template(template_dir, blank_project_dir)
+        active_logger.info(f"Using KiCad blank project directory: {blank_project_dir}")
+    except Exception as e:
+        active_logger.error(f"Failed to setup blank project: {str(e)}")
+        raise
     
     # Get all subcircuits from group_name_cntr
     subcircuits = circuit.group_name_cntr.keys()
