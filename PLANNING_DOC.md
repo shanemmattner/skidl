@@ -1,154 +1,176 @@
 # KiCad Netlist to SKiDL Converter Design Document
 
-## Overview
-This document details the design and implementation plan for converting KiCad netlists (.net files) into SKiDL Python files. The converter creates a direct 1:1 mapping between KiCad schematics and SKiDL code, maintaining exact hierarchy and naming to enable users to easily navigate between KiCad and SKiDL representations.
+## Current Issues and Bugs
 
-## Core Principles
-1. Maintain exact 1:1 correspondence with KiCad schematic
-2. Preserve KiCad net names while ensuring valid Python syntax
-3. No special handling of power nets or global nets
-4. No automatic optimization or encapsulation
-5. Preserve exact sheet hierarchy as defined in KiCad
-6. Generate code that is easy to follow from KiCad to SKiDL and back
+### 1. Component Reference Mismatch
+- **Bug**: In esp32s3mini1.py, components are defined with sheet prefixes (esp32s3mini1_C1) but referenced without prefixes (C1)
+- **Error**: NameError: name 'C1' is not defined
+- **Example**:
+  ```python
+  # Defined as:
+  esp32s3mini1_C1 = Part('Device', 'C', value='10uF')
+  
+  # But referenced as:
+  _3V3 += C1['1']  # Should be esp32s3mini1_C1['1']
+  ```
 
-## Design Goals
-1. Convert KiCad netlists into readable, maintainable SKiDL Python code
-2. Preserve hierarchical sheet structure exactly as in KiCad
-3. Maintain exact component references and net names (converted to valid Python)
-4. Support both flat and hierarchical designs
-5. Match KiCad structure precisely in generated code
+### 2. Net Name Inconsistencies
+- **Bug**: Net names are being inconsistently converted between files
+- **Example**:
+  - In main.py: `_D_ = Net('_D_')`
+  - In esp32s3mini1.py: `_D_ += U3['24']`
+  - In USB.py: `D_n = Net('D_n')`
+  
+### 3. Hierarchical Net Passing
+- **Bug**: Nets aren't being properly passed through hierarchy
+- **Example**:
+  - Main defines `_D_` but USB.py expects `D_n` and `D_p`
+  - No clear mapping between hierarchical net names
 
-## Input Format
-KiCad netlist (.net) file containing:
-- Sheet definitions with hierarchy
-- Component definitions with properties
-- Net connections
-- Library references
+### 4. Duplicate GND Nets
+- **Bug**: Multiple GND nets being created unnecessarily
+- **Example**:
+  ```python
+  # In main.py
+  gnd = Net('GND')
+  GND = Net('GND')  # Duplicate
+  ```
 
-### Example Input Elements
-```xml
-# Sheet Definition
-(sheet (number "4") (name "/esp32s3mini1/resistor_divider1/") 
-  (tstamps "/e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/0f8673e0-e78a-49db-bb03-1ef92ea13213/"))
+### 5. Missing Net Connections
+- **Bug**: Some nets from KiCad aren't appearing in SKiDL output
+- **Example**:
+  - KiCad net "/esp32s3mini1/EN" missing from output
+  - KiCad net "Net-(P1-CC)" converted to "Net_n_P1_nCC_" but not properly connected
 
-# Component Definition
-(comp (ref "C10")
-  (value "100nF")
-  (footprint "Capacitor_SMD:C_0603_1608Metric")
-  (property (name "Sheetname") (value "resistor_divider1")))
+## Desired Behavior
+
+1. **Component References**:
+   - Use consistent component references matching KiCad refdes
+   - Example: C1 should be C1 everywhere, not esp32s3mini1_C1
+
+2. **Net Naming**:
+   - Consistent net name conversion across all files
+   - Preserve KiCad net hierarchy in names
+   - Example: "/esp32s3mini1/EN" → esp32s3mini1_en
+
+3. **Hierarchy Handling**:
+   - Properly pass nets through hierarchy
+   - Maintain exact KiCad net connections
+   - Example: USB D+/D- should match ESP32 connections exactly
+
+4. **Power Nets**:
+   - Single GND net definition
+   - Proper power net handling (+3V3, +5V)
+   - No duplicate net definitions
+
+## Proposed Changes
+
+### 1. Component Reference Fix
+```python
+# Current
+esp32s3mini1_C1 = Part(...)
+
+# Proposed
+C1 = Part(...)  # Use exact KiCad refdes
 ```
 
-## Implementation Details
+### 2. Net Name Standardization
+```python
+# Current
+_D_ = Net('_D_')
 
-### 1. Parser (using kinparse)
-- Parse sheets, components, and nets in order
-- Maintain exact hierarchical structure
-- Track sheet membership of components
-- Preserve all net connections exactly as defined
-- Throw error on malformed netlist at point of failure
+# Proposed
+d_n = Net('d_n')  # Consistent lowercase with underscores
+d_p = Net('d_p')
+```
 
-### 2. Component Handling
-- Preserve exact KiCad reference designators
-- Include all properties (value, footprint)
-- Maintain component sheet assignments
-- Keep pin connections exactly as in KiCad
+### 3. Hierarchy Net Passing
+```python
+# Current
+def esp32s3mini1(GND, _3V3, ...)
 
-### 3. Net Names and Connections
-- Convert KiCad net names to valid Python while preserving meaning:
-  ```
-  KiCad Name          Python Variable Name
-  "/esp32s3mini1/EN" → esp32s3mini1_en
-  "+3V3"            → net_3v3
-  "Net-(P1-CC)"     → net_p1_cc
-  ```
-- Maintain exact connection topology
-- No special handling of power or global nets
-- All nets must be explicitly passed through hierarchy
+# Proposed
+def esp32s3mini1(gnd, net_3v3, en, ...)  # Explicit net names
+```
 
-### 4. Pin References
-- Support both numeric and named pins (e.g., "A1", "B5")
-- Use strings for all pin references
-- Example: `part["A1"] += net`
+### 4. Single GND Net
+```python
+# Current
+gnd = Net('GND')
+GND = Net('GND')
 
-## Test Cases
-1. Flat design with single sheet
-   - Verify component creation
-   - Verify net connections
-   - Verify pin references
+# Proposed
+gnd = Net('GND')  # Single definition
+```
 
-2. Two-level hierarchy
-   - Verify sheet structure
-   - Verify net passing
-   - Verify component grouping
+### 5. Complete Net Mapping
+```python
+# Current
+Missing nets like esp32s3mini1_en
 
-3. Nested hierarchy (3+ levels)
-   - Verify nested sheet imports
-   - Verify net propagation
-   - Verify naming consistency
+# Proposed
+# Add all nets from KiCad netlist
+esp32s3mini1_en = Net('esp32s3mini1_en')
+net_p1_cc = Net('net_p1_cc')
+```
 
-4. Complex components (ESP32)
-   - Verify multi-pin components
-   - Verify named pins
-   - Verify unconnected pins
+## Implementation Plan
 
-5. Mixed pin types
-   - Verify numeric pins
-   - Verify alphanumeric pins
-   - Verify special character pins
+1. Update net name conversion to be consistent:
+   - Convert all names to lowercase
+   - Replace special chars with underscores
+   - Preserve hierarchy in names
 
-6. Power networks
-   - Verify power net naming
-   - Verify explicit passing
-   - No implicit connections
+2. Fix component references:
+   - Use exact KiCad refdes
+   - Remove sheet prefixes
 
-7. Local nets
-   - Verify sheet-local nets
-   - Verify hierarchical nets
-   - Verify net naming conversion
+3. Implement proper net passing:
+   - Map all nets through hierarchy
+   - Maintain exact KiCad connections
 
-## Example Outputs
+4. Add validation:
+   - Verify all KiCad nets appear in output
+   - Check for duplicate nets
+   - Validate net connections match
 
-### Flat Circuit
+5. Update test cases:
+   - Add tests for net name conversion
+   - Add hierarchy passing tests
+   - Add component reference tests
+
+## Example Fixed Output
+
+### esp32s3mini1.py
 ```python
 @subcircuit
-def resistor_divider(vin, vout, gnd):
+def esp32s3mini1(gnd, net_3v3, net_en, net_hw_ver, ...):
     # Components
-    c10 = Part("Device", "C", value="100nF", 
-               footprint="Capacitor_SMD:C_0603_1608Metric")
-    r9 = Part("Device", "R", value="2k", 
-              footprint="Resistor_SMD:R_0603_1608Metric")
-    r10 = Part("Device", "R", value="1k",
-               footprint="Resistor_SMD:R_0603_1608Metric")
-    
-    # Connections exactly as in KiCad
-    vin += r9["1"]
-    vout += c10["1"], r10["1"], r9["2"]
-    gnd += c10["2"], r10["2"]
+    C1 = Part('Device', 'C', value='10uF')
+    J1 = Part('Connector_Generic', 'Conn_02x03_Odd_Even')
+    U3 = Part('RF_Module', 'ESP32-S3-MINI-1')
+
+    # Connections
+    net_3v3 += C1['1'], J1['2'], U3['3']
+    net_en += J1['1'], U3['45']
+    net_hw_ver += U3['5']
+    gnd += C1['2'], J1['4'], U3['1']
 ```
 
-### Hierarchical Circuit
+### main.py
 ```python
-@subcircuit
-def esp32s3mini1(net_3v3, gnd, net_en):
-    # Components in this sheet
-    u3 = Part("RF_Module", "ESP32-S3-MINI-1")
-    c1 = Part("Device", "C", value="10uF")
+def main():
+    # Single GND net
+    gnd = Net('GND')
     
-    # Local nets
-    hw_ver = Net("esp32s3mini1_hw_ver")
+    # Consistent net names
+    net_3v3 = Net('net_3v3')
+    net_5v = Net('net_5v')
+    net_en = Net('net_en')
+    net_hw_ver = Net('net_hw_ver')
     
-    # Connections exactly as in KiCad
-    net_3v3 += c1["1"], u3["3"]
-    gnd += c1["2"], u3["1"]
-    
-    # Call subcircuit with explicit nets
-    resistor_divider1(net_3v3, hw_ver, gnd)
+    # Call subcircuits
+    esp32s3mini1(gnd, net_3v3, net_en, net_hw_ver, ...)
 ```
 
-## Usage
-```python
-# Convert netlist to SKiDL 
-netlist_to_skidl("project.net", "output_dir")
-```
-
-This implementation focuses on creating a predictable, exact mapping between KiCad and SKiDL representations, making it easy for users to work with either format.
+This update documents the current issues and provides a clear path forward for fixing the netlist conversion process.
