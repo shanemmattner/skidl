@@ -712,6 +712,8 @@ def gen_schematic(
     if os.path.exists(template_dir):
         shutil.copytree(template_dir, dest_dir, dirs_exist_ok=True)
 
+    print(f'Circuit object: {circuit}')
+
     active_logger.warning("Schematic generation is not implemented for KiCad version 8.")
     return
 
