@@ -21,7 +21,11 @@ class Sheet:
     local_nets: Set[str]
     imported_nets: Set[str]
     parent: str = None
+    children: List[str] = None
 
+    def __post_init__(self):
+        if self.children is None:
+            self.children = []
 
 class HierarchicalConverter:
     def __init__(self, netlist_src):
@@ -32,14 +36,11 @@ class HierarchicalConverter:
     def extract_sheet_info(self):
         """Build sheet hierarchy from netlist."""
         print("\n=== Extracting Sheet Info ===")
+        # First pass: Create all sheets
         for sheet in self.netlist.sheets:
-            print(f"\nProcessing sheet: {sheet.name}")
             path = sheet.name.strip('/')
             name = path.split('/')[-1] if path else 'main'
             parent = '/'.join(path.split('/')[:-1]) if '/' in path else None
-            print(f"  Path: {path}")
-            print(f"  Name: {name}")
-            print(f"  Parent: {parent}")
             
             self.sheets[path] = Sheet(
                 number=sheet.number,
@@ -48,23 +49,30 @@ class HierarchicalConverter:
                 components=[],
                 local_nets=set(),
                 imported_nets=set(),
-                parent=parent
+                parent=parent,
+                children=[]
             )
+        
+        # Second pass: Build parent-child relationships
+        for sheet in self.sheets.values():
+            if sheet.parent:
+                parent_sheet = self.sheets.get(sheet.parent)
+                if parent_sheet:
+                    parent_sheet.children.append(sheet.path)
+
+    def get_sheet_path(self, comp):
+        """Get sheet path from component properties."""
+        if isinstance(comp.properties, dict):
+            return comp.properties.get('Sheetname', '')
+        sheet_prop = next((p for p in comp.properties if p.name == 'Sheetname'), None)
+        return sheet_prop.value if sheet_prop else ''
 
     def assign_components_to_sheets(self):
         """Assign components to their respective sheets."""
         print("\n=== Assigning Components to Sheets ===")
         for comp in self.netlist.parts:
-            # Handle both dict and object property access
-            sheet_name = ''
-            if isinstance(comp.properties, dict):
-                sheet_name = comp.properties.get('Sheetname', '')
-            else:
-                sheet_prop = next((p for p in comp.properties if p.name == 'Sheetname'), None)
-                sheet_name = sheet_prop.value if sheet_prop else ''
-                
+            sheet_name = self.get_sheet_path(comp)
             if sheet_name:
-                # Find the matching sheet
                 for sheet in self.sheets.values():
                     if sheet.name == sheet_name:
                         sheet.components.append(comp)
@@ -73,151 +81,132 @@ class HierarchicalConverter:
     def analyze_nets(self):
         """Analyze nets to determine which are local vs imported for each sheet."""
         print("\n=== Analyzing Nets ===")
+        # First pass: Group pins by sheet
+        net_sheet_map = defaultdict(lambda: defaultdict(list))
         for net in self.netlist.nets:
-            net_name = self.legalize_name(net.name)
-            
-            # Group pins by sheet
-            sheet_pins = defaultdict(list)
             for pin in net.pins:
                 for comp in self.netlist.parts:
                     if comp.ref == pin.ref:
-                        if isinstance(comp.properties, dict):
-                            sheet_name = comp.properties.get('Sheetname', '')
-                        else:
-                            sheet_prop = next((p for p in comp.properties if p.name == 'Sheetname'), None)
-                            sheet_name = sheet_prop.value if sheet_prop else ''
-                            
+                        sheet_name = self.get_sheet_path(comp)
                         if sheet_name:
-                            sheet_pins[sheet_name].append(pin)
+                            net_sheet_map[net.name][sheet_name].append(pin)
                             break
+
+        # Second pass: Determine net locality
+        for net_name, sheet_pins in net_sheet_map.items():
+            # Store original net names in the sets
+            sheets_using_net = set(sheet_pins.keys())
             
-            # Determine if net is local or needs to be imported
             for sheet in self.sheets.values():
-                if sheet.name in sheet_pins:
-                    if len(sheet_pins.keys()) > 1:
-                        sheet.imported_nets.add(net_name)
+                if sheet.name in sheets_using_net:
+                    if len(sheets_using_net) > 1:
+                        sheet.imported_nets.add(net_name)  # Store original name
                     else:
-                        sheet.local_nets.add(net_name)
+                        sheet.local_nets.add(net_name)  # Store original name
+
+                    # If sheet has children, add net to imported_nets of children
+                    for child_path in sheet.children:
+                        child_sheet = self.sheets[child_path]
+                        if child_sheet.name in sheets_using_net:
+                            child_sheet.imported_nets.add(net_name)
+
+    def legalize_name(self, name: str, is_filename: bool = False) -> str:
+        """Convert any name into a valid Python identifier.
+        Handles leading and trailing +/- with _p and _n suffixes/prefixes."""
+        # Remove leading slashes and spaces
+        name = name.lstrip('/ ')
+
+        # Handle trailing + or - first
+        if name.endswith('+'):
+            name = name[:-1] + '_p'
+        elif name.endswith('-'):
+            name = name[:-1] + '_n'
+            
+        # Handle leading + or -
+        if name.startswith('+'):
+            name = '_p_' + name[1:]
+        elif name.startswith('-'):
+            name = '_n_' + name[1:]
+            
+        # Convert remaining non-alphanumeric chars to underscores
+        legalized = re.sub(r'[^a-zA-Z0-9_]', '_', name)
+        
+        # Ensure it starts with a letter or underscore
+        if legalized[0].isdigit():
+            legalized = '_' + legalized
+            
+        return legalized
+
+    def get_net_name(self, name: str) -> str:
+        """Get the original net name, preserving case and special characters."""
+        # Just remove leading slashes and spaces
+        return name.lstrip('/ ')
 
     def component_to_skidl(self, comp: object) -> str:
-        """Convert component to SKiDL instantiation."""
+        """Convert component to SKiDL instantiation with all properties."""
         ref = self.legalize_name(comp.ref)
+        props = []
         
-        inst = f"{self.tab}{ref} = Part('{comp.lib}', '{comp.name}'"
+        # Basic properties
+        props.append(f"'{comp.lib}'")  # Library
+        props.append(f"'{comp.name}'")  # Part name
         
+        # Add value if present
         if comp.value:
-            inst += f", value='{comp.value}'"
+            props.append(f"value='{comp.value}'")
+            
+        # Add footprint if present
         if comp.footprint:
-            inst += f", footprint='{comp.footprint}'"
+            props.append(f"footprint='{comp.footprint}'")
             
-        inst += ")\n"
-        return inst
-
-    def should_include_pin(self, pin, sheet: Sheet) -> bool:
-        """Determine if a pin should be included in the output."""
-        # Skip unconnected pins
-        if 'unconnected' in pin.ref.lower():
-            return False
+        # Add description if present
+        desc = next((p.value for p in comp.properties if p.name == 'Description'), None)
+        if desc:
+            props.append(f"description='{desc}'")
             
-        # Skip pins that are only connected to unconnected nets
-        if hasattr(pin, 'net') and pin.net and 'unconnected' in pin.net.name.lower():
-            return False
-            
-        # Only include pins for components in this sheet
-        return any(comp.ref == pin.ref for comp in sheet.components)
+        # Join all properties
+        return f"{self.tab}{ref} = Part({', '.join(props)})\n"
 
     def net_to_skidl(self, net: object, sheet: Sheet) -> str:
-        """Convert net to SKiDL connections for specific sheet."""
+        """Convert net to SKiDL connections."""
         net_name = self.legalize_name(net.name)
+        if net_name.startswith('unconnected'):
+            return ""
+            
         pins = []
-        
         for pin in net.pins:
-            if self.should_include_pin(pin, sheet):
+            if any(comp.ref == pin.ref for comp in sheet.components):
                 comp = self.legalize_name(pin.ref)
                 pins.append(f"{comp}['{pin.num}']")
                 
-        if pins and not net_name.startswith('unconnected_'):
+        if pins:
             return f"{self.tab}{net_name} += {', '.join(pins)}\n"
         return ""
 
-    def legalize_name(self, name: str, is_filename: bool = False) -> str:
-        """Convert KiCad names to valid Python identifiers while preserving net names."""
-        # Strip any leading slashes and spaces
-        name = name.lstrip('/ ')
-        
-        # Handle leading signs and special characters
-        name = re.sub(r'^\+', '_p_', name)  # Convert leading + to _p_
-        name = re.sub(r'^-', '_n_', name)   # Convert leading - to _n_
-        name = re.sub(r'\+', '_p', name)    # Convert remaining + to _p
-        name = re.sub(r'-', '_n', name)     # Convert remaining - to _n
-        name = re.sub(r'[^a-zA-Z0-9_]+', '_', name)  # Replace other special chars
-        
-        # Prepend underscore if starts with digit
-        if name and name[0].isdigit():
-            name = '_' + name
-        
-        return name
-
-    def get_net_name(self, name: str) -> str:
-        """Get the original net name for use in Net() constructor."""
-        # Strip any leading slashes and spaces
-        name = name.lstrip('/ ')
-        return name
-
-    def convert(self, output_dir: str = None):
-        """Convert netlist to SKiDL files."""
-        print("\n=== Starting Conversion ===")
-        self.extract_sheet_info()
-        self.assign_components_to_sheets()
-        self.analyze_nets()
-        
-        if output_dir:
-            print(f"\nGenerating files in directory: {output_dir}")
-            os.makedirs(output_dir, exist_ok=True)
-            
-            # Generate sheet files with correct naming
-            for sheet in self.sheets.values():
-                sheet_code = self.generate_sheet_code(sheet)
-                filename = self.legalize_name(sheet.name, is_filename=True) + '.py'
-                sheet_path = Path(output_dir) / filename
-                sheet_path.write_text(sheet_code)
-                print(f"Wrote sheet file: {sheet_path}")
-            
-            self.create_main_file(output_dir)
-        else:
-            print("\nNo output directory specified, returning main sheet code")
-            main_sheet = next((s for s in self.sheets.values() if not s.parent), None)
-            if main_sheet:
-                return self.generate_sheet_code(main_sheet)
-            return ""
-
-    # Update generate_sheet_code method to avoid circular imports
     def generate_sheet_code(self, sheet: Sheet) -> str:
-        """Generate SKiDL code for a specific sheet."""
+        """Generate SKiDL code for a sheet."""
         code = [
             "# -*- coding: utf-8 -*-\n",
             "from skidl import *\n"
         ]
         
-        # Only import parent sheets to avoid circular imports
+        # Import parent if exists
         if sheet.parent:
-            parent_sheet = next((s for s in self.sheets.values() if s.path == sheet.parent), None)
-            if parent_sheet:
-                module_name = self.legalize_name(parent_sheet.name)
-                code.append(f"from {module_name} import {module_name}\n")
+            parent_name = self.sheets[sheet.parent].name
+            code.append(f"from {self.legalize_name(parent_name)} import {self.legalize_name(parent_name)}\n")
         
         code.append("\n@subcircuit\n")
         
-        # Function definition with proper names
+        # Function parameters - legalize names for parameters
         params = []
-        for net in sorted(list(sheet.imported_nets)):
+        for net in sorted(sheet.imported_nets):
             if not net.startswith('unconnected'):
                 params.append(self.legalize_name(net))
-        if 'gnd' not in params:
-            params.append('gnd')
-        
-        function_name = self.legalize_name(sheet.name)
-        code.append(f"def {function_name}({', '.join(params)}):\n")
+        if 'GND' not in params:
+            params.append('GND')
+            
+        func_name = self.legalize_name(sheet.name)
+        code.append(f"def {func_name}({', '.join(params)}):\n")
         
         # Components
         if sheet.components:
@@ -227,11 +216,14 @@ class HierarchicalConverter:
             code.append("\n")
         
         # Local nets
-        local_nets = {net for net in sheet.local_nets if not net.startswith('unconnected')}
+        local_nets = sorted(net for net in sheet.local_nets 
+                          if not net.startswith('unconnected'))
         if local_nets:
             code.append(f"{self.tab}# Local nets\n")
-            for net in sorted(local_nets):
-                code.append(f"{self.tab}{self.legalize_name(net)} = Net('{self.get_net_name(net)}')\n")
+            for net in local_nets:
+                original_name = self.get_net_name(net)
+                legal_name = self.legalize_name(original_name)
+                code.append(f"{self.tab}{legal_name} = Net('{original_name}')\n")
             code.append("\n")
         
         # Connections
@@ -243,15 +235,14 @@ class HierarchicalConverter:
         
         return "".join(code)
 
-    # Update create_main_file method to include all differential pair nets
     def create_main_file(self, output_dir: str):
-        """Create the main.py file that ties everything together."""
+        """Create the main.py file."""
         code = [
             "# -*- coding: utf-8 -*-\n",
             "from skidl import *\n"
         ]
         
-        # Import all sheet modules without main import
+        # Import all non-main sheet modules
         for sheet in self.sheets.values():
             if sheet.name != 'main':
                 module_name = self.legalize_name(sheet.name)
@@ -260,35 +251,31 @@ class HierarchicalConverter:
         code.extend([
             "\ndef main():\n",
             f"{self.tab}# Create nets\n",
-            f"{self.tab}gnd = Net('GND')\n"
         ])
         
-        # Create nets with differential pair handling
-        all_nets = set()
+        # Create all global nets
+        global_nets = set()
         for sheet in self.sheets.values():
-            for net in sheet.imported_nets:
-                if not net.startswith('unconnected'):
-                    all_nets.add(net)
+            global_nets.update(sheet.imported_nets)
         
-        # Differential pairs are now handled by legalize_name automatically
-        
-        for net in sorted(all_nets):
-            if net != 'gnd':
-                code.append(f"{self.tab}{self.legalize_name(net)} = Net('{self.get_net_name(net)}')\n")
+        for net in sorted(global_nets):
+            if not net.startswith('unconnected'):
+                original_name = self.get_net_name(net)
+                legal_name = self.legalize_name(original_name)
+                code.append(f"{self.tab}{legal_name} = Net('{original_name}')\n")
         
         # Call subcircuits in hierarchical order
         code.append(f"\n{self.tab}# Create subcircuits\n")
-        sheet_order = self.get_hierarchical_order()
-        for sheet in sheet_order:
-            if sheet.name != 'main':  # Skip main sheet since we're in it
+        for sheet in self.get_hierarchical_order():
+            if sheet.name != 'main':
                 params = []
-                for net in sorted(list(sheet.imported_nets)):
+                for net in sorted(sheet.imported_nets):
                     if not net.startswith('unconnected'):
                         params.append(self.legalize_name(net))
-                if 'gnd' not in params:
-                    params.append('gnd')
-                function_name = self.legalize_name(sheet.name)
-                code.append(f"{self.tab}{function_name}({', '.join(params)})\n")
+                if 'GND' not in params:
+                    params.append('GND')
+                func_name = self.legalize_name(sheet.name)
+                code.append(f"{self.tab}{func_name}({', '.join(params)})\n")
         
         code.extend([
             "\nif __name__ == \"__main__\":\n",
@@ -298,35 +285,72 @@ class HierarchicalConverter:
         
         main_path = Path(output_dir) / "main.py"
         main_path.write_text("".join(code))
-        
+
     def get_hierarchical_order(self):
-        """Return sheets in correct hierarchical order."""
-        ordered_sheets = []
-        seen = set()
+        """Return sheets in dependency order."""
+        ordered = []
+        visited = set()
         
-        def add_sheet(sheet):
-            if sheet.path in seen:
-                return
-            # Add parent first if it exists
-            if sheet.parent and sheet.parent not in seen:
-                parent_sheet = next((s for s in self.sheets.values() if s.path == sheet.parent), None)
-                if parent_sheet:
-                    add_sheet(parent_sheet)
-            ordered_sheets.append(sheet)
-            seen.add(sheet.path)
-        
-        # Add sheets in hierarchical order
-        for sheet in self.sheets.values():
-            add_sheet(sheet)
+        def process_sheet(sheet, stack=None):
+            if stack is None:
+                stack = set()
+                
+            # Detect cycles
+            if sheet.path in stack:
+                raise ValueError(f"Cyclic dependency detected with sheet: {sheet.path}")
             
-        return ordered_sheets
+            # Skip if already fully processed
+            if sheet.path in visited:
+                return
+                
+            stack.add(sheet.path)
+            
+            # Process hierarchy bottom-up:
+            # First process children recursively
+            for child_path in sheet.children:
+                child_sheet = self.sheets[child_path]
+                process_sheet(child_sheet, stack)
+            
+            # Then add this sheet if not already added
+            if sheet.path not in visited:
+                ordered.append(sheet)
+                visited.add(sheet.path)
+                
+            stack.remove(sheet.path)
+        
+        # Start with independent sheets (no parent)
+        for sheet in self.sheets.values():
+            if not sheet.parent:
+                process_sheet(sheet)
+                
+        return ordered
 
-
+    def convert(self, output_dir: str = None):
+        """Convert netlist to SKiDL files."""
+        self.extract_sheet_info()
+        self.assign_components_to_sheets()
+        self.analyze_nets()
+        
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+            
+            # Generate all sheet files
+            for sheet in self.sheets.values():
+                if sheet.name != 'main':
+                    filename = self.legalize_name(sheet.name, is_filename=True) + '.py'
+                    sheet_path = Path(output_dir) / filename
+                    sheet_path.write_text(self.generate_sheet_code(sheet))
+                    print(f"Wrote sheet file: {sheet_path}")
+            
+            # Create main.py last
+            self.create_main_file(output_dir)
+        else:
+            main_sheet = next((s for s in self.sheets.values() if not s.parent), None)
+            if main_sheet:
+                return self.generate_sheet_code(main_sheet)
+            return ""
 
 def netlist_to_skidl(netlist_src: str, output_dir: str = None):
     """Convert a KiCad netlist to SKiDL Python files."""
-    print("\n=== Starting Netlist to SKiDL Conversion ===")
-    print(f"Input file: {netlist_src}")
-    print(f"Output directory: {output_dir}")
     converter = HierarchicalConverter(netlist_src)
     return converter.convert(output_dir)
