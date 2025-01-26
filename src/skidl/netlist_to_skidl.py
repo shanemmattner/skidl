@@ -205,10 +205,11 @@ class HierarchicalConverter:
             "from skidl import *\n"
         ]
         
-        # Import parent if exists
-        if sheet.parent:
-            parent_name = self.sheets[sheet.parent].name
-            code.append(f"from {self.legalize_name(parent_name)} import {self.legalize_name(parent_name)}\n")
+        # Import child subcircuits
+        for child_path in sheet.children:
+            child_sheet = self.sheets[child_path]
+            module_name = self.legalize_name(child_sheet.name)
+            code.append(f"from {module_name} import {module_name}\n")
         
         code.append("\n@subcircuit\n")
         
@@ -241,8 +242,23 @@ class HierarchicalConverter:
                 code.append(f"{self.tab}{legal_name} = Net('{original_name}')\n")
             code.append("\n")
         
+        # Hierarchical subcircuits
+        if sheet.children:
+            code.append(f"\n{self.tab}# Hierarchical subcircuits\n")
+            for child_path in sheet.children:
+                child_sheet = self.sheets[child_path]
+                func_name = self.legalize_name(child_sheet.name)
+                params = []
+                # Pass through the parent's nets to the child
+                for net in sorted(child_sheet.imported_nets):
+                    if not net.startswith('unconnected'):
+                        params.append(self.legalize_name(net))
+                if 'GND' not in params:
+                    params.append('GND')
+                code.append(f"{self.tab}{func_name}({', '.join(params)})\n")
+
         # Connections
-        code.append(f"{self.tab}# Connections\n")
+        code.append(f"\n{self.tab}# Connections\n")
         for net in self.netlist.nets:
             conn = self.net_to_skidl(net, sheet)
             if conn:
@@ -257,9 +273,9 @@ class HierarchicalConverter:
             "from skidl import *\n"
         ]
         
-        # Import all non-main sheet modules
+        # Import only top-level modules (no parents)
         for sheet in self.sheets.values():
-            if sheet.name != 'main':
+            if not sheet.parent and sheet.name != 'main':
                 module_name = self.legalize_name(sheet.name)
                 code.append(f"from {module_name} import {module_name}\n")
         
@@ -271,7 +287,8 @@ class HierarchicalConverter:
         # Create all global nets
         global_nets = set()
         for sheet in self.sheets.values():
-            global_nets.update(sheet.imported_nets)
+            if not sheet.parent:  # Only include nets from top-level sheets
+                global_nets.update(sheet.imported_nets)
         
         for net in sorted(global_nets):
             if not net.startswith('unconnected'):
@@ -279,10 +296,10 @@ class HierarchicalConverter:
                 legal_name = self.legalize_name(original_name)
                 code.append(f"{self.tab}{legal_name} = Net('{original_name}')\n")
         
-        # Call subcircuits in hierarchical order
+        # Call only top-level subcircuits
         code.append(f"\n{self.tab}# Create subcircuits\n")
         for sheet in self.get_hierarchical_order():
-            if sheet.name != 'main':
+            if not sheet.parent and sheet.name != 'main':  # Only call top-level subcircuits
                 params = []
                 for net in sorted(sheet.imported_nets):
                     if not net.startswith('unconnected'):

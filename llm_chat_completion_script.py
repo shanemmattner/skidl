@@ -82,7 +82,6 @@ def main():
     GND = Net('GND')
 
     # Create subcircuits
-    resistor_divider1(_p_3V3, esp32s3mini1_HW_VER, GND)
     esp32s3mini1(_p_3V3, _3v3_monitor, _5v_monitor, D_p, D_n, esp32s3mini1_HW_VER, GND)
     _3v3_regulator(_p_3V3, _p_5V, _3v3_monitor, _5v_monitor, GND)
     USB(_p_5V, D_p, D_n, GND)
@@ -95,7 +94,71 @@ if __name__ == "__main__":
 ______
 
 TODO:
-- Help me figure out why report.txt has so many inconsistencies.  There should be no changes.
+- Help me change logic in netlist_to_skidl.py to make the resistor_divider1.py file a child of the esp32s3mini1.py file as it is in the kicad netlist file example_kicad_project.net
+So the esp32s3mini1.py file should look like this:
+
+# -*- coding: utf-8 -*-
+from skidl import *
+
+@subcircuit
+def esp32s3mini1(_p_3V3, _3v3_monitor, _5v_monitor, D_p, D_n, esp32s3mini1_HW_VER, GND):
+    # Components
+    C1 = Part('Device', 'C', value='10uF', footprint='Capacitor_SMD:C_0603_1608Metric', tag='C1', Sheetname='esp32s3mini1', Sheetfile='esp32s3mini1.kicad_sch', ki_keywords='cap capacitor', ki_fp_filters='C_*')
+    J1 = Part('Connector_Generic', 'Conn_02x03_Odd_Even', value='Conn_02x03_Odd_Even', footprint='Connector_IDC:IDC-Header_2x03_P2.54mm_Vertical', tag='J1', Sheetname='esp32s3mini1', Sheetfile='esp32s3mini1.kicad_sch', ki_keywords='connector', ki_fp_filters='Connector*:*_2x??_*')
+    U3 = Part('RF_Module', 'ESP32-S3-MINI-1', value='ESP32-S3-MINI-1', footprint='RF_Module:ESP32-S2-MINI-1', tag='U3', Sheetname='esp32s3mini1', Sheetfile='esp32s3mini1.kicad_sch', ki_keywords='RF Radio BT ESP ESP32-S3 Espressif', ki_fp_filters='ESP32?S*MINI?1')
+
+    # Local nets
+    esp32s3mini1_EN = Net('esp32s3mini1/EN')
+    esp32s3mini1_IO0 = Net('esp32s3mini1/IO0')
+    esp32s3mini1_RX = Net('esp32s3mini1/RX')
+    esp32s3mini1_TX = Net('esp32s3mini1/TX')
+    esp32s3mini1_HW_VER = Net('esp32s3mini1/HW_VER')
+
+
+    # Hierarchical subcircuits
+    resistor_divider1(_p_3V3, esp32s3mini1_HW_VER, GND)
+
+
+    # Connections
+    _p_3V3 += C1['1'], J1['2'], U3['3']
+    _3v3_monitor += U3['6']
+    _5v_monitor += U3['7']
+    D_p += U3['24']
+    D_n += U3['23']
+    esp32s3mini1_EN += J1['1'], U3['45']
+    esp32s3mini1_HW_VER += U3['5']
+    esp32s3mini1_IO0 += J1['6'], U3['4']
+    esp32s3mini1_RX += J1['5'], U3['40']
+    esp32s3mini1_TX += J1['3'], U3['39']
+    GND += C1['2'], J1['4'], U3['1'], U3['2'], U3['42'], U3['43'], U3['46'], U3['47'], U3['48'], U3['49'], U3['50'], U3['51'], U3['52'], U3['53'], U3['54'], U3['55'], U3['56'], U3['57'], U3['58'], U3['59'], U3['60'], U3['61'], U3['62'], U3['63'], U3['64'], U3['65']
+
+_________
+and here is how main.py should look:
+
+# -*- coding: utf-8 -*-
+from skidl import *
+from esp32s3mini1 import esp32s3mini1
+from _3v3_regulator import _3v3_regulator
+from USB import USB
+
+def main():
+    # Create nets
+    _p_3V3 = Net('+3V3')
+    _p_5V = Net('+5V')
+    _3v3_monitor = Net('3v3_monitor')
+    _5v_monitor = Net('5v_monitor')
+    D_p = Net('D+')
+    D_n = Net('D-')
+    GND = Net('GND')
+
+    # Create subcircuits
+    esp32s3mini1(_p_3V3, _3v3_monitor, _5v_monitor, D_p, D_n, esp32s3mini1_HW_VER, GND)
+    _3v3_regulator(_p_3V3, _p_5V, _3v3_monitor, _5v_monitor, GND)
+    USB(_p_5V, D_p, D_n, GND)
+
+if __name__ == "__main__":
+    main()
+    generate_netlist()
 
 
 """
@@ -104,7 +167,7 @@ TODO:
 # Script Implementation - No need to modify below this line
 #==============================================================================
 
-"""
+"""and
 File Collector for Query Building
 
 This script combines specific files into a single output file to help build

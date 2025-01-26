@@ -11,6 +11,7 @@ def USB(_p_5V, D_p, D_n, GND):
     # Local nets
     Net__P1_CC_ = Net('Net-(P1-CC)')
 
+
     # Connections
     _p_5V += C4['1'], P1['A4'], P1['A9'], P1['B4'], P1['B9']
     D_p += P1['A6']

@@ -14,6 +14,7 @@ def _3v3_regulator(_p_3V3, _p_5V, _3v3_monitor, _5v_monitor, GND):
     R8 = Part('Device', 'R', value='2k', footprint='Resistor_SMD:R_0603_1608Metric', tag='R8', Sheetname='3v3_regulator', Sheetfile='power2.kicad_sch', ki_keywords='R res resistor', ki_fp_filters='R_*')
     U1 = Part('Regulator_Linear', 'NCP1117-3.3_SOT223', value='NCP1117-3.3_SOT223', footprint='Package_TO_SOT_SMD:SOT-223-3_TabPin2', tag='U1', Sheetname='3v3_regulator', Sheetfile='power2.kicad_sch', ki_keywords='REGULATOR LDO 3.3V', ki_fp_filters='SOT?223*TabPin2*')
 
+
     # Connections
     _p_3V3 += C2['1'], R8['1'], U1['2']
     _p_5V += C3['1'], R2['1'], U1['3']

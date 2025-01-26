@@ -2,7 +2,6 @@
 from skidl import *
 from esp32s3mini1 import esp32s3mini1
 from _3v3_regulator import _3v3_regulator
-from resistor_divider1 import resistor_divider1
 from USB import USB
 
 def main():
@@ -17,7 +16,6 @@ def main():
     GND = Net('GND')
 
     # Create subcircuits
-    resistor_divider1(_p_3V3, esp32s3mini1_HW_VER, GND)
     esp32s3mini1(_p_3V3, _3v3_monitor, _5v_monitor, D_p, D_n, esp32s3mini1_HW_VER, GND)
     _3v3_regulator(_p_3V3, _p_5V, _3v3_monitor, _5v_monitor, GND)
     USB(_p_5V, D_p, D_n, GND)

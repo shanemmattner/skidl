@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from skidl import *
+from resistor_divider1 import resistor_divider1
 
 @subcircuit
 def esp32s3mini1(_p_3V3, _3v3_monitor, _5v_monitor, D_p, D_n, esp32s3mini1_HW_VER, GND):
@@ -13,6 +14,10 @@ def esp32s3mini1(_p_3V3, _3v3_monitor, _5v_monitor, D_p, D_n, esp32s3mini1_HW_VE
     esp32s3mini1_IO0 = Net('esp32s3mini1/IO0')
     esp32s3mini1_RX = Net('esp32s3mini1/RX')
     esp32s3mini1_TX = Net('esp32s3mini1/TX')
+
+
+    # Hierarchical subcircuits
+    resistor_divider1(_p_3V3, esp32s3mini1_HW_VER, GND)
 
     # Connections
     _p_3V3 += C1['1'], J1['2'], U3['3']

@@ -26,15 +26,15 @@ Update R3 footprint filters to ''.
 Add net 5v_monitor.
 Reconnect R3 pin 2 from GND to 5v_monitor.
 Reconnect R3 pin 1 from /3v3_monitor to +5V.
-Update R3 symbol association from /7a16d2b9-1ea1-4c05-9c09-25544e050e50/8125a0e2-acf2-4409-b5b5-5b275a41b426 to /4766119c-397d-4c69-bc60-64222fb3888f/cfbe5186-fd01-4891-b8ec-01751f6d863d/7e414daa-1f10-4555-ba16-0c6e1cc0a16a.
+Update R3 symbol association from /7a16d2b9-1ea1-4c05-9c09-25544e050e50/8125a0e2-acf2-4409-b5b5-5b275a41b426 to /228cea19-f02c-4802-8c6d-324a3f0d2a9d/6f0e9cff-dd67-4d9e-b438-b9b20601a260/a6615dd2-4f23-4302-a1e0-15e96ae89fce.
 Add R4 (footprint 'Resistor_SMD:R_0603_1608Metric').
 Change R3 value from 1k to 2k.
 Add R5 (footprint 'Resistor_SMD:R_0603_1608Metric').
-Reconnect R2 pin 2 from /5v_monitor to esp32s3mini1/HW_VER.
-Add R6 (footprint 'Resistor_SMD:R_0603_1608Metric').
 Reconnect R2 pin 1 from +5V to +3V3.
+Add R6 (footprint 'Resistor_SMD:R_0603_1608Metric').
+Reconnect R2 pin 2 from /5v_monitor to esp32s3mini1/HW_VER.
 Change R7 value from 1k to 5.1K.
-Update R7 symbol association from /7a16d2b9-1ea1-4c05-9c09-25544e050e50/eb97c733-2a6c-4a37-a54c-406a8d81cd4a to /440f5dc0-5f5a-4174-99c9-d67f10aa997e/64a4c45e-2684-418b-bdd5-9b733dfda08e/ae9f34d6-19e8-4af1-8e71-97665bb43d51.
+Update R7 symbol association from /7a16d2b9-1ea1-4c05-9c09-25544e050e50/eb97c733-2a6c-4a37-a54c-406a8d81cd4a to /36212806-5d11-4cb2-869c-372220400033/f988badb-bbbc-4f50-b72c-054dc4ce1481/3737452e-14e8-4d33-9462-16cd6647a5ee.
 Update R7 sheetname to ''.
 Update R7 sheetfile to ''.
 Update R7 footprint filters to ''.
@@ -44,72 +44,72 @@ Change U1 footprint from 'Package_TO_SOT_SMD:SOT-223-3_TabPin2' to 'RF_Module:ES
 Update R2 sheetfile to ''.
 Add U2 (footprint 'Package_TO_SOT_SMD:SOT-223-3_TabPin2').
 Update R2 sheetname to ''.
-Update P1 symbol association from /86dcdd56-4325-4acf-86b9-d97ccccee45f/b617cbe2-0c97-4c03-a46f-67392b0ae28d to /ae71d318-cadb-4bd9-b097-d6646b4fc840/d3fb6659-3b6c-4f14-bad4-640b82e20e3c/aa6ba640-cd4c-4653-8284-cd002d5e1411.
+Update P1 symbol association from /86dcdd56-4325-4acf-86b9-d97ccccee45f/b617cbe2-0c97-4c03-a46f-67392b0ae28d to /3f127c35-bc3c-43e4-98ec-d7f4b895a898/b94712eb-6033-4c56-8136-6156a813685a/b36b7752-28c4-45c4-8548-5a4251b7082c.
 Update P1 sheetname to ''.
 Update P1 sheetfile to ''.
 Update P1 footprint filters to ''.
-Remove unused footprint C10.
-Add net D-.
-Reconnect P1 pin A7 from /D- to D-.
-Remove unused footprint R8.
 Add net D+.
 Reconnect P1 pin A6 from /D+ to D+.
+Remove unused footprint C9.
+Remove unused footprint C10.
+Remove unused footprint R8.
 Remove unused footprint R9.
 Disconnect P1 pin B5.
-Remove unused footprint C9.
-Update R2 symbol association from /7a16d2b9-1ea1-4c05-9c09-25544e050e50/52a779c0-19e5-4cf5-9ec4-dbd3555ca4b8 to /aacb19cb-04d8-4c1e-a5ae-2de8caf43489/7e2e7348-1c5a-4754-9893-7e1d57865100/ae290a65-5e12-49c5-8b6b-75c4829f8a7d.
-Update J1 symbol association from /e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/59927a6c-8af2-4d54-b822-7be7f0847ac0 to /efd07c2a-5d68-4134-943c-1e5d64fbdfc3/0b994857-7116-4be5-88f6-d8d57bffbfe1/a497c2c5-2b75-4bf6-9ec4-d2960e353e29.
+Add net D-.
+Reconnect P1 pin A7 from /D- to D-.
+Update R2 symbol association from /7a16d2b9-1ea1-4c05-9c09-25544e050e50/52a779c0-19e5-4cf5-9ec4-dbd3555ca4b8 to /dc010dad-d9e9-44c6-824b-b64bd32be8f8/6d2a9504-db0a-4fd0-b516-cadabe045b7c/a1931266-5d64-4731-92e6-cc001402804a/f93f0cf2-20f1-4468-82de-532ebc4acfa8.
+Update J1 symbol association from /e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/59927a6c-8af2-4d54-b822-7be7f0847ac0 to /f6aec014-43aa-484d-8e0d-fc91acce01a1/cdeac1d1-0da9-4a0d-a8c1-a4d716301236/b717630e-d65b-4490-82ca-2ce467bab790.
 Update J1 sheetname to ''.
 Update J1 sheetfile to ''.
 Update J1 footprint filters to ''.
-Add net esp32s3mini1/TX.
-Reconnect J1 pin 3 from /esp32s3mini1/TX to esp32s3mini1/TX.
-Add net esp32s3mini1/IO0.
-Reconnect J1 pin 6 from /esp32s3mini1/IO0 to esp32s3mini1/IO0.
 Add net esp32s3mini1/EN.
 Reconnect J1 pin 1 from /esp32s3mini1/EN to esp32s3mini1/EN.
 Add net esp32s3mini1/RX.
 Reconnect J1 pin 5 from /esp32s3mini1/RX to esp32s3mini1/RX.
+Add net esp32s3mini1/IO0.
+Reconnect J1 pin 6 from /esp32s3mini1/IO0 to esp32s3mini1/IO0.
+Add net esp32s3mini1/TX.
+Reconnect J1 pin 3 from /esp32s3mini1/TX to esp32s3mini1/TX.
 Reconnect R1 pin 1 from Net-(P1-CC) to esp32s3mini1/HW_VER.
-Change C1 value from 10uF to 100nF.
-Update C1 symbol association from /e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/5cd58687-4cea-41b8-899a-8cbda5bc386c to /34025ea9-ce6d-46b3-96e0-3ceda9a61441/76e7a493-f8c4-4730-a80f-9b1b3b20495a/fee56fdd-e586-468d-8978-23f2f42849b0.
+Update C1 symbol association from /e6f5f316-cb92-4d26-9a5c-0bb6c841d4b0/5cd58687-4cea-41b8-899a-8cbda5bc386c to /1045137c-5608-41e7-a971-04f77adc5419/8edd84b0-f951-4665-8a30-3e34e2fb2438/86ce3588-698c-46fa-9b41-06067a122b74.
 Update C1 sheetname to ''.
 Update C1 sheetfile to ''.
 Update C1 footprint filters to ''.
-Reconnect C1 pin 1 from +3V3 to esp32s3mini1/HW_VER.
 Add net esp32s3mini1/HW_VER.
-Update C2 symbol association from /7a16d2b9-1ea1-4c05-9c09-25544e050e50/5157ccba-dd1d-4514-a3b3-6dca7bbd2414 to /a50ed9da-4019-488f-83f1-b80c3aa9440b/cfcb5354-e51d-4e33-a6b5-7e982d0d4ec5/9345ba03-fb7d-41a1-85b1-73ffde34ef44.
+Change C2 value from 10uF to 100nF.
+Update C2 symbol association from /7a16d2b9-1ea1-4c05-9c09-25544e050e50/5157ccba-dd1d-4514-a3b3-6dca7bbd2414 to /34208a6e-7544-42ea-ab7b-68dfb1932425/d379f9b6-58f7-4921-bc09-abd8c26387de/feb9cb94-6606-4543-b7df-559d2e18a352/d80e4ffa-5968-4580-ba77-b5d316339b1e.
 Update C2 sheetname to ''.
 Update C2 sheetfile to ''.
 Update C2 footprint filters to ''.
+Reconnect C2 pin 1 from +3V3 to esp32s3mini1/HW_VER.
 Update R1 footprint filters to ''.
-Update C3 symbol association from /7a16d2b9-1ea1-4c05-9c09-25544e050e50/61540b06-5dda-457c-bfc9-986f90574a30 to /a712fd4f-828c-40c2-b50b-015b0bab425a/d6850385-b47e-4cf5-b97a-ff15906e0286/b8a474c6-fc57-4ec4-8e4d-037d8788307f.
+Update C3 symbol association from /7a16d2b9-1ea1-4c05-9c09-25544e050e50/61540b06-5dda-457c-bfc9-986f90574a30 to /cab6c355-198d-46c3-a8bb-cf7bab2c46a4/1cc73902-d3b0-414f-aa7c-6c9ede5a600f/3fcdf1c4-ec9d-45ae-b1c7-e1bd358a2cac.
 Update C3 sheetname to ''.
 Update C3 sheetfile to ''.
 Update C3 footprint filters to ''.
 Reconnect C3 pin 1 from +5V to +3V3.
 Update R1 sheetfile to ''.
-Update C4 symbol association from /86dcdd56-4325-4acf-86b9-d97ccccee45f/222e9b17-e836-42c8-a5b8-a3b8d2801b42 to /db352309-19a8-4847-8936-e46df9f9a766/7cd8603d-8471-495f-80f1-367e3ebcd515/a79f74a3-83ed-46d3-b083-a25a86d366aa.
+Update C4 symbol association from /86dcdd56-4325-4acf-86b9-d97ccccee45f/222e9b17-e836-42c8-a5b8-a3b8d2801b42 to /ac8a37a1-4cba-474e-b6a0-45d6b41e47a2/a5356364-06fe-4ca7-8a1b-96f6101263e2/07b03244-4cfe-46d4-b2d4-1af2b5e4750e.
 Update C4 sheetname to ''.
 Update C4 sheetfile to ''.
 Update C4 footprint filters to ''.
 Update R1 sheetname to ''.
-Update C5 symbol association from /7a16d2b9-1ea1-4c05-9c09-25544e050e50/9c43689d-6b61-49d9-a568-462fcea6fe04 to /369c0488-2b3a-4b82-aeab-58c1b11f1268/add6dec6-af80-4de1-ae8c-583dc0444c84/b443ef30-015b-4829-a3b2-c0fe794dafcc.
+Update C5 symbol association from /7a16d2b9-1ea1-4c05-9c09-25544e050e50/9c43689d-6b61-49d9-a568-462fcea6fe04 to /7a20f562-442b-4d65-b7cc-c69c9bff2026/d7eb1be0-9b74-4f3d-9c19-8e5a89c2336a/1d9ea164-2fa7-41b8-8d63-baccfd2baee2.
 Update C5 sheetname to ''.
 Update C5 sheetfile to ''.
 Update C5 footprint filters to ''.
 Add net 3v3_monitor.
 Reconnect C5 pin 1 from /3v3_monitor to 3v3_monitor.
-Update R1 symbol association from /86dcdd56-4325-4acf-86b9-d97ccccee45f/ba1a1b70-2541-4e1d-8a6a-ef20afab2c66 to /c1719575-0468-4ca4-8260-4922765df6ea/6c506675-5b60-4e74-8aa7-c2b13310a748/45461093-24ed-4dd8-98db-83edb005df4b.
+Update R1 symbol association from /86dcdd56-4325-4acf-86b9-d97ccccee45f/ba1a1b70-2541-4e1d-8a6a-ef20afab2c66 to /92448b52-a82d-43ca-b318-97db75ce8efa/3a6a3d85-a65c-40af-b909-e733841f27a6/74079ade-192c-4727-87e8-6e8ea53087f5/f3c5a44e-5eee-478a-8c3e-0ed4ba42fa6d.
 Add C6 (footprint 'Capacitor_SMD:C_0603_1608Metric').
 Change R1 value from 5.1K to 1k.
 Add C7 (footprint 'Capacitor_SMD:C_0603_1608Metric').
 Remove unused footprint U3.
 Remove unused footprint R10.
-Warning: No net found for component P1 pad B8 (no pin B8 in symbol).
-Warning: No net found for component P1 pad B6 (no pin B6 in symbol).
 Warning: No net found for component P1 pad B7 (no pin B7 in symbol).
 Warning: No net found for component P1 pad A8 (no pin A8 in symbol).
+Warning: No net found for component P1 pad B8 (no pin B8 in symbol).
+Warning: No net found for component P1 pad B6 (no pin B6 in symbol).
 
 
 Info: Total warnings: 4, errors: 0.
