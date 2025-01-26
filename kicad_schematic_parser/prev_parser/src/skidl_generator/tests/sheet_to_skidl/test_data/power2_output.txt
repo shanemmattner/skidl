@@ -1,0 +1,452 @@
+
+--------------------------------------------------------------------------------
+*******  Analyzing: example_kicad_project/power2.kicad_sch  *******
+Component #PWR029 Pin 1:
+  Name: 1
+  Position: 0, 0
+Component #PWR012 Pin 1:
+  Name: 1
+  Position: 0, 0
+Component #PWR024 Pin 1:
+  Name: 1
+  Position: 0, 0
+Component R11 Pin 1:
+  Name: 1
+  Position: 0, 3.81
+Component R11 Pin 2:
+  Name: 2
+  Position: 0, -3.81
+Component C11 Pin 1:
+  Name: 1
+  Position: 0, 3.81
+Component C11 Pin 2:
+  Name: 2
+  Position: 0, -3.81
+Component #PWR031 Pin 1:
+  Name: 1
+  Position: 0, 0
+Component #PWR09 Pin 1:
+  Name: 1
+  Position: 0, 0
+Component R2 Pin 1:
+  Name: 1
+  Position: 0, 3.81
+Component R2 Pin 2:
+  Name: 2
+  Position: 0, -3.81
+Component U1 Pin 1:
+  Name: 1
+  Position: 0, -7.62
+Component U1 Pin 2:
+  Name: 2
+  Position: 7.62, 0
+Component U1 Pin 3:
+  Name: 3
+  Position: -7.62, 0
+Component C2 Pin 1:
+  Name: 1
+  Position: 0, 3.81
+Component C2 Pin 2:
+  Name: 2
+  Position: 0, -3.81
+Component C3 Pin 1:
+  Name: 1
+  Position: 0, 3.81
+Component C3 Pin 2:
+  Name: 2
+  Position: 0, -3.81
+Component C9 Pin 1:
+  Name: 1
+  Position: 0, 3.81
+Component C9 Pin 2:
+  Name: 2
+  Position: 0, -3.81
+Component #PWR026 Pin 1:
+  Name: 1
+  Position: 0, 0
+Component #PWR011 Pin 1:
+  Name: 1
+  Position: 0, 0
+Component #PWR08 Pin 1:
+  Name: 1
+  Position: 0, 0
+Component R8 Pin 1:
+  Name: 1
+  Position: 0, 3.81
+Component R8 Pin 2:
+  Name: 2
+  Position: 0, -3.81
+Component #PWR027 Pin 1:
+  Name: 1
+  Position: 0, 0
+Component #PWR030 Pin 1:
+  Name: 1
+  Position: 0, 0
+Component #PWR06 Pin 1:
+  Name: 1
+  Position: 0, 0
+Component R7 Pin 1:
+  Name: 1
+  Position: 0, 3.81
+Component R7 Pin 2:
+  Name: 2
+  Position: 0, -3.81
+
+=== Sheets ===
+
+=== Components ===
+
+Component: Device/R
+	Properties:
+		Reference: R11
+		Value: R
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (120.65, 128.27), Angle: 0
+Unit: 1
+
+Component: Device/C
+	Properties:
+		Reference: C11
+		Value: C
+		Footprint: 
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (137.16, 124.46), Angle: 0
+Unit: 1
+
+Component: Device/R
+	Properties:
+		Reference: R2
+		Value: R
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (73.66, 111.76), Angle: 0
+Unit: 1
+
+Component: Regulator_Linear/NCP1117-3.3_SOT223
+	Properties:
+		Reference: U1
+		Value: NCP1117-3.3_SOT223
+		Footprint: Package_TO_SOT_SMD:SOT-223-3_TabPin2
+		Datasheet: http://www.onsemi.com/pub_link/Collateral/NCP1117-D.PDF
+		Description: 1A Low drop-out regulator, Fixed Output 3.3V, SOT-223
+	Position: (90.17, 63.5), Angle: 0
+Unit: 1
+
+Component: Device/C
+	Properties:
+		Reference: C2
+		Value: 10uF
+		Footprint: Capacitor_SMD:C_0603_1608Metric
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (107.95, 67.31), Angle: 0
+Unit: 1
+
+Component: Device/C
+	Properties:
+		Reference: C3
+		Value: 10uF
+		Footprint: Capacitor_SMD:C_0603_1608Metric
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (73.66, 67.31), Angle: 0
+Unit: 1
+
+Component: Device/C
+	Properties:
+		Reference: C9
+		Value: C
+		Footprint: 
+		Datasheet: ~
+		Description: Unpolarized capacitor
+	Position: (90.17, 125.73), Angle: 0
+Unit: 1
+
+Component: Device/R
+	Properties:
+		Reference: R8
+		Value: R
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (120.65, 110.49), Angle: 0
+Unit: 1
+
+Component: Device/R
+	Properties:
+		Reference: R7
+		Value: R
+		Footprint: Resistor_SMD:R_0603_1608Metric
+		Datasheet: ~
+		Description: Resistor
+	Position: (73.66, 129.54), Angle: 0
+Unit: 1
+
+=== Pin Details ===
+
+Component: #PWR029
+
+	Pin 1 (~):
+		Position: (120.65, 93.98)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR012
+
+	Pin 1 (~):
+		Position: (73.66, 74.93)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR024
+
+	Pin 1 (~):
+		Position: (73.66, 133.35)
+		Type: power_in
+		Alternate Functions:
+
+Component: R11
+
+	Pin 1 (~):
+		Position: (120.65, 124.46)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (120.65, 132.08)
+		Type: passive
+		Alternate Functions:
+
+Component: C11
+
+	Pin 1 (~):
+		Position: (137.16, 120.65)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (137.16, 128.27)
+		Type: passive
+		Alternate Functions:
+
+Component: #PWR031
+
+	Pin 1 (~):
+		Position: (137.16, 128.27)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR09
+
+	Pin 1 (~):
+		Position: (107.95, 74.93)
+		Type: power_in
+		Alternate Functions:
+
+Component: R2
+
+	Pin 1 (~):
+		Position: (73.66, 107.95)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (73.66, 115.57)
+		Type: passive
+		Alternate Functions:
+
+Component: U1
+
+	Pin 1 (GND):
+		Position: (90.17, 71.12)
+		Type: power_in
+		Alternate Functions:
+
+	Pin 2 (VO):
+		Position: (97.79, 63.50)
+		Type: power_out
+		Alternate Functions:
+
+	Pin 3 (VI):
+		Position: (82.55, 63.50)
+		Type: power_in
+		Alternate Functions:
+
+Component: C2
+
+	Pin 1 (~):
+		Position: (107.95, 63.50)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (107.95, 71.12)
+		Type: passive
+		Alternate Functions:
+
+Component: C3
+
+	Pin 1 (~):
+		Position: (73.66, 63.50)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (73.66, 71.12)
+		Type: passive
+		Alternate Functions:
+
+Component: C9
+
+	Pin 1 (~):
+		Position: (90.17, 121.92)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (90.17, 129.54)
+		Type: passive
+		Alternate Functions:
+
+Component: #PWR026
+
+	Pin 1 (~):
+		Position: (90.17, 129.54)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR011
+
+	Pin 1 (~):
+		Position: (73.66, 63.50)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR08
+
+	Pin 1 (~):
+		Position: (107.95, 63.50)
+		Type: power_in
+		Alternate Functions:
+
+Component: R8
+
+	Pin 1 (~):
+		Position: (120.65, 106.68)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (120.65, 114.30)
+		Type: passive
+		Alternate Functions:
+
+Component: #PWR027
+
+	Pin 1 (~):
+		Position: (73.66, 95.25)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR030
+
+	Pin 1 (~):
+		Position: (120.65, 132.08)
+		Type: power_in
+		Alternate Functions:
+
+Component: #PWR06
+
+	Pin 1 (~):
+		Position: (90.17, 74.93)
+		Type: power_in
+		Alternate Functions:
+
+Component: R7
+
+	Pin 1 (~):
+		Position: (73.66, 125.73)
+		Type: passive
+		Alternate Functions:
+
+	Pin 2 (~):
+		Position: (73.66, 133.35)
+		Type: passive
+		Alternate Functions:
+
+=== Labels ===
+
+Local Labels:
+
+Hierarchical Labels and Sheet Pins:
+	Label: 3v3_monitor (input) at (137.16, 120.65)
+	Label: 5v_monitor (input) at (90.17, 121.92)
+
+Power Labels:
+	+3V3 at (120.65, 93.98)
+	GND at (73.66, 74.93)
+	GND at (73.66, 133.35)
+	GND at (137.16, 128.27)
+	GND at (107.95, 74.93)
+	GND at (90.17, 129.54)
+	+5V at (73.66, 63.50)
+	+3V3 at (107.95, 63.50)
+	+5V at (73.66, 95.25)
+	GND at (120.65, 132.08)
+	GND at (90.17, 74.93)
+
+=== Netlist ===
+
++3V3:
+	#PWR029 Pin 1 (~)
+	R8 Pin 1 (~)
+	U1 Pin 2 (VO)
+	C2 Pin 1 (~)
+	#PWR08 Pin 1 (~)
+	Power Labels:
+		+3V3
+
+GND:
+	#PWR024 Pin 1 (~)
+	R7 Pin 2 (~)
+	R11 Pin 2 (~)
+	#PWR030 Pin 1 (~)
+	#PWR09 Pin 1 (~)
+	C2 Pin 2 (~)
+	U1 Pin 1 (GND)
+	#PWR06 Pin 1 (~)
+	#PWR012 Pin 1 (~)
+	C3 Pin 2 (~)
+	C11 Pin 2 (~)
+	#PWR031 Pin 1 (~)
+	C9 Pin 2 (~)
+	#PWR026 Pin 1 (~)
+	Power Labels:
+		GND
+
+3v3_monitor:
+	R11 Pin 1 (~)
+	C11 Pin 1 (~)
+	R8 Pin 2 (~)
+	Hierarchical Labels:
+		3v3_monitor
+
++5V:
+	R2 Pin 1 (~)
+	#PWR027 Pin 1 (~)
+	U1 Pin 3 (VI)
+	C3 Pin 1 (~)
+	#PWR011 Pin 1 (~)
+	Power Labels:
+		+5V
+
+5v_monitor:
+	R2 Pin 2 (~)
+	C9 Pin 1 (~)
+	R7 Pin 1 (~)
+	Hierarchical Labels:
+		5v_monitor

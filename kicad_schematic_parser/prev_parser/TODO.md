@@ -1,0 +1,10 @@
+- kicad to hierarchy text isn't getting all the information we need.  We need the position and uuid as well most likely
+- let's confirm everything is still working right.  Make some good tests for all the features, and make sure everything we've made is lock-tight before going forward
+- integrate the hierachy logic parser as an option for the main logic, so we don't have to make one off scripts for exercising the functionality
+- review all the code and have a good plan.  Next should be sheets or connections.  work with Cline to come up with a good plan.  keep everything simple
+- start executing on the plan to implement features to import the example kicad project into skidl
+- start thinking of edge cases for import
+  - like we know that labels in the middle of nets don't register as part of the net
+    - There might be some bugs in goofy parsing logic as well
+- re-name parts of the project to make thier responsibilities more clear
+- make sure readme's are updated
