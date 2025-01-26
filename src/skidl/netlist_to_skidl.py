@@ -137,18 +137,27 @@ class HierarchicalConverter:
                 pins.append(f"{comp}['{pin.num}']")
                 
         if pins and not net_name.startswith('unconnected_'):
+            # Handle special case for D+ and D- nets
+            if net_name in ('D_p', 'D_n'):
+                return f"{self.tab}{net_name} += {', '.join(pins)}\n"
             return f"{self.tab}{net_name} += {', '.join(pins)}\n"
         return ""
 
     def legalize_name(self, name: str, is_filename: bool = False) -> str:
-        """Convert KiCad names to valid Python identifiers."""
-        # Handle power nets first
-        if name.startswith('+'):
-            return f"net_{name.lstrip('+').replace('-', '_').lower()}"
-        
+        """Convert KiCad names to valid Python identifiers while preserving special cases."""
         # Strip any leading slashes and spaces
         name = name.lstrip('/ ')
         
+        # Handle special cases for power nets and differential pairs
+        if name == '+3V3':
+            return '+3V3'
+        if name == '+5V':
+            return '+5V'
+        if name == 'D+':
+            return 'D_p'
+        if name == 'D-':
+            return 'D_n'
+            
         # Replace all non-alphanum/underscore with underscores
         name = re.sub(r'[^a-zA-Z0-9_]+', '_', name)
         
@@ -265,10 +274,9 @@ class HierarchicalConverter:
                     all_nets.add(net)
         
         # Add differential pair nets
-        if 'd_' in all_nets:
-            all_nets.add('d_p')  # D+
-            all_nets.add('d_n')  # D-
-            all_nets.remove('d_')
+        if 'D_p' in all_nets or 'D_n' in all_nets:
+            all_nets.add('D_p')  # D+
+            all_nets.add('D_n')  # D-
         
         for net in sorted(all_nets):
             if net != 'gnd':
