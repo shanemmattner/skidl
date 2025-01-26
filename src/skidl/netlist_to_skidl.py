@@ -137,34 +137,31 @@ class HierarchicalConverter:
                 pins.append(f"{comp}['{pin.num}']")
                 
         if pins and not net_name.startswith('unconnected_'):
-            # Handle special case for D+ and D- nets
-            if net_name in ('D_p', 'D_n'):
-                return f"{self.tab}{net_name} += {', '.join(pins)}\n"
             return f"{self.tab}{net_name} += {', '.join(pins)}\n"
         return ""
 
     def legalize_name(self, name: str, is_filename: bool = False) -> str:
-        """Convert KiCad names to valid Python identifiers while preserving special cases."""
+        """Convert KiCad names to valid Python identifiers while preserving net names."""
         # Strip any leading slashes and spaces
         name = name.lstrip('/ ')
         
-        # Handle special cases for power nets and differential pairs
-        if name == '+3V3':
-            return '+3V3'
-        if name == '+5V':
-            return '+5V'
-        if name == 'D+':
-            return 'D_p'
-        if name == 'D-':
-            return 'D_n'
-            
-        # Replace all non-alphanum/underscore with underscores
-        name = re.sub(r'[^a-zA-Z0-9_]+', '_', name)
+        # Handle leading signs and special characters
+        name = re.sub(r'^\+', '_p_', name)  # Convert leading + to _p_
+        name = re.sub(r'^-', '_n_', name)   # Convert leading - to _n_
+        name = re.sub(r'\+', '_p', name)    # Convert remaining + to _p
+        name = re.sub(r'-', '_n', name)     # Convert remaining - to _n
+        name = re.sub(r'[^a-zA-Z0-9_]+', '_', name)  # Replace other special chars
         
         # Prepend underscore if starts with digit
         if name and name[0].isdigit():
             name = '_' + name
         
+        return name
+
+    def get_net_name(self, name: str) -> str:
+        """Get the original net name for use in Net() constructor."""
+        # Strip any leading slashes and spaces
+        name = name.lstrip('/ ')
         return name
 
     def convert(self, output_dir: str = None):
@@ -234,7 +231,7 @@ class HierarchicalConverter:
         if local_nets:
             code.append(f"{self.tab}# Local nets\n")
             for net in sorted(local_nets):
-                code.append(f"{self.tab}{self.legalize_name(net)} = Net('{net}')\n")
+                code.append(f"{self.tab}{self.legalize_name(net)} = Net('{self.get_net_name(net)}')\n")
             code.append("\n")
         
         # Connections
@@ -273,14 +270,11 @@ class HierarchicalConverter:
                 if not net.startswith('unconnected'):
                     all_nets.add(net)
         
-        # Add differential pair nets
-        if 'D_p' in all_nets or 'D_n' in all_nets:
-            all_nets.add('D_p')  # D+
-            all_nets.add('D_n')  # D-
+        # Differential pairs are now handled by legalize_name automatically
         
         for net in sorted(all_nets):
             if net != 'gnd':
-                code.append(f"{self.tab}{self.legalize_name(net)} = Net('{net}')\n")
+                code.append(f"{self.tab}{self.legalize_name(net)} = Net('{self.get_net_name(net)}')\n")
         
         # Call subcircuits in hierarchical order
         code.append(f"\n{self.tab}# Create subcircuits\n")
