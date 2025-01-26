@@ -1,7 +1,7 @@
 (export (version "E")
   (design
-    (source "/Users/shanemattner/Desktop/skidl/kicad_schematic_parser/example_kicad_project/example_kicad_project.kicad_sch")
-    (date "2025-01-25T08:56:14-0800")
+    (source "/Users/shanemattner/Desktop/skidl/example_kicad_project/example_kicad_project.kicad_sch")
+    (date "2025-01-25T19:05:46-0800")
     (tool "Eeschema 8.0.6")
     (sheet (number "1") (name "/") (tstamps "/")
       (title_block
