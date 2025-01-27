@@ -118,10 +118,22 @@ def gen_schematic(
     main_sch = Schematic.from_file(main_sch_path)
     
     # Grid layout settings
-    sheet_width = 40  # mm
-    sheet_height = 40  # mm
-    spacing = 20  # mm between sheets
+    sheet_width = 30  # mm
+    sheet_height = 30  # mm
+    spacing = 40  # mm between sheets
     sheets_per_row = 2
+    
+    # Calculate total dimensions needed
+    num_sheets = len(subcircuits)
+    num_rows = (num_sheets + sheets_per_row - 1) // sheets_per_row
+    num_cols = min(sheets_per_row, num_sheets)
+    
+    total_width = num_cols * sheet_width + (num_cols - 1) * spacing
+    total_height = num_rows * sheet_height + (num_rows - 1) * spacing
+    
+    # Calculate starting position to center the group
+    start_x = (297 - total_width) / 2  # A4 width is 297mm
+    start_y = (210 - total_height) / 2  # A4 height is 210mm
     
     # Create sheets for each subcircuit
     for i, subcircuit_path in enumerate(subcircuits):
@@ -130,8 +142,8 @@ def gen_schematic(
         # Calculate grid position
         row = i // sheets_per_row
         col = i % sheets_per_row
-        x = col * (sheet_width + spacing)
-        y = row * (sheet_height + spacing)
+        x = start_x + col * (sheet_width + spacing)
+        y = start_y + row * (sheet_height + spacing)
         
         # Create hierarchical sheet
         sheet = HierarchicalSheet()
@@ -148,13 +160,21 @@ def gen_schematic(
         sheet.stroke = Stroke()
         sheet.fill = ColorRGBA()
         
-        # Set sheet name property
+        # Set sheet name property with position
         sheet.sheetName = Property(key="Sheet name")
         sheet.sheetName.value = subcircuit_name
+        sheet.sheetName.position = Position()
+        sheet.sheetName.position.X = str(x + sheet_width/2)  # Center horizontally
+        sheet.sheetName.position.Y = str(y - 5)  # 5mm above sheet
+        sheet.sheetName.position.angle = "0"
         
-        # Set sheet file property
+        # Set sheet file property with position
         sheet.fileName = Property(key="Sheet file")
         sheet.fileName.value = f"{subcircuit_name}.kicad_sch"
+        sheet.fileName.position = Position()
+        sheet.fileName.position.X = str(x + sheet_width/2)  # Center horizontally
+        sheet.fileName.position.Y = str(y - 2)  # 2mm below sheet name
+        sheet.fileName.position.angle = "0"
         
         # Add sheet to schematic
         if not hasattr(main_sch, 'sheets'):
