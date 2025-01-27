@@ -27,6 +27,15 @@ __all__ = []
 Functions for generating a KiCad EESCHEMA schematic.
 """
 
+class Part:
+    def __init__(self, ref, value, footprint, Sheetname):
+        self.ref = ref
+        self.value = value
+        self.footprint = footprint
+        self.Sheetname = Sheetname
+
+    def __str__(self):
+        return f"Part(ref={self.ref}, value={self.value}, footprint={self.footprint}, sheetname={self.sheetname})"
 
 @export_to_all
 def gen_schematic(
@@ -87,6 +96,12 @@ def gen_schematic(
     # Get all subcircuits from group_name_cntr
     subcircuits = circuit.group_name_cntr.keys()
     
+    part_list = []
+    for part in circuit.parts:
+        part_list.append(Part(part.ref, part.value, part.footprint, part.Sheetname))
+        print(f'Part: {part.ref}, {part.value}, {part.footprint}, {part.Sheetname}')
+
+
     for subcircuit_path in subcircuits:
         # Extract the last name in the hierarchy
         subcircuit_name = subcircuit_path.split('.')[-1]
@@ -102,6 +117,24 @@ def gen_schematic(
         
         # Create the schematic file path in the blank project directory
         sch_path = os.path.join(blank_project_dir, f"{subcircuit_name}.kicad_sch")
+
+        # Add parts to schematic
+        for part in part_list:
+            if part.Sheetname == subcircuit_name:
+                # Create symbol
+                symbol = Symbol()
+                symbol.name = part.ref
+                symbol.value = part.value
+                symbol.footprint = part.footprint
+                symbol.position = Position()
+                symbol.position.X = "0"
+                symbol.position.Y = "0"
+                symbol.position.angle = "0"
+                
+                # Add symbol to schematic
+                if not hasattr(sch, 'symbols'):
+                    sch.symbols = []
+                sch.symbols.append(symbol)
         
         try:
             # Save schematic file
