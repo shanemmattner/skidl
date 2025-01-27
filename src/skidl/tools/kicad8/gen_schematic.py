@@ -50,8 +50,8 @@ def gen_schematic(
     """
     from skidl.logger import active_logger
     from kiutils.schematic import Schematic
-    from kiutils.items.common import Position, TitleBlock
-    from kiutils.items.schitems import SchematicSymbol, Junction
+    from kiutils.items.common import Position, TitleBlock, Property, ColorRGBA, Stroke
+    from kiutils.items.schitems import SchematicSymbol, Junction, HierarchicalSheet
     from kiutils.symbol import Symbol
     import os
     import shutil
@@ -59,9 +59,8 @@ def gen_schematic(
     # Find the root directory (where setup.py is located)
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
-    # Define paths - use the inner template directory as source
-    template_base = os.path.join(os.path.dirname(__file__), "kicad_blank_project")
-    template_dir = os.path.join(template_base, "kicad_blank_project")  # Source is the inner directory
+    # Define paths
+    template_dir = os.path.join(os.path.dirname(__file__), "kicad_blank_project", "kicad_blank_project")  # Source is the inner directory
     blank_project_dir = os.path.join(filepath, "kicad_blank_project")  # Destination is a single directory
     
     # Copy the blank project template
@@ -113,3 +112,59 @@ def gen_schematic(
         except Exception as e:
             active_logger.error(f"Error saving schematic {subcircuit_name}: {str(e)}")
             raise
+
+    # Now add sheet symbols to main schematic
+    main_sch_path = os.path.join(blank_project_dir, "kicad_blank_project.kicad_sch")
+    main_sch = Schematic.from_file(main_sch_path)
+    
+    # Grid layout settings
+    sheet_width = 40  # mm
+    sheet_height = 40  # mm
+    spacing = 20  # mm between sheets
+    sheets_per_row = 2
+    
+    # Create sheets for each subcircuit
+    for i, subcircuit_path in enumerate(subcircuits):
+        subcircuit_name = subcircuit_path.split('.')[-1]
+        
+        # Calculate grid position
+        row = i // sheets_per_row
+        col = i % sheets_per_row
+        x = col * (sheet_width + spacing)
+        y = row * (sheet_height + spacing)
+        
+        # Create hierarchical sheet
+        sheet = HierarchicalSheet()
+        sheet.position = Position()
+        sheet.position.X = str(x)
+        sheet.position.Y = str(y)
+        sheet.position.angle = "0"
+        
+        # Set sheet dimensions
+        sheet.width = sheet_width
+        sheet.height = sheet_height
+        
+        # Set sheet appearance
+        sheet.stroke = Stroke()
+        sheet.fill = ColorRGBA()
+        
+        # Set sheet name property
+        sheet.sheetName = Property(key="Sheet name")
+        sheet.sheetName.value = subcircuit_name
+        
+        # Set sheet file property
+        sheet.fileName = Property(key="Sheet file")
+        sheet.fileName.value = f"{subcircuit_name}.kicad_sch"
+        
+        # Add sheet to schematic
+        if not hasattr(main_sch, 'sheets'):
+            main_sch.sheets = []
+        main_sch.sheets.append(sheet)
+    
+    # Save main schematic with added sheets
+    try:
+        main_sch.to_file(main_sch_path)
+        active_logger.info(f"Added sheet symbols to main schematic at {main_sch_path}")
+    except Exception as e:
+        active_logger.error(f"Error saving main schematic: {str(e)}")
+        raise
