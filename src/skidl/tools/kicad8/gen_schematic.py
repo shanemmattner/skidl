@@ -26,7 +26,28 @@ __all__ = []
 """
 Functions for generating a KiCad EESCHEMA schematic.
 """
+def setup_debug_printing():
+    """Configure debug print statements"""
+    debug_enabled = True
+    
+    def debug_print(section, *args, **kwargs):
+        if debug_enabled:
+            prefix = f"[{section:^10}]"
+            print(f"{prefix}", *args, **kwargs)
+            
+    return debug_print
 
+debug_print = setup_debug_printing()
+
+def print_component_info(part):
+    """Print detailed component information for debugging"""
+    debug_print("COMP", "-" * 40)
+    debug_print("COMP", f"Reference : {part.ref}")
+    debug_print("COMP", f"Library   : {part.lib.filename}")
+    debug_print("COMP", f"Name      : {part.name}")
+    debug_print("COMP", f"Value     : {part.value}")
+    debug_print("COMP", f"Sheet     : {part.Sheetname}")
+    debug_print("COMP", "-" * 40)
 
 @export_to_all
 def gen_schematic(
@@ -103,16 +124,23 @@ def gen_schematic(
         sch_path = os.path.join(blank_project_dir, f"{subcircuit_name}.kicad_sch")
 
         # Add parts to schematic
-        for part in circuit.parts:
+        # for part in circuit.parts:
             # The legalized name from Kicad netlist import to SKiDL can add a '_' to the front
             # of circuit name, which throws off this matching logic.  In the future we need to make
             # this more robust and interact with the SKiDL netlist import to get the correct name.
             # There will definately be edge casees where this logic will result in too many parts being added
             # to the schematic.
+        debug_print("SHEET", f"Looking for components in sheet: {subcircuit_name}")
+        components_found = 0
+        for part in circuit.parts:
             if part.Sheetname in subcircuit_name:
-                print(f'Adding part {part.ref} to schematic')
+                components_found += 1
+                debug_print("MATCH", f"Found component {part.ref} in {subcircuit_name}")
+                print_component_info(part)
             else:
-                print(f'Skipping part {part.ref} because it is in {part.Sheetname} not {subcircuit_name}')
+                debug_print("SKIP", f"{part.ref} (in {part.Sheetname})")
+        
+        debug_print("SHEET", f"Found {components_found} components in {subcircuit_name}")
                 # # Create schematic symbol
                 # symbol = SchematicSymbol()
                 
