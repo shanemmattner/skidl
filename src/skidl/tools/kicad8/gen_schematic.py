@@ -104,72 +104,80 @@ def gen_schematic(
 
         # Add parts to schematic
         for part in circuit.parts:
-            if part.Sheetname == subcircuit_name:
-                # Create schematic symbol
-                symbol = SchematicSymbol()
+            # The legalized name from Kicad netlist import to SKiDL can add a '_' to the front
+            # of circuit name, which throws off this matching logic.  In the future we need to make
+            # this more robust and interact with the SKiDL netlist import to get the correct name.
+            # There will definately be edge casees where this logic will result in too many parts being added
+            # to the schematic.
+            if part.Sheetname in subcircuit_name:
+                print(f'Adding part {part.ref} to schematic')
+            else:
+                print(f'Skipping part {part.ref} because it is in {part.Sheetname} not {subcircuit_name}')
+                # # Create schematic symbol
+                # symbol = SchematicSymbol()
                 
-                # Set basic properties
-                symbol.id = part.ref
-                symbol.unit = 1  # Default unit
-                symbol.inBom = True
-                symbol.onBoard = True
-                symbol.position = Position()
+                # # Set basic properties
+                # symbol.id = part.ref
+                # symbol.unit = 1  # Default unit
+                # symbol.inBom = True
+                # symbol.onBoard = True
+                # symbol.position = Position()
                 
-                # Calculate grid-based position (20mm spacing)
-                grid_size = 20.0
-                if not hasattr(sch, '_symbol_count'):
-                    sch._symbol_count = 0
-                row = sch._symbol_count // 5  # 5 symbols per row
-                col = sch._symbol_count % 5
-                symbol.position.X = float(col * grid_size)
-                symbol.position.Y = float(row * -grid_size)  # Negative for KiCad coordinate system
-                symbol.position.angle = 0.0
-                sch._symbol_count += 1
+                # # Calculate grid-based position (20mm spacing)
+                # grid_size = 20.0
+                # if not hasattr(sch, '_symbol_count'):
+                #     sch._symbol_count = 0
+                # row = sch._symbol_count // 5  # 5 symbols per row
+                # col = sch._symbol_count % 5
+                # symbol.position.X = float(col * grid_size)
+                # symbol.position.Y = float(row * -grid_size)  # Negative for KiCad coordinate system
+                # symbol.position.angle = 0.0
+                # sch._symbol_count += 1
                 
-                # Add properties
-                symbol.properties = []
+                # # Add properties
+                # symbol.properties = []
                 
-                # Reference property
-                ref_prop = Property()
-                ref_prop.key = "Reference"
-                ref_prop.value = part.ref
-                ref_prop.id = 0
-                ref_prop.position = Position()
-                ref_prop.position.X = symbol.position.X
-                ref_prop.position.Y = symbol.position.Y - 2.54  # Offset below symbol
-                ref_prop.position.angle = 0.0
-                symbol.properties.append(ref_prop)
+                # # Reference property
+                # ref_prop = Property()
+                # ref_prop.key = "Reference"
+                # ref_prop.value = part.ref
+                # ref_prop.id = 0
+                # ref_prop.position = Position()
+                # ref_prop.position.X = symbol.position.X
+                # ref_prop.position.Y = symbol.position.Y - 2.54  # Offset below symbol
+                # ref_prop.position.angle = 0.0
+                # symbol.properties.append(ref_prop)
                 
-                # Value property
-                val_prop = Property()
-                val_prop.key = "Value"
-                val_prop.value = part.value
-                val_prop.id = 1
-                val_prop.position = Position()
-                val_prop.position.X = symbol.position.X
-                val_prop.position.Y = symbol.position.Y + 2.54  # Offset above symbol
-                val_prop.position.angle = 0.0
-                symbol.properties.append(val_prop)
+                # # Value property
+                # val_prop = Property()
+                # val_prop.key = "Value"
+                # val_prop.value = part.value
+                # val_prop.id = 1
+                # val_prop.position = Position()
+                # val_prop.position.X = symbol.position.X
+                # val_prop.position.Y = symbol.position.Y + 2.54  # Offset above symbol
+                # val_prop.position.angle = 0.0
+                # symbol.properties.append(val_prop)
                 
-                # Footprint property
-                if part.footprint:
-                    fp_prop = Property()
-                    fp_prop.key = "Footprint"
-                    fp_prop.value = part.footprint
-                    fp_prop.id = 2
-                    fp_prop.position = Position()
-                    fp_prop.position.X = symbol.position.X
-                    fp_prop.position.Y = symbol.position.Y + 5.08  # Offset further above symbol
-                    fp_prop.position.angle = 0.0
-                    symbol.properties.append(fp_prop)
+                # # Footprint property
+                # if part.footprint:
+                #     fp_prop = Property()
+                #     fp_prop.key = "Footprint"
+                #     fp_prop.value = part.footprint
+                #     fp_prop.id = 2
+                #     fp_prop.position = Position()
+                #     fp_prop.position.X = symbol.position.X
+                #     fp_prop.position.Y = symbol.position.Y + 5.08  # Offset further above symbol
+                #     fp_prop.position.angle = 0.0
+                #     symbol.properties.append(fp_prop)
                 
-                # Initialize symbols list if needed
-                if not hasattr(sch, 'symbols'):
-                    sch.libSymbols = []
+                # # Initialize symbols list if needed
+                # if not hasattr(sch, 'symbols'):
+                #     sch.libSymbols = []
                 
-                print(f"Adding symbol {part.ref} to schematic")
-                # Add symbol to schematic
-                sch.libSymbols.append(symbol)
+                # print(f"Adding symbol {part.ref} to schematic")
+                # # Add symbol to schematic
+                # sch.libSymbols.append(symbol)
         
         try:
             # Save schematic file
