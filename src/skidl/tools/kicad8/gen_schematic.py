@@ -27,15 +27,6 @@ __all__ = []
 Functions for generating a KiCad EESCHEMA schematic.
 """
 
-class Part:
-    def __init__(self, ref, value, footprint, Sheetname):
-        self.ref = ref
-        self.value = value
-        self.footprint = footprint
-        self.Sheetname = Sheetname
-
-    def __str__(self):
-        return f"Part(ref={self.ref}, value={self.value}, footprint={self.footprint}, sheetname={self.sheetname})"
 
 @export_to_all
 def gen_schematic(
@@ -61,7 +52,6 @@ def gen_schematic(
     from kiutils.schematic import Schematic
     from kiutils.items.common import Position, TitleBlock, Property, ColorRGBA, Stroke
     from kiutils.items.schitems import SchematicSymbol, Junction, HierarchicalSheet
-    from kiutils.symbol import Symbol
     import os
     import shutil
     
@@ -95,12 +85,6 @@ def gen_schematic(
     
     # Get all subcircuits from group_name_cntr
     subcircuits = circuit.group_name_cntr.keys()
-    
-    part_list = []
-    for part in circuit.parts:
-        part_list.append(Part(part.ref, part.value, part.footprint, part.Sheetname))
-        print(f'Part: {part.ref}, {part.value}, {part.footprint}, {part.Sheetname}')
-
 
     for subcircuit_path in subcircuits:
         # Extract the last name in the hierarchy
@@ -119,22 +103,73 @@ def gen_schematic(
         sch_path = os.path.join(blank_project_dir, f"{subcircuit_name}.kicad_sch")
 
         # Add parts to schematic
-        for part in part_list:
+        for part in circuit.parts:
             if part.Sheetname == subcircuit_name:
-                # Create symbol
-                symbol = Symbol()
-                symbol.name = part.ref
-                symbol.value = part.value
-                symbol.footprint = part.footprint
-                symbol.position = Position()
-                symbol.position.X = "0"
-                symbol.position.Y = "0"
-                symbol.position.angle = "0"
+                # Create schematic symbol
+                symbol = SchematicSymbol()
                 
-                # Add symbol to schematic
+                # Set basic properties
+                symbol.id = part.ref
+                symbol.unit = 1  # Default unit
+                symbol.inBom = True
+                symbol.onBoard = True
+                symbol.position = Position()
+                
+                # Calculate grid-based position (20mm spacing)
+                grid_size = 20.0
+                if not hasattr(sch, '_symbol_count'):
+                    sch._symbol_count = 0
+                row = sch._symbol_count // 5  # 5 symbols per row
+                col = sch._symbol_count % 5
+                symbol.position.X = float(col * grid_size)
+                symbol.position.Y = float(row * -grid_size)  # Negative for KiCad coordinate system
+                symbol.position.angle = 0.0
+                sch._symbol_count += 1
+                
+                # Add properties
+                symbol.properties = []
+                
+                # Reference property
+                ref_prop = Property()
+                ref_prop.key = "Reference"
+                ref_prop.value = part.ref
+                ref_prop.id = 0
+                ref_prop.position = Position()
+                ref_prop.position.X = symbol.position.X
+                ref_prop.position.Y = symbol.position.Y - 2.54  # Offset below symbol
+                ref_prop.position.angle = 0.0
+                symbol.properties.append(ref_prop)
+                
+                # Value property
+                val_prop = Property()
+                val_prop.key = "Value"
+                val_prop.value = part.value
+                val_prop.id = 1
+                val_prop.position = Position()
+                val_prop.position.X = symbol.position.X
+                val_prop.position.Y = symbol.position.Y + 2.54  # Offset above symbol
+                val_prop.position.angle = 0.0
+                symbol.properties.append(val_prop)
+                
+                # Footprint property
+                if part.footprint:
+                    fp_prop = Property()
+                    fp_prop.key = "Footprint"
+                    fp_prop.value = part.footprint
+                    fp_prop.id = 2
+                    fp_prop.position = Position()
+                    fp_prop.position.X = symbol.position.X
+                    fp_prop.position.Y = symbol.position.Y + 5.08  # Offset further above symbol
+                    fp_prop.position.angle = 0.0
+                    symbol.properties.append(fp_prop)
+                
+                # Initialize symbols list if needed
                 if not hasattr(sch, 'symbols'):
-                    sch.symbols = []
-                sch.symbols.append(symbol)
+                    sch.libSymbols = []
+                
+                print(f"Adding symbol {part.ref} to schematic")
+                # Add symbol to schematic
+                sch.libSymbols.append(symbol)
         
         try:
             # Save schematic file
