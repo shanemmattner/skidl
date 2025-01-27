@@ -59,36 +59,27 @@ def gen_schematic(
     # Find the root directory (where setup.py is located)
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
-    def copy_blank_project_template(src_dir, dest_dir):
-        """Copy the entire KiCad blank project template to destination.
-        
-        Args:
-            src_dir (str): Path to source template directory
-            dest_dir (str): Path to destination directory
-            
-        Returns:
-            str: Path to the copied project directory
-        """
-        try:
-            # Remove destination if it exists
-            if os.path.exists(dest_dir):
-                shutil.rmtree(dest_dir)
-            
-            # Copy entire template directory
-            shutil.copytree(src_dir, dest_dir)
-            active_logger.info(f"Copied KiCad blank project template to {dest_dir}")
-            return dest_dir
-        except Exception as e:
-            active_logger.error(f"Error copying blank project template: {str(e)}")
-            raise
-
-    # Define paths
-    template_dir = os.path.join(os.path.dirname(__file__), "kicad_blank_project")
-    blank_project_dir = os.path.join(filepath, "kicad_blank_project")
+    # Define paths - use the inner template directory as source
+    template_base = os.path.join(os.path.dirname(__file__), "kicad_blank_project")
+    template_dir = os.path.join(template_base, "kicad_blank_project")  # Source is the inner directory
+    blank_project_dir = os.path.join(filepath, "kicad_blank_project")  # Destination is a single directory
     
     # Copy the blank project template
     try:
-        blank_project_dir = copy_blank_project_template(template_dir, blank_project_dir)
+        # Remove destination if it exists
+        if os.path.exists(blank_project_dir):
+            shutil.rmtree(blank_project_dir)
+        os.makedirs(blank_project_dir)
+        
+        # Copy files from template directory to destination
+        for item in os.listdir(template_dir):
+            source = os.path.join(template_dir, item)
+            dest = os.path.join(blank_project_dir, item)
+            if os.path.isdir(source):
+                shutil.copytree(source, dest)
+            else:
+                shutil.copy2(source, dest)
+                
         active_logger.info(f"Using KiCad blank project directory: {blank_project_dir}")
     except Exception as e:
         active_logger.error(f"Failed to setup blank project: {str(e)}")
