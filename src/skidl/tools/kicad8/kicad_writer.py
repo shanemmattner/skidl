@@ -74,7 +74,15 @@ class KicadSchematicWriter:
         return None
 
     def _extract_symbol_def(self, lib_file: str, lib_id: str) -> Optional[str]:
-        """Extract a symbol definition from a library file."""
+        """Extract a complete symbol definition from a library file.
+        
+        Args:
+            lib_file: Path to the .kicad_sym library file
+            lib_id: Library identifier in format "library:symbol"
+            
+        Returns:
+            Complete symbol definition as a string, or None if not found
+        """
         try:
             library_name, symbol_name = lib_id.split(':')
             
@@ -86,31 +94,41 @@ class KicadSchematicWriter:
             in_symbol = False
             bracket_count = 0
             
-            for line in lines:
+            # Find main symbol definition start
+            for i, line in enumerate(lines):
                 line = line.rstrip()
                 
-                # Check for symbol start
-                if f'(symbol "{symbol_name}"' in line:
-                    # Replace only the main symbol name, not unit references
-                    line = line.replace(f'"{symbol_name}"', f'"{lib_id}"', 1)
+                # Look for main symbol definition
+                if f'(symbol "{symbol_name}"' in line or f'(symbol "{lib_id}"' in line:
                     in_symbol = True
                     bracket_count = line.count('(') - line.count(')')
+                    # Replace only the main symbol name, not unit references
+                    if f'(symbol "{symbol_name}"' in line:
+                        line = line.replace(f'"{symbol_name}"', f'"{lib_id}"', 1)
                     symbol_lines = [line]
                     continue
-                
+                    
                 if in_symbol:
-                    symbol_lines.append(line)
+                    # Handle nested symbol definitions (_0_1, _1_1 etc)
+                    if f'(symbol "{symbol_name}_' in line:
+                        # Don't replace the unit number parts of the symbol name
+                        symbol_lines.append(line)
+                    else:
+                        symbol_lines.append(line)
+                        
                     bracket_count += line.count('(') - line.count(')')
                     
                     if bracket_count == 0:
+                        # Found complete symbol definition including all units
                         return '\n'.join(symbol_lines)
-        
+                        
             return None
-            
+                
         except Exception as e:
             print(f"Error extracting symbol {lib_id}: {e}")
             return None
-
+        
+        
     def _load_symbol_definition(self, lib_id: str) -> Optional[str]:
         """Load a symbol definition from library, with caching."""
         if lib_id in self.symbol_defs:
