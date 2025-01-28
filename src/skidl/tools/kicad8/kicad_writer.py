@@ -10,6 +10,13 @@ import uuid
 import datetime
 import os
 
+# Constants for required symbol fields and formatting
+REQUIRED_SYMBOL_FIELDS = [
+    '(exclude_from_sim no)',
+    '(in_bom yes)', 
+    '(on_board yes)'
+]
+
 @dataclass
 class SchematicSymbol:
     """Represents a symbol to be placed in the schematic."""
@@ -60,6 +67,24 @@ class KicadSchematicWriter:
         self.required_symbols: Set[str] = set()
         self.symbol_defs: Dict[str, str] = {}
 
+    def _format_symbol(self, content: str) -> str:
+        """Format symbol content with correct indentation."""
+        lines = content.split('\n')
+        formatted = []
+        indent = 0
+        
+        for line in lines:
+            line = line.strip()
+            # Decrease indent for closing parentheses
+            indent -= line.count(')')
+            # Add line with current indent
+            if line:  # Only add non-empty lines
+                formatted.append('\t' * indent + line)
+            # Increase indent for opening parentheses
+            indent += line.count('(')
+            
+        return '\n'.join(formatted)
+
     def _find_library_file(self, library_name: str) -> Optional[str]:
         """Find the .kicad_sym file for a given library."""
         lib_file = os.path.join(self.kicad_lib_path, f"{library_name}.kicad_sym")
@@ -98,7 +123,6 @@ class KicadSchematicWriter:
             for i, line in enumerate(lines):
                 line = line.rstrip()
                 
-                # Look for main symbol definition
                 if f'(symbol "{symbol_name}"' in line or f'(symbol "{lib_id}"' in line:
                     in_symbol = True
                     bracket_count = line.count('(') - line.count(')')
@@ -109,25 +133,37 @@ class KicadSchematicWriter:
                     continue
                     
                 if in_symbol:
-                    # Handle nested symbol definitions (_0_1, _1_1 etc)
-                    if f'(symbol "{symbol_name}_' in line:
-                        # Don't replace the unit number parts of the symbol name
-                        symbol_lines.append(line)
-                    else:
-                        symbol_lines.append(line)
+                    # Skip any 'extends' line
+                    if '(extends' in line:
+                        continue
                         
+                    symbol_lines.append(line)
                     bracket_count += line.count('(') - line.count(')')
                     
                     if bracket_count == 0:
-                        # Found complete symbol definition including all units
-                        return '\n'.join(symbol_lines)
+                        # Found complete symbol definition
+                        symbol_def = '\n'.join(symbol_lines)
+                        
+                        # Check if required fields exist, add if missing
+                        first_property_idx = symbol_def.find('(property')
+                        if first_property_idx == -1:
+                            return symbol_def  # No properties, return as is
+                            
+                        header = symbol_def[:first_property_idx]
+                        rest = symbol_def[first_property_idx:]
+                        
+                        # Add any missing required fields
+                        for field in REQUIRED_SYMBOL_FIELDS:
+                            if field not in header:
+                                header += f'\n\t\t{field}'
+                                
+                        return self._format_symbol(header + rest)
                         
             return None
                 
         except Exception as e:
             print(f"Error extracting symbol {lib_id}: {e}")
             return None
-        
         
     def _load_symbol_definition(self, lib_id: str) -> Optional[str]:
         """Load a symbol definition from library, with caching."""
@@ -158,9 +194,7 @@ class KicadSchematicWriter:
         for lib_id in sorted(self.required_symbols):
             symbol_def = self._load_symbol_definition(lib_id)
             if symbol_def:
-                # Indent the definition with tabs
-                indented_def = '\n'.join(f"\t\t{line}" for line in symbol_def.split('\n'))
-                content += indented_def + '\n'
+                content += symbol_def + '\n'
                 
         content += "\t)\n"
         return content
@@ -169,54 +203,54 @@ class KicadSchematicWriter:
         """Generate a symbol instance."""
         # Determine whether the reference should be hidden
         hide_reference = "yes" if symbol.reference.startswith("#PWR") else "no"
-        return f'''    (symbol
-            (lib_id "{symbol.lib_id}")
-            (at {symbol.position[0]} {symbol.position[1]} {symbol.rotation})
-            (unit {symbol.unit})
-            (exclude_from_sim no)
-            (in_bom yes)
-            (on_board yes)
-            (dnp no)
-            (fields_autoplaced yes)
-            (uuid "{symbol.uuid}")
-            (property "Reference" "{symbol.reference}"
-                (at {symbol.position[0] + 2.54} {symbol.position[1] - 1.27} 0)
-                (effects
-                    (font 
-                        (size 1.27 1.27)
-                    )
-                    (justify left)
-                    (hide {hide_reference})
+        return f'''\t(symbol
+        (lib_id "{symbol.lib_id}")
+        (at {symbol.position[0]} {symbol.position[1]} {symbol.rotation})
+        (unit {symbol.unit})
+        (exclude_from_sim no)
+        (in_bom yes)
+        (on_board yes)
+        (dnp no)
+        (fields_autoplaced yes)
+        (uuid "{symbol.uuid}")
+        (property "Reference" "{symbol.reference}"
+            (at {symbol.position[0] + 2.54} {symbol.position[1] - 1.27} 0)
+            (effects
+                (font 
+                    (size 1.27 1.27)
                 )
+                (justify left)
+                (hide {hide_reference})
             )
-            (property "Value" "{symbol.value}"
-                (at {symbol.position[0] + 2.54} {symbol.position[1] + 1.27} 0)
-                (effects
-                    (font
-                        (size 1.27 1.27)
-                    )
-                    (justify left)
+        )
+        (property "Value" "{symbol.value}"
+            (at {symbol.position[0] + 2.54} {symbol.position[1] + 1.27} 0)
+            (effects
+                (font
+                    (size 1.27 1.27)
                 )
+                (justify left)
             )
-            (property "Footprint" "{symbol.footprint or ''}"
-                (at {symbol.position[0]} {symbol.position[1]} 0)
-                (effects
-                    (font
-                        (size 1.27 1.27)
-                    )
-                    (hide yes)
+        )
+        (property "Footprint" "{symbol.footprint or ''}"
+            (at {symbol.position[0]} {symbol.position[1]} 0)
+            (effects
+                (font
+                    (size 1.27 1.27)
                 )
+                (hide yes)
             )
-            (property "Datasheet" "~"
-                (at {symbol.position[0]} {symbol.position[1]} 0)
-                (effects
-                    (font
-                        (size 1.27 1.27)
-                    )
-                    (hide yes)
+        )
+        (property "Datasheet" "~"
+            (at {symbol.position[0]} {symbol.position[1]} 0)
+            (effects
+                (font
+                    (size 1.27 1.27)
                 )
+                (hide yes)
             )
-        )'''
+        )
+    )'''
 
     def add_symbol(self, symbol: SchematicSymbol) -> None:
         """Add a symbol to the schematic."""
@@ -229,14 +263,14 @@ class KicadSchematicWriter:
         """Generate the KiCad schematic file."""
         try:
             content = f'''(kicad_sch
-            (version {self.version})
-            (generator "{self.generator}")
-            (generator_version "{self.generator_version}")
-            (uuid "{str(uuid.uuid4())}")
-            (paper "{self.paper_size}")
-            (title_block
-                (date "{datetime.datetime.now().strftime('%Y-%m-%d')}")
-            )'''
+    (version {self.version})
+    (generator "{self.generator}")
+    (generator_version "{self.generator_version}")
+    (uuid "{str(uuid.uuid4())}")
+    (paper "{self.paper_size}")
+    (title_block
+        (date "{datetime.datetime.now().strftime('%Y-%m-%d')}")
+    )'''
             
             # Add library symbols
             content += self._generate_lib_symbols()
@@ -247,11 +281,11 @@ class KicadSchematicWriter:
             
             # Add sheet instances
             content += '''    (sheet_instances
-                (path "/"
-                    (page "1")
-                )
-            )
-        )'''
+        (path "/"
+            (page "1")
+        )
+    )
+)'''
 
             with open(filepath, 'w') as f:
                 f.write(content)
