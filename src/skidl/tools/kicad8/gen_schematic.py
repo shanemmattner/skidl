@@ -1,37 +1,22 @@
 # -*- coding: utf-8 -*-
 
-# The MIT License (MIT) - Copyright (c) Dave Vandenbout.
-
-
 import datetime
 import os.path
-import re
 import shutil
-import time
-from collections import Counter, OrderedDict
-
 from skidl.scriptinfo import get_script_name
-from skidl.geometry import BBox, Point, Tx, Vector
-from skidl.schematics.net_terminal import NetTerminal
-from skidl.utilities import export_to_all
-from .constants import BLK_INT_PAD, BOX_LABEL_FONT_SIZE, GRID, PIN_LABEL_FONT_SIZE
-from .bboxes import calc_symbol_bbox, calc_hier_label_bbox
-from skidl.schematics.place import PlacementFailure
-from skidl.schematics.route import RoutingFailure
-from skidl.utilities import rmv_attr
+from .kicad_writer import KicadSchematicWriter, SchematicSymbol
+from kiutils.schematic import Schematic
+from kiutils.items.common import Position, TitleBlock, Property, ColorRGBA, Stroke
+from kiutils.items.schitems import HierarchicalSheet
 
-
-__all__ = []
-
-"""
-Functions for generating a KiCad EESCHEMA schematic.
-"""
 def setup_debug_printing():
-    """Configure debug print statements"""
-    debug_enabled = True
+    """Configure debug print statements with environment variable control"""
+    import os
+    debug_level = os.getenv('SKIDL_DEBUG', 'INFO').upper()
+    debug_enabled = debug_level != 'OFF'
     
-    def debug_print(section, *args, **kwargs):
-        if debug_enabled:
+    def debug_print(section, *args, level='INFO', **kwargs):
+        if debug_enabled and (debug_level == 'ALL' or level == debug_level):
             prefix = f"[{section:^10}]"
             print(f"{prefix}", *args, **kwargs)
             
@@ -47,9 +32,21 @@ def print_component_info(part):
     debug_print("COMP", f"Name      : {part.name}")
     debug_print("COMP", f"Value     : {part.value}")
     debug_print("COMP", f"Sheet     : {part.Sheetname}")
+    debug_print("COMP", f"Pins      : {len(part.pins)}")
+    if hasattr(part, 'footprint'):
+        debug_print("COMP", f"Footprint : {part.footprint}")
+    if hasattr(part, 'position'):
+        debug_print("COMP", f"Position  : ({part.position.X}, {part.position.Y})")
     debug_print("COMP", "-" * 40)
 
-@export_to_all
+def print_placement_info(component, x, y, grid_size):
+    """Print placement information for debugging"""
+    debug_print("PLACE", "-" * 40)
+    debug_print("PLACE", f"Component  : {component.ref}")
+    debug_print("PLACE", f"Position   : ({x}, {y})")
+    debug_print("PLACE", f"Grid Size  : {grid_size}")
+    debug_print("PLACE", "-" * 40)
+
 def gen_schematic(
     circuit,
     filepath=".",
@@ -59,38 +56,19 @@ def gen_schematic(
     retries=2,
     **options
 ):
-    """Create schematic files from a Circuit object.
-    Args:
-        circuit (Circuit): The Circuit object that will have a schematic generated for it.
-        filepath (str, optional): The directory where the schematic files are placed. Defaults to ".".
-        top_name (str, optional): The name for the top of the circuit hierarchy. Defaults to get_script_name().
-        title (str, optional): The title of the schematic. Defaults to "SKiDL-Generated Schematic".
-        flatness (float, optional): Determines how much the hierarchy is flattened. Defaults to 0.0.
-        retries (int, optional): Number of times to re-try if routing fails. Defaults to 2.
-        options (dict, optional): Dict of options and values, usually for drawing/debugging.
-    """
+    """Create schematic files from a Circuit object."""
     from skidl.logger import active_logger
-    from kiutils.schematic import Schematic
-    from kiutils.items.common import Position, TitleBlock, Property, ColorRGBA, Stroke
-    from kiutils.items.schitems import SchematicSymbol, Junction, HierarchicalSheet
-    import os
-    import shutil
     
-    # Find the root directory (where setup.py is located)
+    # Setup project directory
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    template_dir = os.path.join(os.path.dirname(__file__), "kicad_blank_project", "kicad_blank_project")
+    blank_project_dir = os.path.join(filepath, "kicad_blank_project")
     
-    # Define paths
-    template_dir = os.path.join(os.path.dirname(__file__), "kicad_blank_project", "kicad_blank_project")  # Source is the inner directory
-    blank_project_dir = os.path.join(filepath, "kicad_blank_project")  # Destination is a single directory
-    
-    # Copy the blank project template
     try:
-        # Remove destination if it exists
         if os.path.exists(blank_project_dir):
             shutil.rmtree(blank_project_dir)
         os.makedirs(blank_project_dir)
         
-        # Copy files from template directory to destination
         for item in os.listdir(template_dir):
             source = os.path.join(template_dir, item)
             dest = os.path.join(blank_project_dir, item)
@@ -104,115 +82,60 @@ def gen_schematic(
         active_logger.error(f"Failed to setup blank project: {str(e)}")
         raise
     
-    # Get all subcircuits from group_name_cntr
+    # Get all subcircuits
     subcircuits = circuit.group_name_cntr.keys()
 
     for subcircuit_path in subcircuits:
-        # Extract the last name in the hierarchy
         subcircuit_name = subcircuit_path.split('.')[-1]
-        
-        # Create new schematic for this subcircuit
-        sch = Schematic.create_new()
-        
-        # Set basic properties
-        sch.titleBlock = TitleBlock()
-        sch.titleBlock.title = f"{subcircuit_name} - {title}"
-        sch.titleBlock.company = "Generated by SKiDL"
-        sch.titleBlock.revision = "1.0"
-        
-        # Create the schematic file path in the blank project directory
-        sch_path = os.path.join(blank_project_dir, f"{subcircuit_name}.kicad_sch")
-
-        # Add parts to schematic
-        # for part in circuit.parts:
-            # The legalized name from Kicad netlist import to SKiDL can add a '_' to the front
-            # of circuit name, which throws off this matching logic.  In the future we need to make
-            # this more robust and interact with the SKiDL netlist import to get the correct name.
-            # There will definately be edge casees where this logic will result in too many parts being added
-            # to the schematic.
         debug_print("SHEET", f"Looking for components in sheet: {subcircuit_name}")
+        
+        # Create schematic writer for this subcircuit
+        writer = KicadSchematicWriter()
         components_found = 0
+        
+        # Calculate grid size for component placement
+        grid_size = 20.0
+        symbol_count = 0
+
         for part in circuit.parts:
             if part.Sheetname in subcircuit_name:
                 components_found += 1
                 debug_print("MATCH", f"Found component {part.ref} in {subcircuit_name}")
                 print_component_info(part)
+                
+                # Calculate position
+                row = symbol_count // 5  # 5 symbols per row
+                col = symbol_count % 5
+                x = float(col * grid_size)
+                y = float(row * -grid_size)  # Negative for KiCad coordinate system
+                
+                # Create schematic symbol
+                symbol = SchematicSymbol(
+                    lib_id=f"{part.lib.filename}:{part.name}",
+                    reference=part.ref,
+                    value=part.value,
+                    position=(x, y),
+                    rotation=0,
+                    footprint=part.footprint if hasattr(part, 'footprint') else None
+                )
+                
+                print_placement_info(part, x, y, grid_size)
+                debug_print("SYMBOL", f"Adding symbol {part.ref} to schematic")
+                
+                # Add symbol to writer
+                writer.add_symbol(symbol)
+                symbol_count += 1
             else:
                 debug_print("SKIP", f"{part.ref} (in {part.Sheetname})")
         
         debug_print("SHEET", f"Found {components_found} components in {subcircuit_name}")
-                # # Create schematic symbol
-                # symbol = SchematicSymbol()
-                
-                # # Set basic properties
-                # symbol.id = part.ref
-                # symbol.unit = 1  # Default unit
-                # symbol.inBom = True
-                # symbol.onBoard = True
-                # symbol.position = Position()
-                
-                # # Calculate grid-based position (20mm spacing)
-                # grid_size = 20.0
-                # if not hasattr(sch, '_symbol_count'):
-                #     sch._symbol_count = 0
-                # row = sch._symbol_count // 5  # 5 symbols per row
-                # col = sch._symbol_count % 5
-                # symbol.position.X = float(col * grid_size)
-                # symbol.position.Y = float(row * -grid_size)  # Negative for KiCad coordinate system
-                # symbol.position.angle = 0.0
-                # sch._symbol_count += 1
-                
-                # # Add properties
-                # symbol.properties = []
-                
-                # # Reference property
-                # ref_prop = Property()
-                # ref_prop.key = "Reference"
-                # ref_prop.value = part.ref
-                # ref_prop.id = 0
-                # ref_prop.position = Position()
-                # ref_prop.position.X = symbol.position.X
-                # ref_prop.position.Y = symbol.position.Y - 2.54  # Offset below symbol
-                # ref_prop.position.angle = 0.0
-                # symbol.properties.append(ref_prop)
-                
-                # # Value property
-                # val_prop = Property()
-                # val_prop.key = "Value"
-                # val_prop.value = part.value
-                # val_prop.id = 1
-                # val_prop.position = Position()
-                # val_prop.position.X = symbol.position.X
-                # val_prop.position.Y = symbol.position.Y + 2.54  # Offset above symbol
-                # val_prop.position.angle = 0.0
-                # symbol.properties.append(val_prop)
-                
-                # # Footprint property
-                # if part.footprint:
-                #     fp_prop = Property()
-                #     fp_prop.key = "Footprint"
-                #     fp_prop.value = part.footprint
-                #     fp_prop.id = 2
-                #     fp_prop.position = Position()
-                #     fp_prop.position.X = symbol.position.X
-                #     fp_prop.position.Y = symbol.position.Y + 5.08  # Offset further above symbol
-                #     fp_prop.position.angle = 0.0
-                #     symbol.properties.append(fp_prop)
-                
-                # # Initialize symbols list if needed
-                # if not hasattr(sch, 'symbols'):
-                #     sch.libSymbols = []
-                
-                # print(f"Adding symbol {part.ref} to schematic")
-                # # Add symbol to schematic
-                # sch.libSymbols.append(symbol)
         
+        # Generate the schematic file
+        sch_path = os.path.join(blank_project_dir, f"{subcircuit_name}.kicad_sch")
         try:
-            # Save schematic file
-            sch.to_file(sch_path)
+            writer.generate(sch_path)
             active_logger.info(f"Generated schematic for {subcircuit_name} at {sch_path}")
             print(f"Generated schematic for {subcircuit_name} at {sch_path}")
-            
         except Exception as e:
             active_logger.error(f"Error saving schematic {subcircuit_name}: {str(e)}")
             raise
@@ -221,13 +144,13 @@ def gen_schematic(
     main_sch_path = os.path.join(blank_project_dir, "kicad_blank_project.kicad_sch")
     main_sch = Schematic.from_file(main_sch_path)
     
-    # Grid layout settings
+    # Grid layout settings for sheet symbols
     sheet_width = 30  # mm
     sheet_height = 30  # mm
     spacing = 40  # mm between sheets
     sheets_per_row = 2
     
-    # Calculate total dimensions needed
+    # Calculate layout dimensions
     num_sheets = len(subcircuits)
     num_rows = (num_sheets + sheets_per_row - 1) // sheets_per_row
     num_cols = min(sheets_per_row, num_sheets)
@@ -235,11 +158,14 @@ def gen_schematic(
     total_width = num_cols * sheet_width + (num_cols - 1) * spacing
     total_height = num_rows * sheet_height + (num_rows - 1) * spacing
     
-    # Calculate starting position to center the group
+    # Calculate starting position to center sheets
     start_x = (297 - total_width) / 2  # A4 width is 297mm
     start_y = (210 - total_height) / 2  # A4 height is 210mm
     
     # Create sheets for each subcircuit
+    if not hasattr(main_sch, 'sheets'):
+        main_sch.sheets = []
+        
     for i, subcircuit_path in enumerate(subcircuits):
         subcircuit_name = subcircuit_path.split('.')[-1]
         
@@ -256,33 +182,27 @@ def gen_schematic(
         sheet.position.Y = str(y)
         sheet.position.angle = "0"
         
-        # Set sheet dimensions
         sheet.width = sheet_width
         sheet.height = sheet_height
         
-        # Set sheet appearance
         sheet.stroke = Stroke()
         sheet.fill = ColorRGBA()
         
-        # Set sheet name property with position
+        # Set sheet properties
         sheet.sheetName = Property(key="Sheet name")
         sheet.sheetName.value = subcircuit_name
         sheet.sheetName.position = Position()
-        sheet.sheetName.position.X = str(x + sheet_width/2)  # Center horizontally
-        sheet.sheetName.position.Y = str(y - 5)  # 5mm above sheet
+        sheet.sheetName.position.X = str(x + sheet_width/2)
+        sheet.sheetName.position.Y = str(y - 5)
         sheet.sheetName.position.angle = "0"
         
-        # Set sheet file property with position
         sheet.fileName = Property(key="Sheet file")
         sheet.fileName.value = f"{subcircuit_name}.kicad_sch"
         sheet.fileName.position = Position()
-        sheet.fileName.position.X = str(x + sheet_width/2)  # Center horizontally
-        sheet.fileName.position.Y = str(y - 2)  # 2mm below sheet name
+        sheet.fileName.position.X = str(x + sheet_width/2)
+        sheet.fileName.position.Y = str(y - 2)
         sheet.fileName.position.angle = "0"
         
-        # Add sheet to schematic
-        if not hasattr(main_sch, 'sheets'):
-            main_sch.sheets = []
         main_sch.sheets.append(sheet)
     
     # Save main schematic with added sheets
