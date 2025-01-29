@@ -2,7 +2,7 @@
   (version 20231120)
   (generator "eeschema")
   (generator_version "8.0")
-  (uuid "2bdbc802-c213-49d7-8fd9-0f9a95197cee")
+  (uuid "3cc89497-cabf-47db-bb17-130c15bf4e5a")
   (paper "A4")
   (title_block
     (date "2025-01-29")
@@ -139,7 +139,7 @@
     (on_board yes)
     (dnp no)
     (fields_autoplaced yes)
-    (uuid "e9d23a52-4501-4a70-a8df-9bc48bac0239")
+    (uuid "e38a5936-9e66-47c7-ae64-9f98ecd122cd")
     (property "Reference" "R1" (at 2.00 -0.00 0))
     (property "Value" "2.2k" (at 2.00 2.00 0))
   )

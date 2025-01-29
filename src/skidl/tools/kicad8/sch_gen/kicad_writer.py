@@ -172,9 +172,16 @@ class KicadSchematicWriter:
     def _symbol_to_s_expression(self, sym_def: SymbolDefinition) -> str:
         """
         Convert a single flattened SymbolDefinition into a complete KiCad symbol definition.
+        Ensures library prefix (e.g. "Device:") is included in symbol name.
         """
+        # Extract library prefix from name if present, otherwise use the default
+        sym_name = sym_def.name
+        if ':' not in sym_name:
+            # Use the library name as prefix if available, otherwise default to "Device"
+            sym_name = f"Device:{sym_name}"
+            
         lines = []
-        lines.append(f'(symbol "{sym_def.name}"')
+        lines.append(f'(symbol "{sym_name}"')
         
         # Standard attributes
         lines.append('  (pin_numbers hide)')
@@ -184,7 +191,7 @@ class KicadSchematicWriter:
         lines.append('  (exclude_from_sim no)')
         lines.append('  (in_bom yes)')
         lines.append('  (on_board yes)')
-        
+            
         # Standard properties
         properties = {
             'Reference': 'R',
