@@ -4,10 +4,17 @@ import datetime
 import os.path
 import shutil
 from skidl.scriptinfo import get_script_name
+
+#
+# IMPORTANT: The lines below now reference the updated kicad_writer.py,
+# which includes SymbolParser for flattening symbol inheritance.
+#
 from .kicad_writer import KicadSchematicWriter, SchematicSymbol
+
 from kiutils.schematic import Schematic
 from kiutils.items.common import Position, TitleBlock, Property, ColorRGBA, Stroke
 from kiutils.items.schitems import HierarchicalSheet
+
 
 def setup_debug_printing():
     """Configure debug print statements with environment variable control"""
@@ -24,6 +31,7 @@ def setup_debug_printing():
 
 debug_print = setup_debug_printing()
 
+
 def print_component_info(part):
     """Print detailed component information for debugging"""
     debug_print("COMP", "-" * 40)
@@ -39,6 +47,7 @@ def print_component_info(part):
         debug_print("COMP", f"Position  : ({part.position.X}, {part.position.Y})")
     debug_print("COMP", "-" * 40)
 
+
 def print_placement_info(component, x, y, grid_size):
     """Print placement information for debugging"""
     debug_print("PLACE", "-" * 40)
@@ -46,6 +55,7 @@ def print_placement_info(component, x, y, grid_size):
     debug_print("PLACE", f"Position   : ({x}, {y})")
     debug_print("PLACE", f"Grid Size  : {grid_size}")
     debug_print("PLACE", "-" * 40)
+
 
 def gen_schematic(
     circuit,
@@ -89,11 +99,14 @@ def gen_schematic(
         subcircuit_name = subcircuit_path.split('.')[-1]
         debug_print("SHEET", f"Looking for components in sheet: {subcircuit_name}")
         
-        # Create schematic writer for this subcircuit
-        writer = KicadSchematicWriter()
-        components_found = 0
+        #
+        # 1) Create the new KicadSchematicWriter with a library path.
+        #    Edit kicad_lib_folder to match your KiCad libraries location:
+        #
+        kicad_lib_folder = "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/"  # <-- Customize as needed!
+        writer = KicadSchematicWriter(kicad_lib_path=kicad_lib_folder)
         
-        # Calculate grid size for component placement
+        components_found = 0
         grid_size = 20.0
         symbol_count = 0
 
@@ -109,7 +122,8 @@ def gen_schematic(
                 x = float(col * grid_size)
                 y = float(row * -grid_size)  # Negative for KiCad coordinate system
                 
-                # Create schematic symbol
+                # Build the lib_id from part.lib.filename and part.name
+                # e.g. "Regulator_Linear:NCP1117-3.3_SOT223"
                 symbol = SchematicSymbol(
                     lib_id=f"{part.lib.filename}:{part.name}",
                     reference=part.ref,
@@ -122,7 +136,6 @@ def gen_schematic(
                 print_placement_info(part, x, y, grid_size)
                 debug_print("SYMBOL", f"Adding symbol {part.ref} to schematic")
                 
-                # Add symbol to writer
                 writer.add_symbol(symbol)
                 symbol_count += 1
             else:
@@ -158,9 +171,9 @@ def gen_schematic(
     total_width = num_cols * sheet_width + (num_cols - 1) * spacing
     total_height = num_rows * sheet_height + (num_rows - 1) * spacing
     
-    # Calculate starting position to center sheets
-    start_x = (297 - total_width) / 2  # A4 width is 297mm
-    start_y = (210 - total_height) / 2  # A4 height is 210mm
+    # Calculate starting position to center sheets (A4 dimensions = 297mm x 210mm)
+    start_x = (297 - total_width) / 2
+    start_y = (210 - total_height) / 2
     
     # Create sheets for each subcircuit
     if not hasattr(main_sch, 'sheets'):
@@ -192,14 +205,14 @@ def gen_schematic(
         sheet.sheetName = Property(key="Sheet name")
         sheet.sheetName.value = subcircuit_name
         sheet.sheetName.position = Position()
-        sheet.sheetName.position.X = str(x + sheet_width/2)
+        sheet.sheetName.position.X = str(x + sheet_width / 2)
         sheet.sheetName.position.Y = str(y - 5)
         sheet.sheetName.position.angle = "0"
         
         sheet.fileName = Property(key="Sheet file")
         sheet.fileName.value = f"{subcircuit_name}.kicad_sch"
         sheet.fileName.position = Position()
-        sheet.fileName.position.X = str(x + sheet_width/2)
+        sheet.fileName.position.X = str(x + sheet_width / 2)
         sheet.fileName.position.Y = str(y - 2)
         sheet.fileName.position.angle = "0"
         

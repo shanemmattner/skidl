@@ -9,6 +9,7 @@ from .gen_svg import *
 from .gen_netlist import gen_netlist
 from .gen_pcb import gen_pcb
 from .gen_xml import gen_xml
+from .symbol_parser import *
 from .lib import (
     get_fp_lib_tbl_dir,
     load_sch_lib,

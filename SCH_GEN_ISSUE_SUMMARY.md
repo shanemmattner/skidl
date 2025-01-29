@@ -1,134 +1,151 @@
-
 # Handling KiCad Symbol Inheritance (`(extends "SomeParentSymbol")`)
 
-This document provides a **detailed plan** for supporting symbol inheritance in a KiCad-based system. The objective is to merge parent (inherited) symbol definitions and child (extending) symbol definitions, **without** any hard-coded references to specific parts. This approach should comfortably handle large libraries with thousands of symbols and *multi-level* inheritance (child-of-child-of-child, etc.).
+This document captures **all** important details, *attempts*, and *changes* discussed in this chat regarding flattening KiCad symbols that use `(extends "...")`. We have tried multiple approaches to:
+
+1. **Parse** each `(symbol "Child" (extends "Parent") ...)`.
+2. **Recursively** flatten the entire inheritance chain (child → parent → parent's parent → etc.).
+3. **Merge** the parent’s pins, properties, shapes, and other data into the child.
+4. **Remove** `(extends ...)` from the final, expanded `(symbol ...)` definition.
+
+Despite code tries, we encountered issues with indentation, bracket structure, or raw text splicing. Below is an **all-inclusive** summary of how to implement a robust solution, plus a record of what was tried and why.
 
 ---
 
-## 1. Detect and Record the Child’s “Extends”
+## **Chat History and Summary of Attempts**
 
-1. **Look for `(extends "SomeParentSymbol")`**  
-   While parsing each symbol definition, check if there is an `(extends "...")` property.  
-   - If present, store that parent’s name in your internal data structure (e.g., `child_symbol.extends = "AP1117-15"`).  
+- Initially, the project was using **raw text splicing**:  
+  1. Grab the child `(symbol "Foo" (extends "Bar") ...)` lines.  
+  2. Insert them above the parent’s final `)`.  
+  This fails because it never truly merges pins, properties, or geometry. It can also produce malformed s-expressions.
 
-2. **Consider “Root” Symbols**  
-   If `(extends ...)` is **not** present, the symbol is effectively a “root” (no inheritance).  
+- We then tried a **structured parse** (using a `SymbolDefinition` object) plus a simple `_prettify_sexpr()` function that re-indents the final lines. Some incomplete or mismatched parentheses in the shapes block still led to incorrect indentation.
 
-3. **Avoid Cycles**  
-   Validate that the parent’s name is well-formed and does not produce a *cycle*. For example, if A extends B, but B also (directly or indirectly) extends A, handle it (e.g., by raising an error).
+- We introduced code that fully flattens the data, then re-builds each `(symbol ...)` from scratch. This approach is correct in principle, but we had to handle careful bracket/indentation for shapes, pins, and properties. Additional complexity arises if the library symbol lines contain partial shapes spread across multiple lines.
 
----
+- The final code attempts included:
+  1. **`symbol_parser.py`:** A structured parser for `(symbol "X" ...)`, storing `extends`, `properties`, `pins`, `raw_shapes`, then merging them.  
+  2. **`kicad_writer.py`:** A `KicadSchematicWriter` that calls the parser, flattens each symbol, then writes a big `(lib_symbols ... )` block.  
+  3. **`_prettify_sexpr()`** logic to re-indicate the final lines by counting open/close parentheses line by line.
 
-## 2. Retrieve and Flatten the Parent Symbol (Recursively)
+- The result sometimes had incorrectly nested lines in shapes (e.g., `(at X Y Z)` lines merging with `(pin ...)` lines). This yields a “non-functional” s-expression when read by KiCad.
 
-1. **Parse and Cache**  
-   - Keep an in-memory cache/dictionary of “flattened” symbols you have already processed.  
-   - When you see `(extends "SomeParent")`, check if that parent is already in the **flattened** cache.  
-     - If it is not in the cache, **parse and flatten** it now (recursively).  
-
-2. **Multi-Level Inheritance**  
-   - If the parent also extends another symbol, apply the same logic.  
-   - Eventually, you reach a parent that has no `extends`, i.e., a base or root symbol.  
-
-3. **Store the Flattened Parent**  
-   - After fully flattening the parent, store it in `flattened_symbol_cache[parent_name]`.  
-   - This speeds up subsequent lookups.
+**We discovered that** if the raw library symbols store geometry with multiple lines or partial lines, our naive string approach may break it. A truly robust solution requires a *full s-expression parser* for shapes as well, then re-output those shapes carefully.
 
 ---
 
-## 3. Merge the Parent into the Child
+## **High-Level Steps for a Correct Implementation**
 
-When you finally have the entire, flattened parent definition, combine it with the child’s partial definition:
+Below is the stable approach that has been **repeatedly** recommended and proven in other contexts:
 
-1. **Merge Properties**  
-   - For each property (e.g., `Description`, `Footprint`, `Datasheet`, custom fields, etc.), if the child provides an override, that wins. Otherwise, copy the parent’s property.  
-   - If the child sets a property to an empty string, interpret that as removing the parent’s property (if desired).
+1. **Parse** each symbol’s entire s-expression:
+   - Instead of just “line-based searching,” use a small s-expression library or manual bracket-based parse to build a tree.
+   - E.g., parse the child’s `(symbol ... )` into nested data: properties, pins, shapes, etc.
+2. **Recursively Flatten**:
+   - If `(extends "Parent")`, call `get_flattened_symbol("Parent")`.
+   - Merge the parent data into the child, field by field:
+     - Parent’s pins are appended, unless the child overrides them by `pin number`.
+     - Parent’s shapes are appended below the child’s shapes or used unless overridden.
+     - Parent’s `(property "Foo")` are only copied if the child lacks them.
+3. **Rebuild** the final `(symbol "Child" ...)`:
+   - The final object has all data from parent + child. It has **no** `(extends ...)`.
+   - Write it as properly bracketed s-expression:
+     ```lisp
+     (symbol "ChildName"
+       (property "Reference" "U")
+       (property "Value" "ChildValue")
+       (pin "1" ...)
+       (rectangle
+         (start ...)
+         (end ...)
+       )
+       ...
+     )
+     ```
+4. **Pretty-Print** the final s-expression tree:
+   - Count parentheses and indent accordingly or do a tree-based walker.
 
-2. **Merge Pins**  
-   - Gather the parent’s pins, then integrate or override child pins.  
-   - If the child redefines a pin number that also appears in the parent, the child’s version wins.  
-   - If the child adds brand-new pins, simply append them.
-
-3. **Merge Graphics**  
-   - In a simple approach, **append** child geometry after the parent’s geometry. The child shapes draw on top.  
-   - More advanced systems can detect if the child wants to *replace* or *remove* a specific shape from the parent, but that is optional.
-
-4. **Flatten the Child**  
-   - After merging, the child is a single, self-contained symbol.  
-   - In your final `.kicad_sch` or `.kicad_sym`, do **not** necessarily keep `(extends ...)`, because you have fully merged the data. If you do want to preserve it for debugging, that is an optional step.
-
----
-
-## 4. Output the Merged Symbol
-
-Once you have merged, output the child as a **standalone** symbol:
-
-1. **S-Expression**  
-   - Use `(symbol "Name" (property "..." ...) (pin ...) (graphics ...))` etc.  
-   - Include everything from the flattening process.  
-
-2. **Collision Checks**  
-   - If the child redefines the same custom field or pin number, child overrides the parent.  
-
-3. **Final Symbol**  
-   - You do not rely on referencing the parent for partial content.  
-   - That ensures your final schematic library is fully “expanded.”
-
-4. **Cache the Result**  
-   - Store this child’s flattened version in something like `flattened_symbol_cache[child_name]` to handle any future references.
+**Key detail**: If the library has advanced multi-line shapes, your parser must handle those shapes as sub-trees so you can reassemble them without losing track of parentheses. Doing “line-based” merges or partial string splitting can produce mismatched bracket blocks.
 
 ---
 
-## 5. Implementation Tips
+## **In-Depth Merging Plan**
 
-- **Data Structures:**  
-  You can store each symbol’s parse results in a structure like:
+### 1) Detect `(extends "...")`
+- While parsing `(symbol "X" ...)`, if the top line or any sub-token says `(extends "Parent")`, store `symbol.extends = "Parent"`.
+
+### 2) Flatten Recursively
+- Keep a `flattened_cache`. If you flatten “Parent”, store it. 
+- Flattening the child:
+  1. If child is already “is_flattened = True”, return it.
+  2. If child.extends is not `None`, flatten the parent, then `merge_symbol_defs(parent, child)`.
+  3. Mark child flattened.
+
+### 3) Merging
+- `child.properties[k] = v` if child doesn’t have the property `k`.
+- For pins, if `child` has no pin with the same `number`, then copy from parent. If a child pin duplicates, child wins.
+- For shapes, append parent’s shapes first, then child’s shapes. (Or do something more advanced if you want child to override certain shapes.)
+
+### 4) Final Output
+- Build an s-expression:
   ```python
-  class SymbolDefinition:
-      name: str
-      extends: Optional[str]
-      properties: Dict[str, str]
-      pins: List[PinObject]
-      graphics: List[GraphicObject]
-      ...
+  (symbol "X"
+    (property "Reference" "U")
+    ...
+    (pin "1")
+    ...
+  )
   ```
-- **Recursive Method:**  
-  ```python
-  def get_flattened_symbol(symbol_name) -> SymbolDefinition:
-      if symbol_name in flattened_symbol_cache:
-          return flattened_symbol_cache[symbol_name]
-      raw_sym = parse_raw_symbol(symbol_name)
-      if raw_sym.extends:
-          parent = get_flattened_symbol(raw_sym.extends)
-          merged = merge_symbols(parent, raw_sym)
-      else:
-          merged = raw_sym
-      flattened_symbol_cache[symbol_name] = merged
-      return merged
-  ```
-- **Performance:**  
-  Because you do not repeatedly parse the same parent symbol, it scales to thousands of parts.  
-
-- **No Hard-Coding:**  
-  The logic does **not** rely on special knowledge of “AP1117-15” or “NCP1117-3.3” or any specific part name. All merges happen generically based on `(extends ...)`.
+- Use a real bracket-based indentation method to ensure each sub-block is aligned. Doing a line-based approach can work, but only if you have matched parentheses for shapes, properties, etc. If the shapes themselves contain multiple lines with bracket imbalance, do a sub-parse.
 
 ---
 
-## 6. Special Notes on `(extends "...")`
+## **What Has Been Tried in This Chat**
 
-- If your code sees `(extends "AP1117-15")`, it must fetch “AP1117-15”, flatten it if needed, then apply child overrides for “NCP1117-3.3_SOT223.”  
-- For multi-level, if “AP1117-15” itself extends “RegulatorBase,” continue up the chain.  
-- If you detect cyclical references, fail gracefully.
+1. **Naive Text Splice** – fails to handle partial shapes or child overriding.  
+2. **SymbolParser** storing each symbol’s lines, plus `(extends ...)`. We do `_merge_symbol_defs(...)`, then attempt `_prettify_sexpr()`. We still risk malformed text if sub-blocks in shapes get jumbled.  
+3. **Adding bracket counting** to each line. This helps a bit, but if shapes or properties are “semi-split” across lines, you can end up with partial bracket lines out of order.  
+
+**Result**: We got partially correct merges, but indentation or bracket structure sometimes ended up invalid. The final code snippet included `_prettify_sexpr()` in an attempt to fix multiline shapes. In some user tests, KiCad complained that the output was not parseable.
+
+Hence, we either:
+- Expand the parser so each shape is *fully parsed into a sub-tree*, or
+- For each shape line, store them exactly as-is but keep them within a single bracket block. Then re-output them with correct indentation.
 
 ---
 
-## 7. Summary
+## **Conclusion and Next Steps**
 
-By recognizing `(extends "ParentSymbol")`, recursively flattening the parent, and merging into the child, **kicad_writer.py** can produce **fully valid** single-symbol definitions for **all** inherited parts—**without** any hard-coded solutions. The steps:
+**To reliably produce functional code** for all library shapes:
 
-1. **Parse** `(extends)`.
-2. **Flatten** parent.
-3. **Merge** child + parent definitions.
-4. **Write** final child symbol.
+- **Full S-expression Tree**: Instead of partially parsing lines in `(raw_shapes)`, parse every bracket in shapes. This yields a nested AST you can re-serialize with perfect bracket matching.
+- **Reserialize** the entire symbol from that AST. Then *no line merges* will break parentheses.  
 
-This approach ensures correct symbols for the entire library, including the `NCP1117-3.3_SOT223` that extends `AP1117-15`.
+Short of that, if your library’s shapes are fairly simple (like single-line arcs or rectangles), your existing partial approach might suffice. But advanced or multiline geometry is more likely to produce non-functional code.
+
+**Therefore**, the core recommendation remains:
+
+1. Implement a robust *S-expression parser* for each `(pin ...)`, `(rectangle ...)`, `(arc ...)`, etc.  
+2. Merge parent → child in structured objects.  
+3. Output a brand new `(symbol ...)` by walking that object tree.  
+4. Indent properly by counting open vs. close parentheses from the newly constructed s-expression.
+
+**This** is how you ensure large or multi-level inherited symbols generate correct flattened results, *without* bracket mismatch or indentation trouble.
+
+---
+
+## **Document Outline**
+
+- [Handling KiCad Symbol Inheritance (`(extends "SomeParentSymbol")`)](#handling-kicad-symbol-inheritance-extends-someparentsymbol)
+  - [**Chat History and Summary of Attempts**](#chat-history-and-summary-of-attempts)
+  - [**High-Level Steps for a Correct Implementation**](#high-level-steps-for-a-correct-implementation)
+  - [**In-Depth Merging Plan**](#in-depth-merging-plan)
+    - [1) Detect `(extends "...")`](#1-detect-extends-)
+    - [2) Flatten Recursively](#2-flatten-recursively)
+    - [3) Merging](#3-merging)
+    - [4) Final Output](#4-final-output)
+  - [**What Has Been Tried in This Chat**](#what-has-been-tried-in-this-chat)
+  - [**Conclusion and Next Steps**](#conclusion-and-next-steps)
+  - [**Document Outline**](#document-outline)
+
+**All** attempts in this chat revolve around implementing these steps in a partial parser vs. a complete AST. This doc captures the final recommended approach: a *complete parse* + flatten + re-serialize = guaranteed correctness.
+

@@ -1,296 +1,400 @@
-"""KiCad schematic writer module.
+#!/usr/bin/env python3
+"""
+kicad_writer.py
 
-This module provides functionality to write KiCad schematic files by generating
-the appropriate S-expressions. It handles library symbol loading and component placement.
+Creates a .kicad_sch with flattened library symbols. Each symbol
+inherits from its parent (extends "X") fully, then we re-indent
+the output so KiCad can parse it properly.
+
+Depends on an external SymbolParser for reading `.kicad_sym` libraries:
+   from .symbol_parser import SymbolParser, SymbolDefinition, Pin
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Set
+import os
 import uuid
 import datetime
-import os
+from typing import List, Optional, Dict, Set, Tuple
 
-# Constants for required symbol fields and formatting
-REQUIRED_SYMBOL_FIELDS = [
-    '(exclude_from_sim no)',
-    '(in_bom yes)', 
-    '(on_board yes)'
-]
+# ---------------------------------------------------------------------------
+# Here is a minimal inline SymbolParser to illustrate the parse+flatten logic.
+# If you already have symbol_parser.py, you can import from that instead.
+# ---------------------------------------------------------------------------
+
+from dataclasses import dataclass, field
+
 
 @dataclass
-class SchematicSymbol:
-    """Represents a symbol to be placed in the schematic."""
-    lib_id: str
-    reference: str
-    value: str
-    position: tuple[float, float] = (63.5, 63.5)
-    rotation: float = 0
-    unit: int = 1
-    in_bom: bool = True
-    property_positions: Dict[str, tuple[float, float]] = None
-    on_board: bool = True
-    uuid: Optional[str] = None
-    pin_numbers_visible: bool = True
-    pin_names_visible: bool = True
-    footprint: Optional[str] = None
+class Pin:
+    number: str
+    name: Optional[str] = None
 
-    def __post_init__(self):
-        if self.property_positions is None:
-            self.property_positions = {}
-        if self.uuid is None:
-            self.uuid = str(uuid.uuid4())
+
+@dataclass
+class SymbolDefinition:
+    name: str
+    extends: Optional[str] = None
+    properties: Dict[str, str] = field(default_factory=dict)
+    pins: List[Pin] = field(default_factory=list)
+    raw_shapes: List[str] = field(default_factory=list)
+    is_flattened: bool = False
+
+
+class SymbolParser:
+    def __init__(self, libfile: str):
+        self.libfile = libfile
+        self.loaded = False
+        self.symbols: Dict[str, SymbolDefinition] = {}
+
+    def load_library(self):
+        if self.loaded:
+            return
+        if not os.path.isfile(self.libfile):
+            raise FileNotFoundError(f"Library file not found: {self.libfile}")
+        with open(self.libfile, "r", encoding="utf-8") as f:
+            all_lines = f.readlines()
+
+        i = 0
+        n = len(all_lines)
+        while i < n:
+            line = all_lines[i].strip()
+            if line.startswith("(symbol "):
+                block, i = self._collect_block(all_lines, i)
+                sdef = self._parse_symbol_block(block)
+                self.symbols[sdef.name] = sdef
+            else:
+                i += 1
+
+        self.loaded = True
+
+    def _collect_block(self, lines, start_idx):
+        block = []
+        bracket_depth = 0
+        i = start_idx
+        while i < len(lines):
+            l = lines[i]
+            block.append(l)
+            bracket_depth += l.count("(")
+            bracket_depth -= l.count(")")
+            i += 1
+            if bracket_depth <= 0:
+                break
+        return block, i
+
+    def _parse_symbol_block(self, sym_lines: List[str]) -> SymbolDefinition:
+        raw_text = "\n".join(sym_lines)
+        name = None
+        extends_name = None
+        first_line = sym_lines[0].strip()
+        idx = first_line.find("(symbol ")
+        if idx >= 0:
+            rest = first_line[idx+8:].strip()
+            if rest.startswith('"'):
+                second_quote = rest.find('"', 1)
+                name = rest[1:second_quote]
+                after_name = rest[second_quote+1:].strip()
+                if "(extends " in after_name:
+                    eq = after_name.find("(extends")
+                    sub = after_name[eq:]
+                    q1 = sub.find('"')
+                    q2 = sub.find('"', q1+1)
+                    extends_name = sub[q1+1:q2]
+
+        if not name:
+            name = "UnknownSymbol"
+
+        sdef = SymbolDefinition(name=name, extends=extends_name)
+
+        # Parse lines for properties, pins, shapes
+        for ln in sym_lines:
+            ln_str = ln.strip()
+            if "(extends " in ln_str:
+                continue
+            if ln_str.startswith("(property "):
+                parts = ln_str.split('"')
+                if len(parts) >= 4:
+                    pkey = parts[1]
+                    pval = parts[3]
+                    sdef.properties[pkey] = pval
+            elif ln_str.startswith("(pin "):
+                pparts = ln_str.split('"')
+                if len(pparts) >= 2:
+                    pin_num = pparts[1]
+                    sdef.pins.append(Pin(number=pin_num))
+            elif ln_str.startswith("(symbol "):
+                # skip nested sub-block
+                pass
+            else:
+                sdef.raw_shapes.append(ln_str)
+
+        return sdef
+
+    def get_flattened_symbol(self, sym_name: str) -> Optional[SymbolDefinition]:
+        self.load_library()
+        if sym_name not in self.symbols:
+            return None
+        return self._flatten_symbol(sym_name, visited=set())
+
+    def _flatten_symbol(self, sym_name: str, visited: Set[str]) -> SymbolDefinition:
+        if sym_name in visited:
+            raise ValueError(f"Cycle extends in {sym_name}")
+        visited.add(sym_name)
+        sym_def = self.symbols[sym_name]
+        if sym_def.is_flattened:
+            return sym_def
+        if sym_def.extends:
+            pdef = self._flatten_symbol(sym_def.extends, visited)
+            self._merge_symbol_defs(pdef, sym_def)
+        sym_def.is_flattened = True
+        return sym_def
+
+    def _merge_symbol_defs(self, parent: SymbolDefinition, child: SymbolDefinition):
+        for k,v in parent.properties.items():
+            if k not in child.properties:
+                child.properties[k] = v
+        child_pin_nums = {p.number for p in child.pins}
+        for pp in parent.pins:
+            if pp.number not in child_pin_nums:
+                child.pins.append(pp)
+        # shapes
+        child.raw_shapes = parent.raw_shapes + child.raw_shapes
+        child.extends = None
+
+
+###############################################################################
+# SchematicSymbol data class
+###############################################################################
+
+class SchematicSymbol:
+    def __init__(
+        self,
+        lib_id: str,
+        reference: str,
+        value: str,
+        position: Tuple[float, float] = (63.5, 63.5),
+        rotation: float = 0.0,
+        unit: int = 1,
+        in_bom: bool = True,
+        on_board: bool = True,
+        footprint: Optional[str] = None,
+        pin_numbers_visible: bool = True,
+        pin_names_visible: bool = True,
+        symbol_uuid: Optional[str] = None
+    ):
+        self.lib_id = lib_id
+        self.reference = reference
+        self.value = value
+        self.position = position
+        self.rotation = rotation
+        self.unit = unit
+        self.in_bom = in_bom
+        self.on_board = on_board
+        self.footprint = footprint or ""
+        self.pin_numbers_visible = pin_numbers_visible
+        self.pin_names_visible = pin_names_visible
+        self.uuid = symbol_uuid or str(uuid.uuid4())
+
+###############################################################################
+# Final Output Helpers
+###############################################################################
+
+def symbol_def_to_sexpr(sym_def: SymbolDefinition) -> str:
+    """
+    Convert SymbolDefinition -> (symbol ...) text. Then prettify indentation.
+    """
+    lines = []
+    lines.append(f'(symbol "{sym_def.name}"')
+
+    # Properties
+    for pname, pval in sym_def.properties.items():
+        lines.append(f'  (property "{pname}" "{pval}")')
+
+    # Pins
+    for p in sym_def.pins:
+        lines.append(f'  (pin "{p.number}")')
+
+    # shapes (raw lines, but we indent them with 2 spaces)
+    for shape_ln in sym_def.raw_shapes:
+        # shape_ln might be multi-line if the library had multiline definitions
+        shape_split = shape_ln.splitlines()
+        for sub_ln in shape_split:
+            lines.append("  " + sub_ln.strip())
+
+    lines.append(")")
+    text = "\n".join(lines)
+
+    # Now run a bracket-based re-indentation pass so KiCad can parse it nicely
+    return _prettify_sexpr(text)
+
+
+def _prettify_sexpr(text: str) -> str:
+    """
+    Simple bracket-based re-indenter. 
+    """
+    out_lines = []
+    indent = 0
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
+        if not line:
+            continue
+        # Count parens
+        close_count = line.count(")")
+        open_count = line.count("(")
+
+        # if there's more ) than ( on this line, reduce indent first
+        net = open_count - close_count
+        # Some lines might have multiple open/close, so we do:
+        # if close_count > open_count, we reduce indent by (close_count - open_count) 
+        # *before* writing line
+        if close_count > open_count:
+            indent -= (close_count - open_count)
+            if indent < 0:
+                indent = 0
+
+        # write line with current indent
+        out_lines.append(("  " * indent) + line)
+
+        # if net > 0, we add indent
+        if net > 0:
+            indent += net
+    return "\n".join(out_lines)
+
+
+###############################################################################
+# The writer class
+###############################################################################
 
 class KicadSchematicWriter:
-    """Generator for KiCad schematic files."""
-    
-    def __init__(self, kicad_lib_path: Optional[str] = None):
-        """Initialize the KiCad schematic writer."""
+    """
+    Writes a .kicad_sch with:
+      - Flattened (lib_symbols ...) for each unique symbol lib_id
+      - Placed (symbol ...) blocks
+      - Minimal sheet_instances
+    """
+
+    def __init__(self, kicad_lib_path: str):
         self.symbols: List[SchematicSymbol] = []
         self.version = "20231120"
         self.generator = "eeschema"
         self.generator_version = "8.0"
         self.paper_size = "A4"
         self.uuid = str(uuid.uuid4())
-        
-        # Set up KiCad library path
-        if kicad_lib_path is None:
-            if os.name == 'posix':
-                if os.path.exists("/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols"):
-                    self.kicad_lib_path = "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols"
-                else:
-                    self.kicad_lib_path = "/usr/share/kicad/library"
-            elif os.name == 'nt':
-                self.kicad_lib_path = r"C:\Program Files\KiCad\share\kicad\library"
-        else:
-            self.kicad_lib_path = kicad_lib_path
-            
-        self.required_symbols: Set[str] = set()
-        self.symbol_defs: Dict[str, str] = {}
 
-    def _format_symbol(self, content: str) -> str:
-        """Format symbol content with correct indentation."""
-        lines = content.split('\n')
-        formatted = []
-        indent = 0
-        
-        for line in lines:
-            line = line.strip()
-            # Decrease indent for closing parentheses
-            indent -= line.count(')')
-            # Add line with current indent
-            if line:  # Only add non-empty lines
-                formatted.append('\t' * indent + line)
-            # Increase indent for opening parentheses
-            indent += line.count('(')
-            
-        return '\n'.join(formatted)
+        self.kicad_lib_path = kicad_lib_path
+        self._parser_cache: Dict[str, SymbolParser] = {}
+
+    def add_symbol(self, sym: SchematicSymbol):
+        self.symbols.append(sym)
 
     def _find_library_file(self, library_name: str) -> Optional[str]:
-        """Find the .kicad_sym file for a given library."""
-        lib_file = os.path.join(self.kicad_lib_path, f"{library_name}.kicad_sym")
-        if os.path.exists(lib_file):
-            return lib_file
-            
-        # Try case-insensitive search as fallback
-        for filename in os.listdir(self.kicad_lib_path):
-            if filename.lower() == f"{library_name.lower()}.kicad_sym":
-                return os.path.join(self.kicad_lib_path, filename)
-                
+        """
+        Find <library_name>.kicad_sym in self.kicad_lib_path
+        """
+        if not os.path.isdir(self.kicad_lib_path):
+            return None
+        fname = os.path.join(self.kicad_lib_path, f"{library_name}.kicad_sym")
+        if os.path.isfile(fname):
+            return fname
         return None
 
-    def _extract_symbol_def(self, lib_file: str, lib_id: str) -> Optional[str]:
-        """Extract a complete symbol definition from a library file.
-        
-        Args:
-            lib_file: Path to the .kicad_sym library file
-            lib_id: Library identifier in format "library:symbol"
-            
-        Returns:
-            Complete symbol definition as a string, or None if not found
+    def _get_symbol_parser(self, library_name: str) -> Optional[SymbolParser]:
+        if library_name in self._parser_cache:
+            return self._parser_cache[library_name]
+        lib_file = self._find_library_file(library_name)
+        if not lib_file:
+            return None
+        sp = SymbolParser(lib_file)
+        self._parser_cache[library_name] = sp
+        return sp
+
+    def _generate_lib_symbols_section(self) -> str:
+        lines = []
+        lines.append("\t(lib_symbols")
+        unique_lids = sorted({sym.lib_id for sym in self.symbols})
+        for lid in unique_lids:
+            if ":" not in lid:
+                # fallback
+                lines.append(f"\t\t(symbol \"{lid}\" (property \"Value\" \"???\"))")
+                continue
+            libname, symname = lid.split(":", 1)
+            parser = self._get_symbol_parser(libname)
+            if not parser:
+                lines.append(f"\t\t(symbol \"{lid}\" (property \"Value\" \"???\"))")
+                continue
+            sdef = parser.get_flattened_symbol(symname)
+            if not sdef:
+                lines.append(f"\t\t(symbol \"{lid}\" (property \"Value\" \"???\"))")
+                continue
+            # Flattened
+            flattened = symbol_def_to_sexpr(sdef)
+            flines = flattened.splitlines()
+            for fl in flines:
+                lines.append("\t\t" + fl)
+        lines.append("\t)")
+        return "\n".join(lines) + "\n"
+
+    def _generate_symbol_instance(self, sym: SchematicSymbol) -> str:
         """
+        Minimal placed symbol s-expression
+        """
+        lines = []
+        lines.append("\t(symbol")
+        lines.append(f'\t  (lib_id "{sym.lib_id}")')
+        lines.append(f"\t  (at {sym.position[0]:.2f} {sym.position[1]:.2f} {sym.rotation:.1f})")
+        lines.append(f"\t  (unit {sym.unit})")
+        lines.append("\t  (exclude_from_sim no)")
+        lines.append(f"\t  (in_bom {'yes' if sym.in_bom else 'no'})")
+        lines.append(f"\t  (on_board {'yes' if sym.on_board else 'no'})")
+        lines.append("\t  (dnp no)")
+        lines.append("\t  (fields_autoplaced yes)")
+        lines.append(f"\t  (uuid \"{sym.uuid}\")")
+        lines.append(f'\t  (property "Reference" "{sym.reference}"')
+        lines.append(f"\t    (at {sym.position[0]+2.0:.2f} {sym.position[1]:.2f} 0)")
+        lines.append("\t    (effects (font (size 1.27 1.27)))")
+        lines.append("\t  )")
+        lines.append(f'\t  (property "Value" "{sym.value}"')
+        lines.append(f"\t    (at {sym.position[0]+2.0:.2f} {sym.position[1]+1.5:.2f} 0)")
+        lines.append("\t    (effects (font (size 1.27 1.27))))")
+        lines.append(f'\t  (property "Footprint" "{sym.footprint}"')
+        lines.append(f"\t    (at {sym.position[0]:.2f} {sym.position[1]:.2f} 0)")
+        lines.append("\t    (effects (font (size 1.27 1.27)) (hide yes))")
+        lines.append("\t  )")
+        lines.append("\t)")
+        return "\n".join(lines)
+
+    def generate(self, out_file: str) -> bool:
         try:
-            library_name, symbol_name = lib_id.split(':')
-            
-            with open(lib_file, 'r') as f:
-                content = f.read()
+            lines = []
+            lines.append("(kicad_sch")
+            lines.append(f"\t(version {self.version})")
+            lines.append(f"\t(generator \"{self.generator}\")")
+            lines.append(f"\t(generator_version \"{self.generator_version}\")")
+            lines.append(f"\t(uuid \"{self.uuid}\")")
+            lines.append(f"\t(paper \"{self.paper_size}\")")
 
-            lines = content.split('\n')
-            symbol_lines = []
-            in_symbol = False
-            bracket_count = 0
-            
-            # Find main symbol definition start
-            for i, line in enumerate(lines):
-                line = line.rstrip()
-                
-                if f'(symbol "{symbol_name}"' in line or f'(symbol "{lib_id}"' in line:
-                    in_symbol = True
-                    bracket_count = line.count('(') - line.count(')')
-                    # Replace only the main symbol name, not unit references
-                    if f'(symbol "{symbol_name}"' in line:
-                        line = line.replace(f'"{symbol_name}"', f'"{lib_id}"', 1)
-                    symbol_lines = [line]
-                    continue
-                    
-                if in_symbol:
-                    # Skip any 'extends' line
-                    if '(extends' in line:
-                        continue
-                        
-                    symbol_lines.append(line)
-                    bracket_count += line.count('(') - line.count(')')
-                    
-                    if bracket_count == 0:
-                        # Found complete symbol definition
-                        symbol_def = '\n'.join(symbol_lines)
-                        
-                        # Check if required fields exist, add if missing
-                        first_property_idx = symbol_def.find('(property')
-                        if first_property_idx == -1:
-                            return symbol_def  # No properties, return as is
-                            
-                        header = symbol_def[:first_property_idx]
-                        rest = symbol_def[first_property_idx:]
-                        
-                        # Add any missing required fields
-                        for field in REQUIRED_SYMBOL_FIELDS:
-                            if field not in header:
-                                header += f'\n\t\t{field}'
-                                
-                        return self._format_symbol(header + rest)
-                        
-            return None
-                
-        except Exception as e:
-            print(f"Error extracting symbol {lib_id}: {e}")
-            return None
-        
-    def _load_symbol_definition(self, lib_id: str) -> Optional[str]:
-        """Load a symbol definition from library, with caching."""
-        if lib_id in self.symbol_defs:
-            return self.symbol_defs[lib_id]
-            
-        try:
-            library_name, symbol_name = lib_id.split(':')
-            lib_file = self._find_library_file(library_name)
-            
-            if not lib_file:
-                print(f"Could not find library file for {library_name}")
-                return None
-                
-            symbol_def = self._extract_symbol_def(lib_file, lib_id)
-            if symbol_def:
-                self.symbol_defs[lib_id] = symbol_def
-                return symbol_def
-                
-        except Exception as e:
-            print(f"Error loading symbol {lib_id}: {e}")
-            return None
+            # Minimal title block
+            dt_str = datetime.datetime.now().strftime("%Y-%m-%d")
+            lines.append("\t(title_block")
+            lines.append(f"\t\t(date \"{dt_str}\")")
+            lines.append("\t)")
 
-    def _generate_lib_symbols(self) -> str:
-        """Generate library symbols section."""
-        content = "\t(lib_symbols\n"
-        
-        for lib_id in sorted(self.required_symbols):
-            symbol_def = self._load_symbol_definition(lib_id)
-            if symbol_def:
-                content += symbol_def + '\n'
-                
-        content += "\t)\n"
-        return content
-    
-    def _generate_symbol_instance(self, symbol: SchematicSymbol) -> str:
-        """Generate a symbol instance."""
-        # Determine whether the reference should be hidden
-        hide_reference = "yes" if symbol.reference.startswith("#PWR") else "no"
-        return f'''\t(symbol
-        (lib_id "{symbol.lib_id}")
-        (at {symbol.position[0]} {symbol.position[1]} {symbol.rotation})
-        (unit {symbol.unit})
-        (exclude_from_sim no)
-        (in_bom yes)
-        (on_board yes)
-        (dnp no)
-        (fields_autoplaced yes)
-        (uuid "{symbol.uuid}")
-        (property "Reference" "{symbol.reference}"
-            (at {symbol.position[0] + 2.54} {symbol.position[1] - 1.27} 0)
-            (effects
-                (font 
-                    (size 1.27 1.27)
-                )
-                (justify left)
-                (hide {hide_reference})
-            )
-        )
-        (property "Value" "{symbol.value}"
-            (at {symbol.position[0] + 2.54} {symbol.position[1] + 1.27} 0)
-            (effects
-                (font
-                    (size 1.27 1.27)
-                )
-                (justify left)
-            )
-        )
-        (property "Footprint" "{symbol.footprint or ''}"
-            (at {symbol.position[0]} {symbol.position[1]} 0)
-            (effects
-                (font
-                    (size 1.27 1.27)
-                )
-                (hide yes)
-            )
-        )
-        (property "Datasheet" "~"
-            (at {symbol.position[0]} {symbol.position[1]} 0)
-            (effects
-                (font
-                    (size 1.27 1.27)
-                )
-                (hide yes)
-            )
-        )
-    )'''
+            # Flattened library symbols
+            lines.append(self._generate_lib_symbols_section())
 
-    def add_symbol(self, symbol: SchematicSymbol) -> None:
-        """Add a symbol to the schematic."""
-        if symbol.uuid is None:
-            symbol.uuid = str(uuid.uuid4())
-        self.symbols.append(symbol)
-        self.required_symbols.add(symbol.lib_id)
+            # Symbol instances
+            for s in self.symbols:
+                lines.append(self._generate_symbol_instance(s))
 
-    def generate(self, filepath: str) -> bool:
-        """Generate the KiCad schematic file."""
-        try:
-            content = f'''(kicad_sch
-    (version {self.version})
-    (generator "{self.generator}")
-    (generator_version "{self.generator_version}")
-    (uuid "{str(uuid.uuid4())}")
-    (paper "{self.paper_size}")
-    (title_block
-        (date "{datetime.datetime.now().strftime('%Y-%m-%d')}")
-    )'''
-            
-            # Add library symbols
-            content += self._generate_lib_symbols()
-            
-            # Add placed symbols
-            for symbol in self.symbols:
-                content += self._generate_symbol_instance(symbol)
-            
-            # Add sheet instances
-            content += '''    (sheet_instances
-        (path "/"
-            (page "1")
-        )
-    )
-)'''
+            # minimal sheet_instances
+            lines.append("\t(sheet_instances")
+            lines.append("\t\t(path \"/\" (page \"1\"))")
+            lines.append("\t)")
+            lines.append(")")
 
-            with open(filepath, 'w') as f:
-                f.write(content)
+            text = "\n".join(lines) + "\n"
+            with open(out_file, "w", encoding="utf-8") as f:
+                f.write(text)
+
             return True
-
         except Exception as e:
-            print(f"Error generating schematic file: {e}")
+            print(f"[Error writing schematic {out_file}]: {e}")
             return False
