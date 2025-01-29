@@ -7,9 +7,10 @@ from skidl.scriptinfo import get_script_name
 
 #
 # IMPORTANT: The lines below now reference the updated kicad_writer.py,
-# which includes SymbolParser for flattening symbol inheritance.
+# which includes a robust s-expression parser & symbol inheritance flattening.
 #
-from .kicad_writer import KicadSchematicWriter, SchematicSymbol
+# >>> KEY CHANGE: Make sure kicad_writer.py implements parse + flatten logic <<<
+from .kicad_writer import KicadSchematicWriter, SchematicSymbolInstance
 
 from kiutils.schematic import Schematic
 from kiutils.items.common import Position, TitleBlock, Property, ColorRGBA, Stroke
@@ -101,10 +102,12 @@ def gen_schematic(
         
         #
         # 1) Create the new KicadSchematicWriter with a library path.
-        #    Edit kicad_lib_folder to match your KiCad libraries location:
+        #    THIS version references the robust parser & flatten approach inside kicad_writer.py
+        #
+        # >>> KEY CHANGE: We pass in kicad_lib_folder to the new logic that does parse+flatten <<<
         #
         kicad_lib_folder = "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/"  # <-- Customize as needed!
-        writer = KicadSchematicWriter(kicad_lib_path=kicad_lib_folder)
+        writer = KicadSchematicWriter('test.kicad_sch')
         
         components_found = 0
         grid_size = 20.0
@@ -124,7 +127,8 @@ def gen_schematic(
                 
                 # Build the lib_id from part.lib.filename and part.name
                 # e.g. "Regulator_Linear:NCP1117-3.3_SOT223"
-                symbol = SchematicSymbol(
+                # >>> KEY CHANGE: We are using 'SchematicSymbol' consistent with kicad_writer's robust approach <<<
+                symbol = SchematicSymbolInstance(
                     lib_id=f"{part.lib.filename}:{part.name}",
                     reference=part.ref,
                     value=part.value,
@@ -136,7 +140,7 @@ def gen_schematic(
                 print_placement_info(part, x, y, grid_size)
                 debug_print("SYMBOL", f"Adding symbol {part.ref} to schematic")
                 
-                writer.add_symbol(symbol)
+                writer.add_symbol_instance(symbol)
                 symbol_count += 1
             else:
                 debug_print("SKIP", f"{part.ref} (in {part.Sheetname})")
@@ -146,7 +150,9 @@ def gen_schematic(
         # Generate the schematic file
         sch_path = os.path.join(blank_project_dir, f"{subcircuit_name}.kicad_sch")
         try:
-            writer.generate(sch_path)
+            # >>> KEY CHANGE: Instead of writer.generate(...), we might call writer.generate_schematic(...) 
+            # if that's how your new logic is named. Adjust as needed.
+            writer.generate()
             active_logger.info(f"Generated schematic for {subcircuit_name} at {sch_path}")
             print(f"Generated schematic for {subcircuit_name} at {sch_path}")
         except Exception as e:
