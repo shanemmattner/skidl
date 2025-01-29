@@ -1,222 +1,148 @@
-#!/usr/bin/env python3
+# src/skidl/tools/kicad8/sch_gen/tests/test_blank_sch.py
 
 import os
+import pytest
+from pathlib import Path
 import uuid
+import re
+from kiutils.schematic import Schematic
+from skidl.tools.kicad8.sch_gen import gen_schematic
+from skidl import Circuit
 
-KICAD8_SYMBOL_DIR = os.environ.get('KICAD8_SYMBOL_DIR', '/usr/share/kicad/symbols')
+# Get the path to the reference_schematics directory relative to this test file
+TESTS_DIR = Path(__file__).parent
+REFERENCE_DIR = TESTS_DIR / "reference_schematics"
 
-def find_symbol_library(lib_name):
-    """Find the .kicad_sym file containing the specified library"""
-    lib_file = f"{lib_name}.kicad_sym"
-    lib_path = os.path.join(KICAD8_SYMBOL_DIR, lib_file)
-    return lib_path if os.path.exists(lib_path) else None
+@pytest.fixture
+def reference_schematic():
+    """Load the reference blank schematic"""
+    ref_path = REFERENCE_DIR / "blank_schematic.kicad_sch"
+    assert ref_path.exists(), f"Reference schematic not found at {ref_path}"
+    return Schematic.from_file(str(ref_path))
 
-def extract_symbol_definition(lib_path, symbol_name):
-    """Extract a specific symbol definition from a .kicad_sym file using parenthesis matching"""
-    with open(lib_path, 'r') as f:
-        lines = f.readlines()
+@pytest.fixture
+def temp_project_dir(tmp_path):
+    """Create a temporary directory for the project"""
+    project_dir = tmp_path / "test_project"
+    project_dir.mkdir(exist_ok=True)
+    return project_dir
+
+def normalize_schematic_content(content: str) -> str:
+    """
+    Normalize schematic content for comparison by:
+    1. Removing UUIDs which will be different each time
+    2. Normalizing whitespace
+    3. Removing generator version which isn't supported by kiutils
+    """
+    # Remove UUIDs
+    content = re.sub(r'uuid "[^"]+"', 'uuid "NORMALIZED"', content)
     
-    start_line = None
-    symbol_lines = []
+    # Remove generator version
+    content = re.sub(r'\(generator_version "[^"]+"\)\s*', '', content)
     
-    # Find the start of the symbol definition
-    for i, line in enumerate(lines):
-        if f'(symbol "{symbol_name}"' in line:
-            start_line = i
-            break
-            
-    if start_line is None:
-        return None
+    # Normalize generator
+    content = re.sub(r'\(generator "?eeschema"?\)', '(generator "eeschema")', content)
+    
+    # Normalize whitespace
+    content = re.sub(r'\s+', ' ', content)
+    content = re.sub(r'\( ', '(', content)
+    content = re.sub(r' \)', ')', content)
+    
+    # Remove any leading/trailing whitespace
+    content = content.strip()
+    
+    return content
+
+def test_blank_schematic_generation(temp_project_dir, reference_schematic):
+    """
+    Test that gen_schematic() generates a blank schematic matching our reference.
+    """
+    # Create empty circuit
+    circuit = Circuit()
+    
+    # Generate schematic
+    gen_schematic(
+        circuit=circuit,
+        filepath=str(temp_project_dir),
+        project_name="test_blank",
+        title="Test Blank Schematic"
+    )
+    
+    # Path to generated schematic
+    generated_path = temp_project_dir / "test_blank" / "test_blank.kicad_sch"
+    
+    # Verify file was created
+    assert generated_path.exists(), "Generated schematic file not found"
+    
+    # Load generated schematic
+    generated_schematic = Schematic.from_file(str(generated_path))
+    
+    # Compare key attributes
+    assert str(generated_schematic.version) == "20231120", \
+        f"Version mismatch: got {generated_schematic.version}, expected 20231120"
+    
+    assert generated_schematic.paper == reference_schematic.paper, \
+        f"Paper size mismatch: got {generated_schematic.paper}, expected {reference_schematic.paper}"
+    
+    # Verify lib_symbols exists and is empty
+    assert hasattr(generated_schematic, 'libSymbols'), "Missing libSymbols section"
+    assert len(generated_schematic.libSymbols) == 0, "libSymbols should be empty"
+    
+    # Compare raw content with normalization
+    with open(generated_path) as f:
+        generated_content = f.read()
+    with open(REFERENCE_DIR / "blank_schematic.kicad_sch") as f:
+        reference_content = f.read()
         
-    # Count parentheses to find the matching end
-    paren_count = 0
-    for line in lines[start_line:]:
-        symbol_lines.append(line.rstrip())
-        paren_count += line.count('(') - line.count(')')
-        if paren_count == 0:
-            break
-            
-    return '\n'.join(symbol_lines)
-
-def get_library_symbol(lib_name, symbol_name):
-    """Main function to get a symbol definition from KiCad libraries"""
-    lib_path = find_symbol_library(lib_name)
-    if not lib_path:
-        raise FileNotFoundError(f"Could not find library {lib_name} in {KICAD8_SYMBOL_DIR}")
+    normalized_generated = normalize_schematic_content(generated_content)
+    normalized_reference = normalize_schematic_content(reference_content)
     
-    symbol_def = extract_symbol_definition(lib_path, symbol_name)
-    if not symbol_def:
-        raise ValueError(f"Symbol {symbol_name} not found in library {lib_name}")
-    
-    return symbol_def
+    assert normalized_generated == normalized_reference, \
+        "Generated schematic content does not match reference"
 
-def generate_uuid():
-    """Generate a KiCad-compatible UUID"""
-    return str(uuid.uuid4())
-
-def calculate_symbol_position(index, grid_size=20.0, symbols_per_row=5):
+def test_schematic_metadata(temp_project_dir):
     """
-    Calculate grid-based position for symbol placement
-    
-    Args:
-        index: Component index (0-based)
-        grid_size: Grid spacing in mm (default: 20.0)
-        symbols_per_row: Number of symbols per row (default: 5)
-    
-    Returns:
-        tuple: (x, y) position in mm
+    Test that generated schematic has correct metadata
     """
-    row = index // symbols_per_row
-    col = index % symbols_per_row
-    x = float(col * grid_size)
-    y = float(row * -grid_size)  # Negative for KiCad coordinate system
-    return (x, y)
+    circuit = Circuit()
+    
+    # Generate schematic with specific metadata
+    test_title = "Test Schematic"
+    gen_schematic(
+        circuit=circuit,
+        filepath=str(temp_project_dir),
+        project_name="test_meta",
+        title=test_title
+    )
+    
+    generated_path = temp_project_dir / "test_meta" / "test_meta.kicad_sch"
+    schematic = Schematic.from_file(str(generated_path))
+    
+    # Verify metadata (only what kiutils actually supports)
+    assert str(schematic.version) == "20231120", "Incorrect schematic version"
+    assert schematic.generator == "eeschema", "Incorrect generator"
+    assert schematic.paper == "A4", "Incorrect paper size"
 
-def create_blank_schematic(schematic_path):
-    """Create a blank KiCad schematic file"""
-    content = '''(kicad_sch (version 20211014) (generator kiutils)
-  (paper "A4")
-
-  (title_block
-    (title "SKiDL-Generated Schematic")
-    (rev "1.0")
-    (company "Generated by SKiDL")
-  )
-  (lib_symbols)
-
-  (sheet_instances
-    (path "/" (page "1"))
-  )
-)'''
-    with open(schematic_path, 'w') as f:
-        f.write(content)
-
-def add_symbol_to_schematic(schematic_path, lib_name, symbol_name, reference, value, position=None):
+def test_project_directory_structure(temp_project_dir):
     """
-    Add a symbol to an existing KiCad schematic
-    
-    Args:
-        schematic_path: Path to .kicad_sch file
-        lib_name: Library name (e.g. "Device")
-        symbol_name: Symbol name (e.g. "R")
-        reference: Component reference (e.g. "R1")
-        value: Component value (e.g. "10k")
-        position: Optional (x,y) tuple for placement. If None, will be auto-calculated.
+    Test that gen_schematic creates correct project directory structure
     """
-    # Create blank schematic if it doesn't exist
-    if not os.path.exists(schematic_path):
-        create_blank_schematic(schematic_path)
+    circuit = Circuit()
+    project_name = "test_structure"
     
-    # Read current schematic content
-    with open(schematic_path, 'r') as f:
-        lines = f.readlines()
-    
-    # Find lib_symbols section
-    lib_symbols_idx = -1
-    for i, line in enumerate(lines):
-        if '(lib_symbols)' in line:
-            lib_symbols_idx = i
-            break
-    
-    if lib_symbols_idx == -1:
-        raise ValueError("Could not find lib_symbols section in schematic")
-    
-    # Get symbol definition
-    symbol_def = get_library_symbol(lib_name, symbol_name)
-    
-    # Check if symbol is already in lib_symbols
-    symbol_exists = False
-    for line in lines:
-        if f'(symbol "{lib_name}:{symbol_name}"' in line:
-            symbol_exists = True
-            break
-    
-    # Add symbol definition if not already present
-    if not symbol_exists:
-        # Insert after (lib_symbols) line
-        lines.insert(lib_symbols_idx + 1, symbol_def + '\n')
-    
-    # Calculate position if not provided
-    if position is None:
-        # Count existing symbols to calculate position
-        symbol_count = sum(1 for line in lines if '(symbol (lib_id' in line)
-        pos_x, pos_y = calculate_symbol_position(symbol_count)
-    else:
-        pos_x, pos_y = position
-    
-    # Generate UUIDs
-    symbol_uuid = generate_uuid()
-    pin1_uuid = generate_uuid()
-    pin2_uuid = generate_uuid()
-    
-    # Create symbol instance
-    symbol_instance = f'''  (symbol (lib_id "{lib_name}:{symbol_name}") (at {pos_x} {pos_y} 0)
-    (unit 1)
-    (in_bom yes)
-    (on_board yes)
-    (dnp no)
-    (uuid {symbol_uuid})
-    (property "Reference" "{reference}"
-      (at {pos_x} {pos_y - 2.54} 0)
-      (effects
-        (font
-          (size 1.27 1.27)
-        )
-      )
+    gen_schematic(
+        circuit=circuit,
+        filepath=str(temp_project_dir),
+        project_name=project_name
     )
-    (property "Value" "{value}"
-      (at {pos_x} {pos_y + 2.54} 0)
-      (effects
-        (font
-          (size 1.27 1.27)
-        )
-      )
-    )
-    (pin "1"
-      (uuid {pin1_uuid})
-    )
-    (pin "2"
-      (uuid {pin2_uuid})
-    )
-    (instances
-      (project ""
-        (path "/"
-          (reference "{reference}")
-          (unit 1)
-        )
-      )
-    )
-  )'''
     
-    # Find position to insert symbol instance (before sheet_instances)
-    sheet_instances_idx = -1
-    for i, line in enumerate(lines):
-        if '(sheet_instances' in line:
-            sheet_instances_idx = i
-            break
+    project_dir = temp_project_dir / project_name
     
-    if sheet_instances_idx == -1:
-        raise ValueError("Could not find sheet_instances section in schematic")
+    # Verify project directory was created
+    assert project_dir.is_dir(), "Project directory not created"
     
-    # Insert symbol instance
-    lines.insert(sheet_instances_idx, symbol_instance + '\n')
+    # Verify schematic file exists
+    assert (project_dir / f"{project_name}.kicad_sch").exists(), \
+        "Main schematic file not created"
     
-    # Write updated content back to file
-    with open(schematic_path, 'w') as f:
-        f.writelines(lines)
-
-def test_add_resistor():
-    """Test function to add a resistor to a schematic"""
-    schematic_path = "test_schematic.kicad_sch"
-    
-    # Add a resistor
-    add_symbol_to_schematic(
-        schematic_path=schematic_path,
-        lib_name="Device",
-        symbol_name="R",
-        reference="R1",
-        value="10k"
-    )
-
-if __name__ == "__main__":
-    test_add_resistor()
+  
