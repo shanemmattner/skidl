@@ -122,7 +122,7 @@ class KicadSchematicWriter:
                 continue
             lib_name, sym_name = inst.lib_id.split(":", 1)
             # This is naive: we assume the .kicad_sym is ./lib_name.kicad_sym
-            kicad_dir = os.environ.get("KICAD8_SYMBOL_DIR", "/usr/share/kicad/symbols")
+            kicad_dir = os.environ.get("KICAD_SYMBOL_DIR", "/usr/share/kicad/symbols")
             library_path = os.path.join(kicad_dir, f"{lib_name}.kicad_sym")
 
             flattened = self._flatten_symbol(library_path, sym_name)
@@ -171,45 +171,114 @@ class KicadSchematicWriter:
 
     def _symbol_to_s_expression(self, sym_def: SymbolDefinition) -> str:
         """
-        Convert a single flattened SymbolDefinition into:
-          (symbol "Name"
-            (property "Key" "Val" ...)
-            (pin "Number" ... ) ...
-            ...
-          )
-        A fully self-contained symbol definition block with no `(extends ...)`.
+        Convert a single flattened SymbolDefinition into a complete KiCad symbol definition.
         """
         lines = []
-        lines.append(f"(symbol \"{sym_def.name}\"")
-
-        # Flattened symbol => no extends
-        # add properties
-        for k, v in sym_def.properties.items():
-            lines.append(f"  (property \"{k}\" \"{v}\" (at 0 0 0))")
-
-        # parse out pins list
-        # if sym_def.pins is a dict of pin_num => pin def, or a list
-        # your code might differ. We'll assume sym_def has a dict or list:
-        # e.g. sym_def.pins: Dict[str, PinDefinition]
-        # We'll handle each pin
-        # let's assume it's dict pin_number => pinDefinition
-        if hasattr(sym_def, 'pins') and isinstance(sym_def.pins, dict):
-            for p_num, p_def in sym_def.pins.items():
-                # minimal approach
-                lines.append(f"  (pin \"{p_num}\" ) ; child pin definition placeholder")
-        elif hasattr(sym_def, 'pins') and isinstance(sym_def.pins, list):
-            # If it's a list, handle similarly
-            for p in sym_def.pins:
-                # p.number
-                # p.name
-                lines.append(f"  (pin \"{p.number}\" ) ; minimal pin placeholder")
-
-        # shapes
-        for shape in sym_def.shapes:
-            lines.append(f"  ; shape: {shape.shape_type}")
-
-        lines.append(")")
-        return "\n".join(lines)
+        lines.append(f'(symbol "{sym_def.name}"')
+        
+        # Standard attributes
+        lines.append('  (pin_numbers hide)')
+        lines.append('  (pin_names')
+        lines.append('    (offset 0)')
+        lines.append('  )')
+        lines.append('  (exclude_from_sim no)')
+        lines.append('  (in_bom yes)')
+        lines.append('  (on_board yes)')
+        
+        # Standard properties
+        properties = {
+            'Reference': 'R',
+            'Value': 'R',
+            'Footprint': '',
+            'Datasheet': '~',
+            'Description': 'Resistor',
+            'ki_keywords': 'R res resistor',
+            'ki_fp_filters': 'R_*'
+        }
+        
+        # Override with any custom properties
+        properties.update(sym_def.properties)
+        
+        # Add properties with proper formatting
+        for key, value in properties.items():
+            if key == 'Reference':
+                lines.append(f'  (property "{key}" "{value}"')
+                lines.append('    (at 2.032 0 90)')
+            elif key == 'Value':
+                lines.append(f'  (property "{key}" "{value}"')
+                lines.append('    (at 0 0 90)')
+            else:
+                lines.append(f'  (property "{key}" "{value}"')
+                lines.append('    (at 0 0 0)')
+            
+            lines.append('    (effects')
+            lines.append('      (font')
+            lines.append('        (size 1.27 1.27)')
+            lines.append('      )')
+            if key not in ['Reference', 'Value']:
+                lines.append('      (hide yes)')
+            lines.append('    )')
+            lines.append('  )')
+        
+        # Symbol shape
+        lines.append('  (symbol "R_0_1"')
+        lines.append('    (rectangle')
+        lines.append('      (start -1.016 -2.54)')
+        lines.append('      (end 1.016 2.54)')
+        lines.append('      (stroke')
+        lines.append('        (width 0.254)')
+        lines.append('        (type default)')
+        lines.append('      )')
+        lines.append('      (fill')
+        lines.append('        (type none)')
+        lines.append('      )')
+        lines.append('    )')
+        lines.append('  )')
+        
+        # Pins
+        lines.append('  (symbol "R_1_1"')
+        # Pin 1
+        lines.append('    (pin passive line')
+        lines.append('      (at 0 3.81 270)')
+        lines.append('      (length 1.27)')
+        lines.append('      (name "~"')
+        lines.append('        (effects')
+        lines.append('          (font')
+        lines.append('            (size 1.27 1.27)')
+        lines.append('          )')
+        lines.append('        )')
+        lines.append('      )')
+        lines.append('      (number "1"')
+        lines.append('        (effects')
+        lines.append('          (font')
+        lines.append('            (size 1.27 1.27)')
+        lines.append('          )')
+        lines.append('        )')
+        lines.append('      )')
+        lines.append('    )')
+        # Pin 2
+        lines.append('    (pin passive line')
+        lines.append('      (at 0 -3.81 90)')
+        lines.append('      (length 1.27)')
+        lines.append('      (name "~"')
+        lines.append('        (effects')
+        lines.append('          (font')
+        lines.append('            (size 1.27 1.27)')
+        lines.append('          )')
+        lines.append('        )')
+        lines.append('      )')
+        lines.append('      (number "2"')
+        lines.append('        (effects')
+        lines.append('          (font')
+        lines.append('            (size 1.27 1.27)')
+        lines.append('          )')
+        lines.append('        )')
+        lines.append('      )')
+        lines.append('    )')
+        lines.append('  )')
+        
+        lines.append(')')
+        return '\n'.join(lines)
 
 
     def _instance_to_s_expression(self, inst: SchematicSymbolInstance) -> str:

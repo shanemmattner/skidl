@@ -36,7 +36,7 @@ def print_component_info(part):
     debug_print("COMP", f"Library   : {part.lib.filename}")
     debug_print("COMP", f"Name      : {part.name}")
     debug_print("COMP", f"Value     : {part.value}")
-    debug_print("COMP", f"Sheet     : {part.Sheetname}")
+    debug_print("COMP", f"Sheet     : {getattr(part, 'Sheetname', 'default')}")
     debug_print("COMP", f"Pins      : {len(part.pins)}")
     if hasattr(part, 'footprint'):
         debug_print("COMP", f"Footprint : {part.footprint}")
@@ -125,7 +125,9 @@ def gen_schematic(
         symbol_count = 0
 
         for part in circuit.parts:
-            if part.Sheetname == subcircuit_name:
+            # Use subcircuit name as default sheet name if Sheetname not provided
+            part_sheet = getattr(part, 'Sheetname', subcircuit_name)
+            if part_sheet == subcircuit_name:
                 components_found += 1
                 debug_print("MATCH", f"Found component {part.ref} in {subcircuit_name}")
                 print_component_info(part)

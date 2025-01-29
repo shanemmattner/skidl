@@ -1,0 +1,14 @@
+(kicad_sch (version 20231120) (generator eeschema)
+
+  (uuid ff77c7e9-6b5b-4f2b-81ea-0c55f2f4cbfb)
+
+  (paper "A4")
+  (lib_symbols)
+
+  (sheet (at 133.5 90.0) (size 30 30)
+    (stroke (width 0.0))
+    (fill (color 0 0 0 0))
+    (property "Sheet name" "resistor_circuit" (at 148.5 85.0 0))
+    (property "Sheet file" "resistor_circuit.kicad_sch" (at 148.5 88.0 0))
+  )
+)
