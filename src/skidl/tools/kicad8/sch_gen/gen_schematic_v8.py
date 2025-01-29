@@ -1,16 +1,12 @@
-# -*- coding: utf-8 -*-
+# gen_schematic_v8.py
 
 import datetime
 import os.path
 import shutil
 from skidl.scriptinfo import get_script_name
 
-#
-# IMPORTANT: The lines below now reference the updated kicad_writer.py,
-# which includes a robust s-expression parser & symbol inheritance flattening.
-#
-# >>> KEY CHANGE: Make sure kicad_writer.py implements parse + flatten logic <<<
 from .kicad_writer import KicadSchematicWriter, SchematicSymbolInstance
+
 
 from kiutils.schematic import Schematic
 from kiutils.items.common import Position, TitleBlock, Property, ColorRGBA, Stroke
@@ -62,59 +58,74 @@ def gen_schematic(
     circuit,
     filepath=".",
     top_name=get_script_name(),
+    project_name="kicad_blank_project",  # <-- NEW ARG: user can override
     title="SKiDL-Generated Schematic",
     flatness=0.0,
     retries=2,
     **options
 ):
-    """Create schematic files from a Circuit object."""
+    """
+    Create schematic files from a Circuit object.
+
+    Args:
+        circuit: The SKiDL Circuit object
+        filepath: Output directory path
+        top_name: A default name for the script or top-level
+        project_name: The user-provided project folder (and top schematic) name
+        title: Title block text
+        ...
+    """
     from skidl.logger import active_logger
     
-    # Setup project directory
-    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    template_dir = os.path.join(os.path.dirname(__file__), "kicad_blank_project", "kicad_blank_project")
-    blank_project_dir = os.path.join(filepath, "kicad_blank_project")
+    # 1) Setup project directory name using 'project_name'.
+    #    So "kicad_blank_project" is replaced by user input.
+    template_dir = os.path.join(
+        os.path.dirname(__file__), 
+        "kicad_blank_project",      # This is your *template* folder name on disk
+        "kicad_blank_project"       # containing the blank project files to copy
+    )
+    # We'll create the new project folder as user has requested:
+    project_dir = os.path.join(filepath, project_name)
     
+    # 2) Copy the blank project template into project_dir
     try:
-        if os.path.exists(blank_project_dir):
-            shutil.rmtree(blank_project_dir)
-        os.makedirs(blank_project_dir)
+        if os.path.exists(project_dir):
+            shutil.rmtree(project_dir)
+        os.makedirs(project_dir)
         
         for item in os.listdir(template_dir):
             source = os.path.join(template_dir, item)
-            dest = os.path.join(blank_project_dir, item)
+            dest = os.path.join(project_dir, item)
             if os.path.isdir(source):
                 shutil.copytree(source, dest)
             else:
                 shutil.copy2(source, dest)
                 
-        active_logger.info(f"Using KiCad blank project directory: {blank_project_dir}")
+        active_logger.info(f"Using KiCad blank project directory: {project_dir}")
     except Exception as e:
-        active_logger.error(f"Failed to setup blank project: {str(e)}")
+        active_logger.error(f"Failed to setup project folder: {str(e)}")
         raise
     
-    # Get all subcircuits
+    # 3) Gather subcircuits from the SKiDL circuit
     subcircuits = circuit.group_name_cntr.keys()
 
+    # For each subcircuit, build a separate schematic
     for subcircuit_path in subcircuits:
         subcircuit_name = subcircuit_path.split('.')[-1]
         debug_print("SHEET", f"Looking for components in sheet: {subcircuit_name}")
+
+        # Build the path: e.g. /my/path/<project_name>/<sheet>.kicad_sch
+        subcircuit_sch_path = os.path.join(project_dir, f"{subcircuit_name}.kicad_sch")
         
-        #
-        # 1) Create the new KicadSchematicWriter with a library path.
-        #    THIS version references the robust parser & flatten approach inside kicad_writer.py
-        #
-        # >>> KEY CHANGE: We pass in kicad_lib_folder to the new logic that does parse+flatten <<<
-        #
-        kicad_lib_folder = "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/"  # <-- Customize as needed!
-        writer = KicadSchematicWriter('test.kicad_sch')
+        # Instead of "test.kicad_sch", pass this path to the writer:
+        writer = KicadSchematicWriter(subcircuit_sch_path)
         
         components_found = 0
         grid_size = 20.0
         symbol_count = 0
 
         for part in circuit.parts:
-            if part.Sheetname in subcircuit_name:
+            if part.Sheetname == subcircuit_name:
                 components_found += 1
                 debug_print("MATCH", f"Found component {part.ref} in {subcircuit_name}")
                 print_component_info(part)
@@ -123,53 +134,71 @@ def gen_schematic(
                 row = symbol_count // 5  # 5 symbols per row
                 col = symbol_count % 5
                 x = float(col * grid_size)
-                y = float(row * -grid_size)  # Negative for KiCad coordinate system
+                y = float(row * -grid_size)
                 
-                # Build the lib_id from part.lib.filename and part.name
-                # e.g. "Regulator_Linear:NCP1117-3.3_SOT223"
-                # >>> KEY CHANGE: We are using 'SchematicSymbol' consistent with kicad_writer's robust approach <<<
+                # Build the lib_id from part.lib.filename:name
                 symbol = SchematicSymbolInstance(
                     lib_id=f"{part.lib.filename}:{part.name}",
                     reference=part.ref,
                     value=part.value,
                     position=(x, y),
                     rotation=0,
-                    footprint=part.footprint if hasattr(part, 'footprint') else None
+                    footprint=getattr(part, 'footprint', None)
                 )
                 
                 print_placement_info(part, x, y, grid_size)
                 debug_print("SYMBOL", f"Adding symbol {part.ref} to schematic")
-                
                 writer.add_symbol_instance(symbol)
+                
                 symbol_count += 1
             else:
+                # Not in this sheet => skip
                 debug_print("SKIP", f"{part.ref} (in {part.Sheetname})")
-        
+
         debug_print("SHEET", f"Found {components_found} components in {subcircuit_name}")
-        
-        # Generate the schematic file
-        sch_path = os.path.join(blank_project_dir, f"{subcircuit_name}.kicad_sch")
+
+        # 4) Actually generate the subcircuit schematic into <subcircuit_name>.kicad_sch
         try:
-            # >>> KEY CHANGE: Instead of writer.generate(...), we might call writer.generate_schematic(...) 
-            # if that's how your new logic is named. Adjust as needed.
-            writer.generate()
-            active_logger.info(f"Generated schematic for {subcircuit_name} at {sch_path}")
-            print(f"Generated schematic for {subcircuit_name} at {sch_path}")
+            writer.generate()  # This writes to subcircuit_sch_path now!
+            active_logger.info(f"Generated schematic for {subcircuit_name} at {subcircuit_sch_path}")
+            print(f"Generated schematic for {subcircuit_name} at {subcircuit_sch_path}")
         except Exception as e:
             active_logger.error(f"Error saving schematic {subcircuit_name}: {str(e)}")
             raise
 
-    # Now add sheet symbols to main schematic
-    main_sch_path = os.path.join(blank_project_dir, "kicad_blank_project.kicad_sch")
-    main_sch = Schematic.from_file(main_sch_path)
+    # 5) Now add the hierarchical sheets to the *top-level* schematic file.
+    #    We'll rename that top-level file to <project_name>.kicad_sch
+    main_sch_name = f"{project_name}.kicad_sch"
+    main_sch_path = os.path.join(project_dir, main_sch_name)
+
+    # In your template, the default blank schematic might be named "kicad_blank_project.kicad_sch".
+    # So we rename it or re-load it below:
+    old_main_sch = os.path.join(project_dir, "kicad_blank_project.kicad_sch")
     
-    # Grid layout settings for sheet symbols
+    try:
+        if os.path.exists(old_main_sch):
+            # rename the file to <project_name>.kicad_sch
+            os.rename(old_main_sch, main_sch_path)
+        else:
+            # fallback if the template doesn't have "kicad_blank_project.kicad_sch"
+            # create a brand-new minimal top schematic
+            main_sch = Schematic.create_new()
+            main_sch.to_file(main_sch_path)
+
+        # Load with KiCad Python tools (kiutils, or your own method)
+        main_sch = Schematic.from_file(main_sch_path)
+    except Exception as e:
+        active_logger.error(f"Error creating/loading main schematic: {e}")
+        # Fallback to creating a completely new schematic
+        main_sch = Schematic.create_new()
+        main_sch.to_file(main_sch_path)
+    
+    # Build hierarchical sheet symbols in a simple grid
     sheet_width = 30  # mm
-    sheet_height = 30  # mm
-    spacing = 40  # mm between sheets
+    sheet_height = 30
+    spacing = 40
     sheets_per_row = 2
     
-    # Calculate layout dimensions
     num_sheets = len(subcircuits)
     num_rows = (num_sheets + sheets_per_row - 1) // sheets_per_row
     num_cols = min(sheets_per_row, num_sheets)
@@ -177,54 +206,44 @@ def gen_schematic(
     total_width = num_cols * sheet_width + (num_cols - 1) * spacing
     total_height = num_rows * sheet_height + (num_rows - 1) * spacing
     
-    # Calculate starting position to center sheets (A4 dimensions = 297mm x 210mm)
+    # A4 is 297mm x 210mm
     start_x = (297 - total_width) / 2
     start_y = (210 - total_height) / 2
     
-    # Create sheets for each subcircuit
     if not hasattr(main_sch, 'sheets'):
         main_sch.sheets = []
         
-    for i, subcircuit_path in enumerate(subcircuits):
+    i = 0
+    for subcircuit_path in subcircuits:
         subcircuit_name = subcircuit_path.split('.')[-1]
         
-        # Calculate grid position
         row = i // sheets_per_row
         col = i % sheets_per_row
         x = start_x + col * (sheet_width + spacing)
         y = start_y + row * (sheet_height + spacing)
+        i += 1
         
         # Create hierarchical sheet
         sheet = HierarchicalSheet()
-        sheet.position = Position()
-        sheet.position.X = str(x)
-        sheet.position.Y = str(y)
-        sheet.position.angle = "0"
-        
+        sheet.position = Position(str(x), str(y), "0")
         sheet.width = sheet_width
         sheet.height = sheet_height
-        
         sheet.stroke = Stroke()
         sheet.fill = ColorRGBA()
-        
-        # Set sheet properties
-        sheet.sheetName = Property(key="Sheet name")
-        sheet.sheetName.value = subcircuit_name
-        sheet.sheetName.position = Position()
-        sheet.sheetName.position.X = str(x + sheet_width / 2)
-        sheet.sheetName.position.Y = str(y - 5)
-        sheet.sheetName.position.angle = "0"
-        
-        sheet.fileName = Property(key="Sheet file")
-        sheet.fileName.value = f"{subcircuit_name}.kicad_sch"
-        sheet.fileName.position = Position()
-        sheet.fileName.position.X = str(x + sheet_width / 2)
-        sheet.fileName.position.Y = str(y - 2)
-        sheet.fileName.position.angle = "0"
+
+        # Sheet name & file
+        sheet.sheetName = Property(key="Sheet name", value=subcircuit_name)
+        sheet.sheetName.position = Position(
+            str(x + sheet_width/2), str(y - 5), "0"
+        )
+        sheet.fileName = Property(key="Sheet file", value=f"{subcircuit_name}.kicad_sch")
+        sheet.fileName.position = Position(
+            str(x + sheet_width/2), str(y - 2), "0"
+        )
         
         main_sch.sheets.append(sheet)
     
-    # Save main schematic with added sheets
+    # Save updated top-level schematic
     try:
         main_sch.to_file(main_sch_path)
         active_logger.info(f"Added sheet symbols to main schematic at {main_sch_path}")

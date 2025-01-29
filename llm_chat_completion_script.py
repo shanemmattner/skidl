@@ -28,6 +28,7 @@ TARGET_FILES = [
     # 'sch_io_kicad_sexpr_parser.cpp',
     # 'sch_io_kicad_sexpr.cpp',
     'SCH_GEN_ISSUE_SUMMARY.md',
+    'test.kicad_sch',
 ]
 
 # Message to add at the start of the output file
@@ -51,12 +52,11 @@ Core Files:
 - `symbol_definitions.py`: Defines symbol structures, including properties, pins, and shapes.
 - `kicad_library_parser.py`: Parses KiCad `.kicad_sym` library files to extract symbol definitions.
 - `symbol_flatten.py`: Flattens symbols by resolving inherited properties and structures.
+- `test.kicad_sch`: Generated KiCad schematic file for a test circuit
 
-
-Help me debug this code to generate kicad schematics from python code.  Currently I get this error:
-
-venvshanemattner@Shanes-MacBook-Pro skidl % python3 example_kicad_project_SKIDL/kicad_project_SKIDL/main.py
-INFO: Using KiCad blank project directory: ./kicad_blank_project @ [/Users/shanemattner/Desktop/skidl/example_kicad_project_SKIDL/kicad_project_SKIDL/main.py:26]
+Here is the current output of the logic:
+venvshanemattner@Shanes-MacBook-Pro skidl % python3 src/skidl/tools/kicad8/sch_gen/example_kicad_project_SKIDL/kicad_project_SKIDL/main.py
+INFO: Using KiCad blank project directory: ./kicad_blank_project @ [/Users/shanemattner/Desktop/skidl/src/skidl/tools/kicad8/sch_gen/example_kicad_project_SKIDL/kicad_project_SKIDL/main.py:26]
 [  SHEET   ] Looking for components in sheet: esp32s3mini1
 [  MATCH   ] Found component C1 in esp32s3mini1
 [   COMP   ] ----------------------------------------
@@ -74,25 +74,359 @@ INFO: Using KiCad blank project directory: ./kicad_blank_project @ [/Users/shane
 [  PLACE   ] Grid Size  : 20.0
 [  PLACE   ] ----------------------------------------
 [  SYMBOL  ] Adding symbol C1 to schematic
-Traceback (most recent call last):
-  File "/Users/shanemattner/Desktop/skidl/example_kicad_project_SKIDL/kicad_project_SKIDL/main.py", line 26, in <module>
-    generate_schematic()
-    ~~~~~~~~~~~~~~~~~~^^
-  File "/Users/shanemattner/Desktop/skidl/src/skidl/circuit.py", line 1006, in generate_schematic
-    tool_modules[tool].gen_schematic(self, **kwargs)
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
-  File "/Users/shanemattner/Desktop/skidl/src/skidl/tools/kicad8/sch_gen/gen_schematic.py", line 143, in gen_schematic
-    writer.add_symbol(symbol)
-    ^^^^^^^^^^^^^^^^^
-AttributeError: 'KicadSchematicWriter' object has no attribute 'add_symbol'
+[  MATCH   ] Found component J1 in esp32s3mini1
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : J1
+[   COMP   ] Library   : Connector_Generic
+[   COMP   ] Name      : Conn_02x03_Odd_Even
+[   COMP   ] Value     : Conn_02x03_Odd_Even
+[   COMP   ] Sheet     : esp32s3mini1
+[   COMP   ] Pins      : 6
+[   COMP   ] Footprint : Connector_IDC:IDC-Header_2x03_P2.54mm_Vertical
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : J1
+[  PLACE   ] Position   : (20.0, -0.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol J1 to schematic
+[  MATCH   ] Found component U1 in esp32s3mini1
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : U1
+[   COMP   ] Library   : RF_Module
+[   COMP   ] Name      : ESP32-S3-MINI-1
+[   COMP   ] Value     : ESP32-S3-MINI-1
+[   COMP   ] Sheet     : esp32s3mini1
+[   COMP   ] Pins      : 65
+[   COMP   ] Footprint : RF_Module:ESP32-S2-MINI-1
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : U1
+[  PLACE   ] Position   : (40.0, -0.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol U1 to schematic
+[   SKIP   ] C2 (in resistor_divider1)
+[   SKIP   ] R1 (in resistor_divider1)
+[   SKIP   ] R2 (in resistor_divider1)
+[   SKIP   ] C3 (in 3v3_regulator)
+[   SKIP   ] C4 (in 3v3_regulator)
+[   SKIP   ] C5 (in 3v3_regulator)
+[   SKIP   ] C6 (in 3v3_regulator)
+[   SKIP   ] R3 (in 3v3_regulator)
+[   SKIP   ] R4 (in 3v3_regulator)
+[   SKIP   ] R5 (in 3v3_regulator)
+[   SKIP   ] R6 (in 3v3_regulator)
+[   SKIP   ] U2 (in 3v3_regulator)
+[   SKIP   ] C7 (in USB)
+[   SKIP   ] P1 (in USB)
+[   SKIP   ] R7 (in USB)
+[  SHEET   ] Found 3 components in esp32s3mini1
+INFO: Generated schematic for esp32s3mini1 at ./kicad_blank_project/esp32s3mini1.kicad_sch @ [/Users/shanemattner/Desktop/skidl/src/skidl/tools/kicad8/sch_gen/example_kicad_project_SKIDL/kicad_project_SKIDL/main.py:26]
+Generated schematic for esp32s3mini1 at ./kicad_blank_project/esp32s3mini1.kicad_sch
+[  SHEET   ] Looking for components in sheet: resistor_divider1
+[   SKIP   ] C1 (in esp32s3mini1)
+[   SKIP   ] J1 (in esp32s3mini1)
+[   SKIP   ] U1 (in esp32s3mini1)
+[  MATCH   ] Found component C2 in resistor_divider1
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : C2
+[   COMP   ] Library   : Device
+[   COMP   ] Name      : C
+[   COMP   ] Value     : 100nF
+[   COMP   ] Sheet     : resistor_divider1
+[   COMP   ] Pins      : 2
+[   COMP   ] Footprint : Capacitor_SMD:C_0603_1608Metric
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : C2
+[  PLACE   ] Position   : (0.0, -0.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol C2 to schematic
+[  MATCH   ] Found component R1 in resistor_divider1
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : R1
+[   COMP   ] Library   : Device
+[   COMP   ] Name      : R
+[   COMP   ] Value     : 1k
+[   COMP   ] Sheet     : resistor_divider1
+[   COMP   ] Pins      : 2
+[   COMP   ] Footprint : Resistor_SMD:R_0603_1608Metric
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : R1
+[  PLACE   ] Position   : (20.0, -0.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol R1 to schematic
+[  MATCH   ] Found component R2 in resistor_divider1
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : R2
+[   COMP   ] Library   : Device
+[   COMP   ] Name      : R
+[   COMP   ] Value     : 2k
+[   COMP   ] Sheet     : resistor_divider1
+[   COMP   ] Pins      : 2
+[   COMP   ] Footprint : Resistor_SMD:R_0603_1608Metric
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : R2
+[  PLACE   ] Position   : (40.0, -0.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol R2 to schematic
+[   SKIP   ] C3 (in 3v3_regulator)
+[   SKIP   ] C4 (in 3v3_regulator)
+[   SKIP   ] C5 (in 3v3_regulator)
+[   SKIP   ] C6 (in 3v3_regulator)
+[   SKIP   ] R3 (in 3v3_regulator)
+[   SKIP   ] R4 (in 3v3_regulator)
+[   SKIP   ] R5 (in 3v3_regulator)
+[   SKIP   ] R6 (in 3v3_regulator)
+[   SKIP   ] U2 (in 3v3_regulator)
+[   SKIP   ] C7 (in USB)
+[   SKIP   ] P1 (in USB)
+[   SKIP   ] R7 (in USB)
+[  SHEET   ] Found 3 components in resistor_divider1
+INFO: Generated schematic for resistor_divider1 at ./kicad_blank_project/resistor_divider1.kicad_sch @ [/Users/shanemattner/Desktop/skidl/src/skidl/tools/kicad8/sch_gen/example_kicad_project_SKIDL/kicad_project_SKIDL/main.py:26]
+Generated schematic for resistor_divider1 at ./kicad_blank_project/resistor_divider1.kicad_sch
+[  SHEET   ] Looking for components in sheet: _3v3_regulator
+[   SKIP   ] C1 (in esp32s3mini1)
+[   SKIP   ] J1 (in esp32s3mini1)
+[   SKIP   ] U1 (in esp32s3mini1)
+[   SKIP   ] C2 (in resistor_divider1)
+[   SKIP   ] R1 (in resistor_divider1)
+[   SKIP   ] R2 (in resistor_divider1)
+[  MATCH   ] Found component C3 in _3v3_regulator
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : C3
+[   COMP   ] Library   : Device
+[   COMP   ] Name      : C
+[   COMP   ] Value     : 10uF
+[   COMP   ] Sheet     : 3v3_regulator
+[   COMP   ] Pins      : 2
+[   COMP   ] Footprint : Capacitor_SMD:C_0603_1608Metric
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : C3
+[  PLACE   ] Position   : (0.0, -0.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol C3 to schematic
+[  MATCH   ] Found component C4 in _3v3_regulator
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : C4
+[   COMP   ] Library   : Device
+[   COMP   ] Name      : C
+[   COMP   ] Value     : 10uF
+[   COMP   ] Sheet     : 3v3_regulator
+[   COMP   ] Pins      : 2
+[   COMP   ] Footprint : Capacitor_SMD:C_0603_1608Metric
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : C4
+[  PLACE   ] Position   : (20.0, -0.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol C4 to schematic
+[  MATCH   ] Found component C5 in _3v3_regulator
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : C5
+[   COMP   ] Library   : Device
+[   COMP   ] Name      : C
+[   COMP   ] Value     : 100nF
+[   COMP   ] Sheet     : 3v3_regulator
+[   COMP   ] Pins      : 2
+[   COMP   ] Footprint : Capacitor_SMD:C_0603_1608Metric
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : C5
+[  PLACE   ] Position   : (40.0, -0.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol C5 to schematic
+[  MATCH   ] Found component C6 in _3v3_regulator
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : C6
+[   COMP   ] Library   : Device
+[   COMP   ] Name      : C
+[   COMP   ] Value     : 100nF
+[   COMP   ] Sheet     : 3v3_regulator
+[   COMP   ] Pins      : 2
+[   COMP   ] Footprint : Capacitor_SMD:C_0603_1608Metric
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : C6
+[  PLACE   ] Position   : (60.0, -0.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol C6 to schematic
+[  MATCH   ] Found component R3 in _3v3_regulator
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : R3
+[   COMP   ] Library   : Device
+[   COMP   ] Name      : R
+[   COMP   ] Value     : 2k
+[   COMP   ] Sheet     : 3v3_regulator
+[   COMP   ] Pins      : 2
+[   COMP   ] Footprint : Resistor_SMD:R_0603_1608Metric
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : R3
+[  PLACE   ] Position   : (80.0, -0.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol R3 to schematic
+[  MATCH   ] Found component R4 in _3v3_regulator
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : R4
+[   COMP   ] Library   : Device
+[   COMP   ] Name      : R
+[   COMP   ] Value     : 1k
+[   COMP   ] Sheet     : 3v3_regulator
+[   COMP   ] Pins      : 2
+[   COMP   ] Footprint : Resistor_SMD:R_0603_1608Metric
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : R4
+[  PLACE   ] Position   : (0.0, -20.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol R4 to schematic
+[  MATCH   ] Found component R5 in _3v3_regulator
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : R5
+[   COMP   ] Library   : Device
+[   COMP   ] Name      : R
+[   COMP   ] Value     : 1k
+[   COMP   ] Sheet     : 3v3_regulator
+[   COMP   ] Pins      : 2
+[   COMP   ] Footprint : Resistor_SMD:R_0603_1608Metric
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : R5
+[  PLACE   ] Position   : (20.0, -20.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol R5 to schematic
+[  MATCH   ] Found component R6 in _3v3_regulator
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : R6
+[   COMP   ] Library   : Device
+[   COMP   ] Name      : R
+[   COMP   ] Value     : 2k
+[   COMP   ] Sheet     : 3v3_regulator
+[   COMP   ] Pins      : 2
+[   COMP   ] Footprint : Resistor_SMD:R_0603_1608Metric
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : R6
+[  PLACE   ] Position   : (40.0, -20.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol R6 to schematic
+[  MATCH   ] Found component U2 in _3v3_regulator
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : U2
+[   COMP   ] Library   : Regulator_Linear
+[   COMP   ] Name      : NCP1117-3.3_SOT223
+[   COMP   ] Value     : NCP1117-3.3_SOT223
+[   COMP   ] Sheet     : 3v3_regulator
+[   COMP   ] Pins      : 3
+[   COMP   ] Footprint : Package_TO_SOT_SMD:SOT-223-3_TabPin2
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : U2
+[  PLACE   ] Position   : (60.0, -20.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol U2 to schematic
+[   SKIP   ] C7 (in USB)
+[   SKIP   ] P1 (in USB)
+[   SKIP   ] R7 (in USB)
+[  SHEET   ] Found 9 components in _3v3_regulator
+INFO: Generated schematic for _3v3_regulator at ./kicad_blank_project/_3v3_regulator.kicad_sch @ [/Users/shanemattner/Desktop/skidl/src/skidl/tools/kicad8/sch_gen/example_kicad_project_SKIDL/kicad_project_SKIDL/main.py:26]
+Generated schematic for _3v3_regulator at ./kicad_blank_project/_3v3_regulator.kicad_sch
+[  SHEET   ] Looking for components in sheet: USB
+[   SKIP   ] C1 (in esp32s3mini1)
+[   SKIP   ] J1 (in esp32s3mini1)
+[   SKIP   ] U1 (in esp32s3mini1)
+[   SKIP   ] C2 (in resistor_divider1)
+[   SKIP   ] R1 (in resistor_divider1)
+[   SKIP   ] R2 (in resistor_divider1)
+[   SKIP   ] C3 (in 3v3_regulator)
+[   SKIP   ] C4 (in 3v3_regulator)
+[   SKIP   ] C5 (in 3v3_regulator)
+[   SKIP   ] C6 (in 3v3_regulator)
+[   SKIP   ] R3 (in 3v3_regulator)
+[   SKIP   ] R4 (in 3v3_regulator)
+[   SKIP   ] R5 (in 3v3_regulator)
+[   SKIP   ] R6 (in 3v3_regulator)
+[   SKIP   ] U2 (in 3v3_regulator)
+[  MATCH   ] Found component C7 in USB
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : C7
+[   COMP   ] Library   : Device
+[   COMP   ] Name      : C
+[   COMP   ] Value     : 10uF
+[   COMP   ] Sheet     : USB
+[   COMP   ] Pins      : 2
+[   COMP   ] Footprint : Capacitor_SMD:C_0603_1608Metric
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : C7
+[  PLACE   ] Position   : (0.0, -0.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol C7 to schematic
+[  MATCH   ] Found component P1 in USB
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : P1
+[   COMP   ] Library   : Connector
+[   COMP   ] Name      : USB_C_Plug_USB2.0
+[   COMP   ] Value     : USB_C_Plug_USB2.0
+[   COMP   ] Sheet     : USB
+[   COMP   ] Pins      : 13
+[   COMP   ] Footprint : Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : P1
+[  PLACE   ] Position   : (20.0, -0.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol P1 to schematic
+[  MATCH   ] Found component R7 in USB
+[   COMP   ] ----------------------------------------
+[   COMP   ] Reference : R7
+[   COMP   ] Library   : Device
+[   COMP   ] Name      : R
+[   COMP   ] Value     : 5.1K
+[   COMP   ] Sheet     : USB
+[   COMP   ] Pins      : 2
+[   COMP   ] Footprint : Resistor_SMD:R_0603_1608Metric
+[   COMP   ] ----------------------------------------
+[  PLACE   ] ----------------------------------------
+[  PLACE   ] Component  : R7
+[  PLACE   ] Position   : (40.0, -0.0)
+[  PLACE   ] Grid Size  : 20.0
+[  PLACE   ] ----------------------------------------
+[  SYMBOL  ] Adding symbol R7 to schematic
+[  SHEET   ] Found 3 components in USB
+INFO: Generated schematic for USB at ./kicad_blank_project/USB.kicad_sch @ [/Users/shanemattner/Desktop/skidl/src/skidl/tools/kicad8/sch_gen/example_kicad_project_SKIDL/kicad_project_SKIDL/main.py:26]
+Generated schematic for USB at ./kicad_blank_project/USB.kicad_sch
+INFO: Added sheet symbols to main schematic at ./kicad_blank_project/kicad_blank_project.kicad_sch @ [/Users/shanemattner/Desktop/skidl/src/skidl/tools/kicad8/sch_gen/example_kicad_project_SKIDL/kicad_project_SKIDL/main.py:26]
+INFO: No errors or warnings found while generating schematic.
+
 venvshanemattner@Shanes-MacBook-Pro skidl % 
+----
 
-_______
+Current issues:
+- the logic produces a kicad_blank_project directory, and kicad_blank_project.kicad_sch has hierarchical sheets for the subcircuits, but the subcircuit sheets are not generated
+- test.kicad_sch is generated in the same directory as kicad_blank_project and seems to contain the parts for a USB circuit.
 
-The code for gen_schematic.py needs to be updated to follow the rest of the logic.  While reviewing the other logic I found that some of the required fields are missing, like footprints, rotation, 
-and other fields.  I will need to update the code to include these fields. 
-
-Please check that all logic works together cohesively.  Ask me question if you are not sure about something.
+Feature requests:
+- user input name for the project, instead of "kicad_blank_project"
 
 """
 
