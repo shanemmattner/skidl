@@ -1,7 +1,12 @@
 import pytest
+import logging
 from pathlib import Path
-from skidl import Circuit, Part, generate_schematic, SubCircuit
+from skidl import *
 from skidl.tools.kicad8.sch_gen.sexpr import SchematicParser, SExpr
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Constants
 TESTS_DIR = Path(__file__).parent
@@ -10,27 +15,26 @@ TEST_PROJECT_NAME = "test_two_resistors"
 
 @pytest.fixture(autouse=True)
 def setup_circuit():
-    """Reset the circuit before each test"""
-    from skidl import Circuit
+    """Reset the circuit before and after each test to ensure a clean state."""
     Circuit.reset(default_circuit)
     yield
     Circuit.reset(default_circuit)
 
 @pytest.fixture
 def schematic_parser():
-    """Fixture to provide SchematicParser instance"""
+    """Provide a SchematicParser instance for parsing KiCad schematics."""
     return SchematicParser()
 
 @pytest.fixture
 def temp_project_dir(tmp_path):
-    """Create a temporary directory for the project"""
+    """Create a temporary directory for the project to ensure test isolation."""
     project_dir = tmp_path / "test_project"
     project_dir.mkdir(exist_ok=True)
     return project_dir
 
 @SubCircuit
 def two_resistors_circuit():
-    """Create a circuit with two resistors for testing"""
+    """Create a test circuit with two resistors with standard parameters."""
     r4 = Part("Device", "R", 
               ref="R4",
               value="10k", 
@@ -44,7 +48,15 @@ def two_resistors_circuit():
     r5.MFG = "0603WAF1002T5E"
 
 def get_resistor_properties(instance_sexpr):
-    """Helper to extract resistor properties from s-expression"""
+    """
+    Extract resistor properties from a symbol instance s-expression.
+    
+    Args:
+        instance_sexpr: SExpr node representing a symbol instance
+        
+    Returns:
+        Dictionary of property name-value pairs
+    """
     properties = {}
     for child in instance_sexpr.attributes:
         if isinstance(child, SExpr) and child.token == 'property':
@@ -52,58 +64,62 @@ def get_resistor_properties(instance_sexpr):
             if len(child.attributes) > 1:
                 prop_value = child.attributes[1].strip('"')
                 properties[prop_name] = prop_value
-                
-                # Debug print
-                print(f"Found property: {prop_name} = {prop_value}")
+                logger.debug("Found property: %s = %s", prop_name, prop_value)
     return properties
 
 def verify_resistor_properties(properties, ref, expected_value):
-    """Helper to verify resistor properties"""
-    # Debug print
-    print(f"\nVerifying properties for {ref}:")
-    print(f"All properties: {properties}")
+    """
+    Verify that a resistor's properties match expected values.
     
-    # Required properties
-    assert properties['Reference'] == ref, f"Reference mismatch for {ref}"
-    assert properties['Value'] == expected_value, f"Value mismatch for {ref}"
+    Args:
+        properties: Dictionary of property name-value pairs
+        ref: Expected reference designator
+        expected_value: Expected resistance value
     
-    # Optional properties with more detailed error messages
+    Raises:
+        AssertionError if properties don't match expectations
+    """
+    logger.debug("Verifying properties for %s: %s", ref, properties)
+    
+    assert properties['Reference'] == ref, \
+        f"Reference mismatch for {ref}: got {properties['Reference']}"
+    assert properties['Value'] == expected_value, \
+        f"Value mismatch for {ref}: expected {expected_value}, got {properties['Value']}"
+    
     if 'Footprint' in properties:
         footprint = properties['Footprint']
-        assert footprint == "Resistor_SMD:R_0603_1608Metric", \
-            f"Footprint mismatch for {ref}: expected 'Resistor_SMD:R_0603_1608Metric', got '{footprint}'"
-    else:
-        print(f"Warning: Footprint property not found for {ref}")
+        expected_footprint = "Resistor_SMD:R_0603_1608Metric"
+        assert footprint == expected_footprint, \
+            f"Footprint mismatch for {ref}: expected '{expected_footprint}', got '{footprint}'"
 
 def test_two_resistors_schematic(temp_project_dir, schematic_parser):
-    """Test generating a schematic with two resistors"""
+    """
+    Test generating a schematic with two resistors.
+    Verifies schematic structure and both resistor instances.
+    """
     # Create circuit with @SubCircuit decorator
     two_resistors_circuit()
     
-    # Generate schematic using default circuit
+    # Generate schematic
     generate_schematic(
         filepath=str(temp_project_dir),
         project_name=TEST_PROJECT_NAME,
         title="Two Resistors Test"
     )
 
-    # Look for the correct schematic path
+    # Verify schematic path
     schematic_path = temp_project_dir / TEST_PROJECT_NAME / "two_resistors_circuit.kicad_sch"
-    assert schematic_path.exists(), f"Schematic file not found at {schematic_path}"
+    assert schematic_path.exists(), f"Circuit schematic not generated at {schematic_path}"
 
-    # Debug: Print the schematic content
-    with open(schematic_path) as f:
-        print("\nGenerated schematic content:")
-        print(f.read())
-
-    # Load and parse generated schematic
+    # Load and parse schematic
     with open(schematic_path) as f:
         generated_content = f.read()
+        logger.debug("Generated schematic content:\n%s", generated_content)
 
     generated_tree = schematic_parser.parse(generated_content)
 
     # Find all resistor instances
-    resistor_instances = {}  # Will store ref: properties mapping
+    resistor_instances = {}  # ref: properties mapping
     
     for child in generated_tree.attributes:
         if not isinstance(child, SExpr) or child.token != 'symbol':
@@ -119,24 +135,24 @@ def test_two_resistors_schematic(temp_project_dir, schematic_parser):
                 break
                 
         if is_resistor:
-            # Get properties for this resistor
             properties = get_resistor_properties(child)
             if 'Reference' in properties:
                 resistor_instances[properties['Reference']] = properties
 
-    # Verify we found both resistors
+    # Verify both resistors were found
     expected_refs = {"R4", "R5"}
     found_refs = set(resistor_instances.keys())
-    assert found_refs == expected_refs, f"Expected resistors {expected_refs}, but found {found_refs}"
+    assert found_refs == expected_refs, \
+        f"Missing resistors: expected {expected_refs}, found {found_refs}"
     
     # Verify properties of each resistor
     for ref in expected_refs:
-        assert ref in resistor_instances, f"Missing resistor {ref}"
+        assert ref in resistor_instances, f"Resistor {ref} not found in schematic"
         verify_resistor_properties(resistor_instances[ref], ref, "10k")
 
 def test_error_handling(temp_project_dir):
-    """Test error handling for invalid circuit configurations"""
+    """Test error handling for invalid library access."""
     with pytest.raises(Exception) as exc_info:
-        # Test with non-existent library
         Part("NonexistentLib", "NonexistentPart")
-    assert "NonexistentLib" in str(exc_info.value)
+    assert "NonexistentLib" in str(exc_info.value), \
+        "Error message should mention the nonexistent library name"
