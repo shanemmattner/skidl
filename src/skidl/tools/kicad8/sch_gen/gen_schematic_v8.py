@@ -1,4 +1,4 @@
-# gen_schematic_v8.py
+# gen_schematic_v9.py
 
 import datetime
 import os.path
@@ -8,10 +8,61 @@ from skidl.scriptinfo import get_script_name
 
 from .kicad_writer import KicadSchematicWriter, SchematicSymbolInstance
 
-
 from kiutils.schematic import Schematic
 from kiutils.items.common import Position, TitleBlock, Property, ColorRGBA, Stroke
-from kiutils.items.schitems import HierarchicalSheet
+from kiutils.items.schitems import HierarchicalSheet, HierarchicalSheetInstance
+
+
+class HierarchyNode:
+    """Represents a node in the schematic hierarchy."""
+    def __init__(self, name, parent=None):
+        self.name = name  # Base name without numeric suffix
+        self.full_name = name  # Full path including suffix
+        self.parent = parent
+        self.children = []
+        self.uuid = str(uuid.uuid4())
+    
+    def get_path(self):
+        """Get full hierarchical path from root to this node."""
+        if not self.parent or self.parent.name == "top":
+            return f"/{self.uuid}"
+        return f"{self.parent.get_path()}/{self.uuid}"
+    
+    def __repr__(self):
+        return f"HierarchyNode(name='{self.name}', full_name='{self.full_name}')"
+
+def build_hierarchy_tree(group_name_cntr):
+    """
+    Build a tree from group_name_cntr dot-separated paths.
+    
+    Args:
+        group_name_cntr: Counter with dot-separated hierarchy paths
+        
+    Returns:
+        HierarchyNode: Root of the hierarchy tree
+    """
+    root = HierarchyNode("top")
+    nodes = {"top": root}
+    
+    # Sort paths so parents are processed before children
+    paths = sorted(group_name_cntr.keys(), key=lambda x: len(x.split('.')))
+    
+    for path in paths:
+        if path == "top":
+            continue
+            
+        # Split path and get node name
+        parts = path.split('.')
+        node_name = parts[-1].rstrip('0123456789')  # Strip numeric suffix
+        parent_path = '.'.join(parts[:-1])
+        
+        if parent_path in nodes:
+            node = HierarchyNode(node_name, nodes[parent_path])
+            node.full_name = path  # Store full path including suffix
+            nodes[parent_path].children.append(node)
+            nodes[path] = node
+    
+    return root
 
 
 def setup_debug_printing():
@@ -29,66 +80,66 @@ def setup_debug_printing():
 
 debug_print = setup_debug_printing()
 
-
 def print_component_info(part):
     """Print detailed component information for debugging"""
     debug_print("COMP", "-" * 40)
     debug_print("COMP", f"Reference : {part.ref}")
-    debug_print("COMP", f"Library   : {part.lib.filename}")
+    debug_print("COMP", f"Library   : {part.lib}")
     debug_print("COMP", f"Name      : {part.name}")
     debug_print("COMP", f"Value     : {part.value}")
     debug_print("COMP", f"Sheet     : {getattr(part, 'Sheetname', 'default')}")
     debug_print("COMP", f"Pins      : {len(part.pins)}")
     if hasattr(part, 'footprint'):
         debug_print("COMP", f"Footprint : {part.footprint}")
-    if hasattr(part, 'position'):
-        debug_print("COMP", f"Position  : ({part.position.X}, {part.position.Y})")
     debug_print("COMP", "-" * 40)
 
 
-def print_placement_info(component, x, y, grid_size):
-    """Print placement information for debugging"""
-    debug_print("PLACE", "-" * 40)
-    debug_print("PLACE", f"Component  : {component.ref}")
-    debug_print("PLACE", f"Position   : ({x}, {y})")
-    debug_print("PLACE", f"Grid Size  : {grid_size}")
-    debug_print("PLACE", "-" * 40)
-
+def collect_subcircuit_parts(circuit, node):
+    """
+    Collect parts belonging to a specific node in hierarchy.
+    
+    Args:
+        circuit: The SKiDL Circuit object
+        node: HierarchyNode representing the sheet
+        
+    Returns:
+        list: Parts that belong to this sheet
+    """
+    parts = []
+    # Need to match parts to the full hierarchical name in group_name_cntr
+    node_path = node.full_name  # This includes the numeric suffix
+    
+    for part in circuit.parts:
+        # Get all paths in hierarchical_names that match this node's path
+        matching_paths = [p for p in circuit._hierarchical_names if p.startswith(node_path)]
+        if matching_paths:
+            parts.append(part)
+            
+    return parts
 
 def gen_schematic(
     circuit,
     filepath=".",
     top_name=get_script_name(),
-    project_name="kicad_blank_project",  # <-- NEW ARG: user can override
+    project_name="kicad_blank_project",
     title="SKiDL-Generated Schematic",
     flatness=0.0,
     retries=2,
     **options
 ):
     """
-    Create schematic files from a Circuit object.
-
-    Args:
-        circuit: The SKiDL Circuit object
-        filepath: Output directory path
-        top_name: A default name for the script or top-level
-        project_name: The user-provided project folder (and top schematic) name
-        title: Title block text
-        ...
+    Create schematic files from a Circuit object with proper sheet hierarchy.
     """
     from skidl.logger import active_logger
     
-    # 1) Setup project directory name using 'project_name'.
-    #    So "kicad_blank_project" is replaced by user input.
+    # 1. Setup project directory
     template_dir = os.path.join(
         os.path.dirname(__file__), 
-        "kicad_blank_project",      # This is your *template* folder name on disk
-        "kicad_blank_project"       # containing the blank project files to copy
+        "kicad_blank_project",
+        "kicad_blank_project"
     )
-    # We'll create the new project folder as user has requested:
     project_dir = os.path.join(filepath, project_name)
     
-    # 2) Copy the blank project template into project_dir
     try:
         if os.path.exists(project_dir):
             shutil.rmtree(project_dir)
@@ -107,201 +158,123 @@ def gen_schematic(
         active_logger.error(f"Failed to setup project folder: {str(e)}")
         raise
     
-    # 3) Gather subcircuits from the SKiDL circuit
-    subcircuits = circuit.group_name_cntr.keys()
-
-    # For each subcircuit, build a separate schematic
-    for subcircuit_path in subcircuits:
-        subcircuit_name = subcircuit_path.split('.')[-1]
-        debug_print("SHEET", f"Looking for components in sheet: {subcircuit_name}")
-
-        # Build the path: e.g. /my/path/<project_name>/<sheet>.kicad_sch
-        subcircuit_sch_path = os.path.join(project_dir, f"{subcircuit_name}.kicad_sch")
+    # 2. Build hierarchy tree
+    hierarchy = build_hierarchy_tree(circuit.group_name_cntr)
+    
+    # 3. Create and process sheets recursively
+    def process_hierarchy_node(node, parent_path=""):
+        debug_print("SHEET", f"Processing sheet: {node.name}")
         
-        # Instead of "test.kicad_sch", pass this path to the writer:
-        writer = KicadSchematicWriter(subcircuit_sch_path)
+        # Create schematic for this sheet
+        sheet_sch_path = os.path.join(project_dir, f"{node.name}.kicad_sch")
+        writer = KicadSchematicWriter(sheet_sch_path)
         
-        components_found = 0
-        grid_size = 20.0
-        symbol_count = 0
-
-        for part in circuit.parts:
-            # Use subcircuit name as default sheet name if Sheetname not provided
-            part_sheet = getattr(part, 'Sheetname', subcircuit_name)
-            if part_sheet == subcircuit_name:
-                components_found += 1
-                debug_print("MATCH", f"Found component {part.ref} in {subcircuit_name}")
-                print_component_info(part)
-                
-                # Calculate position
-                row = symbol_count // 5  # 5 symbols per row
-                col = symbol_count % 5
-                x = float(col * grid_size)
-                y = float(row * -grid_size)
-                
-                # Build the lib_id from part.lib.filename:name
-                symbol = SchematicSymbolInstance(
-                    lib_id=f"{part.lib.filename}:{part.name}",
-                    reference=part.ref,
-                    value=part.value,
-                    position=(x, y),
-                    rotation=0,
-                    footprint=getattr(part, 'footprint', None)
-                )
-                
-                print_placement_info(part, x, y, grid_size)
-                debug_print("SYMBOL", f"Adding symbol {part.ref} to schematic")
-                writer.add_symbol_instance(symbol)
-                
-                symbol_count += 1
-            else:
-                # Not in this sheet => skip
-                debug_print("SKIP", f"{part.ref} (in {part.Sheetname})")
-
-        debug_print("SHEET", f"Found {components_found} components in {subcircuit_name}")
-
-        # 4) Actually generate the subcircuit schematic into <subcircuit_name>.kicad_sch
+        # Add components for this sheet
+        sheet_parts = collect_subcircuit_parts(circuit, node)
+        for part in sheet_parts:
+            print_component_info(part)
+            symbol = SchematicSymbolInstance(
+                lib_id=f"{part.lib}:{part.name}",
+                reference=part.ref,
+                value=part.value,
+                position=(0, 0),
+                rotation=0,
+                footprint=getattr(part, 'footprint', None)
+            )
+            writer.add_symbol_instance(symbol)
+        
+        # Add sheet references for children
+        for child in node.children:
+            writer.add_sheet_reference(child)
+        
+        # Generate the schematic
         try:
-            writer.generate()  # This writes to subcircuit_sch_path now!
-            active_logger.info(f"Generated schematic for {subcircuit_name} at {subcircuit_sch_path}")
-            print(f"Generated schematic for {subcircuit_name} at {subcircuit_sch_path}")
+            writer.generate()
+            active_logger.info(f"Generated schematic for {node.name}")
         except Exception as e:
-            active_logger.error(f"Error saving schematic {subcircuit_name}: {str(e)}")
+            active_logger.error(f"Error generating {node.name}: {str(e)}")
             raise
-
-    # 5) Now add the hierarchical sheets to the *top-level* schematic file.
-    #    We'll rename that top-level file to <project_name>.kicad_sch
-    main_sch_name = f"{project_name}.kicad_sch"
-    main_sch_path = os.path.join(project_dir, main_sch_name)
-
-    # In your template, the default blank schematic might be named "kicad_blank_project.kicad_sch".
-    # So we rename it or re-load it below:
-    old_main_sch = os.path.join(project_dir, "kicad_blank_project.kicad_sch")
+            
+        # Process children recursively
+        for child in node.children:
+            process_hierarchy_node(child, node.get_path())
+            
+    # 4. Create main schematic
+    main_sch = Schematic.create_new()
+    main_sch.version = "20231120"
+    main_sch.generator = "eeschema"
+    main_sch.uuid = str(uuid.uuid4())
     
-    try:
-        if os.path.exists(old_main_sch):
-            # rename the file to <project_name>.kicad_sch
-            os.rename(old_main_sch, main_sch_path)
-        else:
-            # fallback if the template doesn't have "kicad_blank_project.kicad_sch"
-            # create a brand-new minimal top schematic
-            main_sch = Schematic.create_new()
-            main_sch.to_file(main_sch_path)
-
-        # Load with KiCad Python tools (kiutils, or your own method)
-        main_sch = Schematic.from_file(main_sch_path)
-    except Exception as e:
-        active_logger.error(f"Error creating/loading main schematic: {e}")
-        # Fallback to creating a completely new schematic
-        main_sch = Schematic.create_new()
-        main_sch.to_file(main_sch_path)
-    
-    # Build hierarchical sheet symbols in a simple grid
-    sheet_width = 30  # mm
-    sheet_height = 30
-    spacing = 40
-    sheets_per_row = 2
-    
-    num_sheets = len(subcircuits)
-    num_rows = (num_sheets + sheets_per_row - 1) // sheets_per_row
-    num_cols = min(sheets_per_row, num_sheets)
-    
-    total_width = num_cols * sheet_width + (num_cols - 1) * spacing
-    total_height = num_rows * sheet_height + (num_rows - 1) * spacing
-    
-    # A4 is 297mm x 210mm
-    start_x = (297 - total_width) / 2
-    start_y = (210 - total_height) / 2
-    
-    if not hasattr(main_sch, 'sheets'):
-        main_sch.sheets = []
-        
-    i = 0
-    for subcircuit_path in subcircuits:
-        subcircuit_name = subcircuit_path.split('.')[-1]
-        
-        row = i // sheets_per_row
-        col = i % sheets_per_row
-        x = start_x + col * (sheet_width + spacing)
-        y = start_y + row * (sheet_height + spacing)
-        i += 1
-        
-        # Create hierarchical sheet
+    # Add only the top-level sheet
+    if hierarchy.children:
+        top_sheet = hierarchy.children[0]  # single_resistor
         sheet = HierarchicalSheet()
-        sheet.position = Position(str(x), str(y), "0")
-        sheet.width = sheet_width
-        sheet.height = sheet_height
+        sheet.position = Position("125.73", "66.04", "0")
+        sheet.width = 13.97
+        sheet.height = 15.24
         sheet.stroke = Stroke()
         sheet.fill = ColorRGBA()
-
-        # Sheet name & file
-        sheet.sheetName = Property(key="Sheetname", value=subcircuit_name)
-        sheet.sheetName.position = Position(
-            str(x + sheet_width/2), str(y - 5), "0"
+        sheet.uuid = top_sheet.uuid
+        
+        sheet.sheetName = Property(
+            key="Sheetname",
+            value=top_sheet.name
         )
-        sheet.fileName = Property(key="Sheetfile", value=f"{subcircuit_name}.kicad_sch")
-        sheet.fileName.position = Position(
-            str(x + sheet_width/2), str(y - 2), "0"
+        sheet.fileName = Property(
+            key="Sheetfile",
+            value=f"{top_sheet.name}.kicad_sch"
         )
         
-        main_sch.sheets.append(sheet)
+        main_sch.sheets = [sheet]
     
-    # Save updated top-level schematic
+    # Save main schematic
+    main_sch_path = os.path.join(project_dir, f"{project_name}.kicad_sch")
     try:
         main_sch.to_file(main_sch_path)
-        active_logger.info(f"Added sheet symbols to main schematic at {main_sch_path}")
+        active_logger.info(f"Created main schematic at {main_sch_path}")
     except Exception as e:
         active_logger.error(f"Error saving main schematic: {str(e)}")
         raise
+    
+    # Process hierarchy starting from top sheet
+    if hierarchy.children:
+        process_hierarchy_node(hierarchy.children[0])
+    
+    # 5. Update project configuration
+    update_project_config(project_dir, project_name, hierarchy)
+    
+    return True
 
-    # 6) Update project files
-    try:
-        # Rename project files
-        old_files = {
-            "kicad_blank_project.kicad_pro": f"{project_name}.kicad_pro",
-            "kicad_blank_project.kicad_pcb": f"{project_name}.kicad_pcb",
-            "kicad_blank_project.kicad_prl": f"{project_name}.kicad_prl"
-        }
+def update_project_config(project_dir, project_name, hierarchy):
+    """Update project configuration with sheet hierarchy."""
+    project_path = os.path.join(project_dir, f"{project_name}.kicad_pro")
+    if os.path.exists(project_path):
+        import json
+        with open(project_path, 'r') as f:
+            project_config = json.load(f)
         
-        for old_name, new_name in old_files.items():
-            old_path = os.path.join(project_dir, old_name)
-            new_path = os.path.join(project_dir, new_name)
-            if os.path.exists(old_path):
-                os.rename(old_path, new_path)
-                active_logger.info(f"Renamed {old_name} to {new_name}")
+        # Update sheets configuration
+        project_config['sheets'] = [
+            {
+                "path": f"{project_name}.kicad_sch",
+                "sheet_name": "",
+                "id": str(uuid.uuid4())
+            }
+        ]
         
-        # Update project configuration
-        project_path = os.path.join(project_dir, f"{project_name}.kicad_pro")
-        if os.path.exists(project_path):
-            import json
-            with open(project_path, 'r') as f:
-                project_config = json.load(f)
-            
-            # Update meta filename
-            project_config['meta']['filename'] = f"{project_name}.kicad_pro"
-            
-            # Update sheets configuration
-            project_config['sheets'] = [
-                {
-                    "path": f"{project_name}.kicad_sch",
-                    "sheet_name": "",  # Root sheet has no name
-                    "id": str(uuid.uuid4())
-                }
-            ]
-            
-            # Add hierarchical sheets
-            for subcircuit_path in subcircuits:
-                subcircuit_name = subcircuit_path.split('.')[-1]
-                project_config['sheets'].append({
-                    "path": f"{subcircuit_name}.kicad_sch",
-                    "sheet_name": subcircuit_name,
-                    "id": str(uuid.uuid4())
-                })
-            
-            # Write updated configuration
-            with open(project_path, 'w') as f:
-                json.dump(project_config, f, indent=2)
-            active_logger.info(f"Updated project configuration in {project_path}")
-    except Exception as e:
-        active_logger.error(f"Error updating project files: {str(e)}")
-        raise
+        def add_sheet_to_config(node):
+            project_config['sheets'].append({
+                "path": f"{node.name}.kicad_sch",
+                "sheet_name": node.name,
+                "id": node.uuid
+            })
+            for child in node.children:
+                add_sheet_to_config(child)
+        
+        # Add all sheets from hierarchy
+        if hierarchy.children:
+            add_sheet_to_config(hierarchy.children[0])
+        
+        # Write updated configuration
+        with open(project_path, 'w') as f:
+            json.dump(project_config, f, indent=2)

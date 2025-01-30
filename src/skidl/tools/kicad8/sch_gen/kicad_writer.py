@@ -83,12 +83,28 @@ class KicadSchematicWriter:
     def _get_library_parser(self, library_path: str) -> KicadLibraryParser:
         """
         Return (or create) the KicadLibraryParser for a given .kicad_sym file path.
+        
+        Args:
+            library_path: Path to the library file (e.g. "/path/to/Device.kicad_sym")
+            
+        Returns:
+            KicadLibraryParser for the library
         """
-        if library_path not in self.lib_parsers:
-            parser = KicadLibraryParser(library_path)
+        # The library_path should point to Device.kicad_sym, not individual symbol names
+        # Extract just the base library name (e.g. "Device" from "Device:R")
+        lib_base = os.path.basename(library_path)
+        lib_name = lib_base.split(':')[0] if ':' in lib_base else lib_base
+        
+        # Create the correct path to the .kicad_sym file
+        kicad_dir = os.environ.get("KICAD_SYMBOL_DIR", "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols")
+        actual_library_path = os.path.join(kicad_dir, f"{lib_name}.kicad_sym")
+
+        if actual_library_path not in self.lib_parsers:
+            parser = KicadLibraryParser(actual_library_path)
             parser.load_library()
-            self.lib_parsers[library_path] = parser
-        return self.lib_parsers[library_path]
+            self.lib_parsers[actual_library_path] = parser
+        return self.lib_parsers[actual_library_path]
+
 
     def _flatten_symbol(self, library_path: str, symbol_name: str) -> SymbolDefinition:
         """
@@ -104,14 +120,52 @@ class KicadSchematicWriter:
 
         return flattener.get_flattened_symbol(symbol_name)
 
+    def add_sheet_reference(writer, child_node):
+        """
+        Add a sheet reference to a child schematic.
+        
+        Args:
+            writer: KicadSchematicWriter instance
+            child_node: HierarchyNode for the child sheet
+        """
+        # Create sheet properties
+        sheet = {
+            'position': {
+                'x': 125.73,  # Default position, could be made dynamic
+                'y': 66.04
+            },
+            'size': {
+                'width': 13.97,
+                'height': 15.24
+            },
+            'stroke': {
+                'width': 0.1524,
+                'type': 'solid'
+            },
+            'fill': {
+                'color': '0 0 0 0.0000'
+            },
+            'uuid': child_node.uuid,
+            'properties': {
+                'Sheetname': child_node.name,
+                'Sheetfile': f"{child_node.name}.kicad_sch"
+            }
+        }
+        
+        # Add sheet definition to writer's internal structure
+        if not hasattr(writer, 'sheets'):
+            writer.sheets = []
+        writer.sheets.append(sheet)
+        
     def generate(self) -> None:
         """
         Generate the .kicad_sch file at self.out_file:
-          1) Collect all unique symbols from self.symbol_instances,
-          2) Flatten them,
-          3) Write them out as (lib_symbols ...),
-          4) Then place each symbol as (symbol ...) block,
-          5) Then a minimal (sheet_instances).
+        1) Collect all unique symbols from self.symbol_instances,
+        2) Flatten them,
+        3) Write them out as (lib_symbols ...),
+        4) Then place each symbol as (symbol ...) block,
+        5) Add any sheet references
+        6) Add sheet_instances block
         """
         # 1) Identify all unique (library_path, symbol_name) combos
         #    from self.symbol_instances' lib_id, e.g. "LibName:SymbolName"
@@ -157,9 +211,57 @@ class KicadSchematicWriter:
             for l in inst_block.splitlines():
                 lines.append("  " + l)
 
-        # 5) Minimal (sheet_instances)
+        # 5) Add any sheet references
+        if hasattr(self, 'sheets'):
+            for sheet in self.sheets:
+                lines.append('  (sheet')
+                lines.append(f'    (at {sheet["position"]["x"]} {sheet["position"]["y"]})')
+                lines.append(f'    (size {sheet["size"]["width"]} {sheet["size"]["height"]})')
+                lines.append('    (fields_autoplaced yes)')
+                lines.append('    (stroke')
+                lines.append(f'      (width {sheet["stroke"]["width"]})')
+                lines.append(f'      (type {sheet["stroke"]["type"]})')
+                lines.append('    )')
+                lines.append('    (fill')
+                lines.append(f'      (color {sheet["fill"]["color"]})')
+                lines.append('    )')
+                lines.append(f'    (uuid "{sheet["uuid"]}")')
+                
+                # Add sheet properties with proper positioning
+                lines.append(f'    (property "Sheetname" "{sheet["properties"]["Sheetname"]}"')
+                lines.append('      (at 125.73 65.3284 0)')  # Fixed position for now
+                lines.append('      (effects')
+                lines.append('        (font')
+                lines.append('          (size 1.27 1.27)')
+                lines.append('        )')
+                lines.append('        (justify left bottom)')
+                lines.append('      )')
+                lines.append('    )')
+                
+                lines.append(f'    (property "Sheetfile" "{sheet["properties"]["Sheetfile"]}"')
+                lines.append('      (at 125.73 81.8646 0)')  # Fixed position for now
+                lines.append('      (effects')
+                lines.append('        (font')
+                lines.append('          (size 1.27 1.27)')
+                lines.append('        )')
+                lines.append('        (justify left top)')
+                lines.append('      )')
+                lines.append('    )')
+                
+                # Add instances section for the sheet
+                lines.append('    (instances')
+                lines.append('      (project "project"')
+                lines.append(f'        (path "/{sheet["uuid"]}"')
+                lines.append('          (page "1")')
+                lines.append('        )')
+                lines.append('      )')
+                lines.append('    )')
+                
+                lines.append('  )')
+
+        # 6) Add sheet_instances block
         lines.append("  (sheet_instances")
-        lines.append("    (path \"/\" (page \"1\"))")
+        lines.append('    (path "/" (page "1"))')
         lines.append("  )")
 
         lines.append(")")
@@ -167,7 +269,6 @@ class KicadSchematicWriter:
         # Write to file
         with open(self.out_file, "w", encoding="utf-8") as f:
             f.write("\n".join(lines) + "\n")
-
 
     def _symbol_to_s_expression(self, sym_def: SymbolDefinition) -> str:
         """

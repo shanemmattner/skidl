@@ -33,13 +33,28 @@ def temp_project_dir(tmp_path):
     return project_dir
 
 @SubCircuit
-def single_resistor():  # Changed name to match expected sheet name
+def single_resistor():
     """Create a sheet with one resistor."""
     r1 = Part("Device", "R", 
               ref="R1",
               value="10k", 
               footprint="Resistor_SMD:R_0603_1608Metric")
     r1.MFG = "0603WAF1002T5E"
+
+@SubCircuit
+def two_resistors_circuit():
+    """Create a sheet with two resistors."""
+    r1 = Part("Device", "R", 
+              ref="R2",
+              value="10k", 
+              footprint="Resistor_SMD:R_0603_1608Metric")
+    r1.MFG = "0603WAF1002T5E"
+    
+    r2 = Part("Device", "R", 
+              ref="R3",
+              value="10k", 
+              footprint="Resistor_SMD:R_0603_1608Metric")
+    r2.MFG = "0603WAF1002T5E"
 
 def get_resistor_properties(instance_sexpr):
     """Extract resistor properties from a symbol instance s-expression."""
@@ -89,62 +104,21 @@ def verify_sheet_properties(sheet_sexpr, expected_name, expected_file):
     assert sheet_file == expected_file, \
         f"Sheet file mismatch: expected '{expected_file}', got '{sheet_file}'"
 
-def test_nested_project_schematic(temp_project_dir, schematic_parser):
-    """Test generating a hierarchical schematic with nested sheets."""
-    # Create circuit with @SubCircuit decorator
-    single_resistor()  # Using the renamed function
+def verify_sheet_schematic(schematic_path, expected_refs):
+    """Verify the contents of a sheet schematic file."""
+    assert schematic_path.exists(), f"Sheet schematic not found at {schematic_path}"
     
-    # Generate schematic
-    generate_schematic(
-        filepath=str(temp_project_dir),
-        project_name=TEST_PROJECT_NAME,
-        title="Nested Project Test"
-    )
-
-    # Verify schematic path
-    schematic_path = temp_project_dir / TEST_PROJECT_NAME / f"{TEST_PROJECT_NAME}.kicad_sch"
-    assert schematic_path.exists(), f"Circuit schematic not generated at {schematic_path}"
-
-    # Load and parse schematic
     with open(schematic_path) as f:
-        generated_content = f.read()
-        logger.debug("Generated schematic content:\n%s", generated_content)
-
-    generated_tree = schematic_parser.parse(generated_content)
-
-    # Find all sheets and resistor instances
-    resistor_instances = {}  # ref: properties mapping
-    sheets = []
+        content = f.read()
+        logger.debug("Sheet content:\n%s", content)
     
-    for child in generated_tree.attributes:
-        if not isinstance(child, SExpr):
-            continue
-            
-        if child.token == 'sheet':
-            sheets.append(child)
-            # Debug: print sheet properties
-            logger.debug("Found sheet: %s", child)
-
-    # Verify sheets were found
-    assert len(sheets) == 1, "Expected 1 sheet in main schematic"
-    verify_sheet_properties(sheets[0], "single_resistor", "single_resistor.kicad_sch")
-
-    # Now parse the single_resistor.kicad_sch file to verify its contents
-    sheet_path = temp_project_dir / TEST_PROJECT_NAME / "single_resistor.kicad_sch"
-    assert sheet_path.exists(), f"Sheet schematic not generated at {sheet_path}"
+    tree = SchematicParser().parse(content)
+    resistor_instances = {}
     
-    with open(sheet_path) as f:
-        sheet_content = f.read()
-        logger.debug("Sheet content:\n%s", sheet_content)
-    
-    sheet_tree = schematic_parser.parse(sheet_content)
-    
-    # Find resistors in the sheet
-    for child in sheet_tree.attributes:
+    for child in tree.attributes:
         if not isinstance(child, SExpr) or child.token != 'symbol':
             continue
             
-        # Check if it's a resistor
         for prop in child.attributes:
             if (isinstance(prop, SExpr) and 
                 prop.token == 'lib_id' and 
@@ -153,17 +127,66 @@ def test_nested_project_schematic(temp_project_dir, schematic_parser):
                 if 'Reference' in properties:
                     resistor_instances[properties['Reference']] = properties
                 break
-
-    # Verify resistors were found
-    expected_refs = {"R1"}
+    
     found_refs = set(resistor_instances.keys())
     assert found_refs == expected_refs, \
-        f"Missing resistors: expected {expected_refs}, found {found_refs}"
+        f"Resistor references mismatch in {schematic_path.name}: expected {expected_refs}, found {found_refs}"
     
-    # Verify properties of each resistor
     for ref in expected_refs:
-        assert ref in resistor_instances, f"Resistor {ref} not found in schematic"
         verify_resistor_properties(resistor_instances[ref], ref, "10k")
+
+def test_nested_project_schematic(temp_project_dir, schematic_parser):
+    """Test generating a hierarchical schematic with nested sheets."""
+    # Create both subcircuits
+    single_resistor()
+    two_resistors_circuit()
+    
+    # Generate schematic
+    generate_schematic(
+        filepath=str(temp_project_dir),
+        project_name=TEST_PROJECT_NAME,
+        title="Nested Project Test"
+    )
+
+    # Verify main schematic path
+    main_schematic_path = temp_project_dir / TEST_PROJECT_NAME / f"{TEST_PROJECT_NAME}.kicad_sch"
+    assert main_schematic_path.exists(), f"Main schematic not generated at {main_schematic_path}"
+
+    # Parse main schematic
+    with open(main_schematic_path) as f:
+        main_content = f.read()
+        logger.debug("Main schematic content:\n%s", main_content)
+
+    main_tree = schematic_parser.parse(main_content)
+    sheets = []
+    
+    # Find all sheets
+    for child in main_tree.attributes:
+        if isinstance(child, SExpr) and child.token == 'sheet':
+            sheets.append(child)
+            logger.debug("Found sheet: %s", child)
+
+    # Verify both sheets are present
+    assert len(sheets) == 2, "Expected 2 sheets in main schematic"
+    
+    # Expected sheet configurations
+    expected_sheets = [
+        ("single_resistor", "single_resistor.kicad_sch"),
+        ("two_resistors_circuit", "two_resistors_circuit.kicad_sch")
+    ]
+    
+    # Verify each sheet's properties
+    for i, (sheet_name, sheet_file) in enumerate(expected_sheets):
+        verify_sheet_properties(sheets[i], sheet_name, sheet_file)
+        
+        # Verify the sheet's schematic contents
+        sheet_path = temp_project_dir / TEST_PROJECT_NAME / sheet_file
+        if sheet_name == "single_resistor":
+            expected_refs = {"R1"}
+        else:  # two_resistors_circuit
+            expected_refs = {"R2", "R3"}
+            
+        verify_sheet_schematic(sheet_path, expected_refs)
 
 def test_error_handling():
     """Test error handling for invalid library access."""
