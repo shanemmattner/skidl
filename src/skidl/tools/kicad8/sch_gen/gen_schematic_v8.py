@@ -235,11 +235,11 @@ def gen_schematic(
         sheet.fill = ColorRGBA()
 
         # Sheet name & file
-        sheet.sheetName = Property(key="Sheet name", value=subcircuit_name)
+        sheet.sheetName = Property(key="Sheetname", value=subcircuit_name)
         sheet.sheetName.position = Position(
             str(x + sheet_width/2), str(y - 5), "0"
         )
-        sheet.fileName = Property(key="Sheet file", value=f"{subcircuit_name}.kicad_sch")
+        sheet.fileName = Property(key="Sheetfile", value=f"{subcircuit_name}.kicad_sch")
         sheet.fileName.position = Position(
             str(x + sheet_width/2), str(y - 2), "0"
         )
