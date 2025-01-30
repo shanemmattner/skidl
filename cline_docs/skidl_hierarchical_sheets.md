@@ -1,65 +1,105 @@
-# SKiDL Hierarchical Sheet Layout Improvements
+# SKiDL Hierarchical Sheet Generation Analysis
 
-## Project Context
-- Location: src/skidl/tools/kicad8/gen_schematic.py
-- Purpose: Generates KiCad schematics from SKiDL circuit descriptions
-- Specific Focus: Hierarchical sheet layout in top-level schematic
+## Current Behavior
 
-## Original Implementation
-- Sheet dimensions: 40x40mm
-- Spacing: 20mm between sheets
-- Layout: Grid pattern with 2 sheets per row
-- Issues:
-  - Sheets too large
-  - Poor spacing
-  - Not centered on page
-  - Labels positioned at (0,0)
+The hierarchical schematic generation is not properly handling nested circuits. While the SKiDL Circuit object correctly tracks the hierarchy in its group_name_cntr:
 
-## Changes Made
-1. Sheet Size Reduction
-   - Width/Height: 30mm (reduced from 40mm)
-   - Purpose: More compact representation while maintaining readability
+```python
+'group_name_cntr': Counter({
+    'top.single_resistor': 1,
+    'top.single_resistor0.two_resistors_circuit': 1
+})
+```
 
-2. Spacing Increase
-   - New spacing: 40mm (increased from 20mm)
-   - Purpose: Better visual separation between sheets
-
-3. Page Centering
-   - Added calculations for A4 page (297x210mm)
-   - Computes total width/height needed
-   - Centers sheet group on page
-   - Implementation:
-     ```python
-     total_width = num_cols * sheet_width + (num_cols - 1) * spacing
-     total_height = num_rows * sheet_height + (num_rows - 1) * spacing
-     start_x = (297 - total_width) / 2  # A4 width
-     start_y = (210 - total_height) / 2  # A4 height
-     ```
-
-4. Label Positioning
-   - Sheet name: 5mm above sheet
-   - File name: 2mm below sheet name
-   - Both centered horizontally relative to sheet
-   - Implementation:
-     ```python
-     sheet.sheetName.position.X = str(x + sheet_width/2)
-     sheet.sheetName.position.Y = str(y - 5)
-     sheet.fileName.position.X = str(x + sheet_width/2)
-     sheet.fileName.position.Y = str(y - 2)
-     ```
-
-## Technical Details
-- Uses kiutils library for KiCad file manipulation
-- Maintains hierarchical structure with main schematic + subcircuit sheets
-- Automatically creates blank schematics for each subcircuit
-- Centers content considering A4 page dimensions
+The generated KiCad schematics show both circuits at the top level instead of maintaining the proper parent-child relationship.
 
 ## Key Files
-- gen_schematic.py: Main implementation
-- Location: src/skidl/tools/kicad8/
-- Dependencies: kiutils for KiCad file handling
 
-## Future Considerations
-- May need adjustments for different page sizes
-- Could add configuration options for sheet dimensions/spacing
-- Consider adding grid snapping for cleaner alignment
+1. test_circuits.py - Shows the circuit definition with intended hierarchy:
+   ```python
+   @SubCircuit
+   def single_resistor():
+       r1 = Part("Device", "R", ...)
+       two_resistors_circuit()  # Called as child circuit
+
+   @SubCircuit
+   def two_resistors_circuit():
+       r2 = Part("Device", "R", ...)
+       r3 = Part("Device", "R", ...)
+   ```
+
+2. gen_schematic_v8.py - Main schematic generation logic:
+   - Correctly identifies subcircuits from group_name_cntr.keys()
+   - Creates separate .kicad_sch files for each subcircuit
+   - Issue: When adding hierarchical sheets (lines 222-249), treats all subcircuits as top-level
+
+3. kicad_writer.py - Handles the actual schematic file writing:
+   - Creates symbol definitions and instances
+   - Currently doesn't have hierarchy-aware sheet creation
+
+## Issue Analysis
+
+1. Hierarchy Information:
+   - SKiDL correctly tracks circuit hierarchy in group_name_cntr
+   - Circuit names contain hierarchy info: 'top.single_resistor0.two_resistors_circuit'
+   - This hierarchy is not being used when creating KiCad sheet symbols
+
+2. Sheet Symbol Creation:
+   - Current code places all sheets in a grid layout
+   - No parent-child relationships are established
+   - Sheets need to be nested according to the circuit hierarchy
+
+3. Project Configuration:
+   - sheets[] array in .kicad_pro needs to reflect proper hierarchy
+   - Sheet paths should indicate parent-child relationships
+
+## Suggested Solution
+
+1. Parse Hierarchy:
+   ```python
+   def parse_circuit_hierarchy(group_names):
+       hierarchy = {}
+       for path in group_names:
+           parts = path.split('.')
+           current = hierarchy
+           for part in parts[1:]:  # Skip 'top'
+               if part not in current:
+                   current[part] = {}
+               current = current[part]
+       return hierarchy
+   ```
+
+2. Create Hierarchical Sheets:
+   - Modify sheet creation to follow parsed hierarchy
+   - Place child sheets within parent sheets
+   - Update sheet paths to reflect nesting
+
+3. Update Project Configuration:
+   - Modify sheets[] array to include parent information
+   - Use proper sheet paths for hierarchical navigation
+
+## Required Changes
+
+1. gen_schematic_v8.py:
+   - Add hierarchy parsing function
+   - Modify sheet symbol creation to respect hierarchy
+   - Update sheet paths in project configuration
+
+2. kicad_writer.py:
+   - Add support for hierarchical sheet creation
+   - Include parent sheet information in sheet symbols
+
+## Testing Strategy
+
+1. Create test cases with various hierarchy levels
+2. Verify sheet symbols are properly nested
+3. Confirm KiCad can navigate the hierarchy correctly
+4. Check sheet paths in project configuration
+
+## Next Steps
+
+1. Implement hierarchy parsing
+2. Modify sheet symbol creation
+3. Update project configuration handling
+4. Add test cases for hierarchical sheets
+5. Document the new hierarchical sheet handling

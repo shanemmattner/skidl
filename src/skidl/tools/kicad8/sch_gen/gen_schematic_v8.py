@@ -78,6 +78,8 @@ def gen_schematic(
     """
     from skidl.logger import active_logger
     
+
+    print(f'Circuit: {vars(circuit)}')
     # 1) Setup project directory name using 'project_name'.
     #    So "kicad_blank_project" is replaced by user input.
     template_dir = os.path.join(
