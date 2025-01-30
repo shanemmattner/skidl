@@ -3,6 +3,7 @@
 import datetime
 import os.path
 import shutil
+import uuid
 from skidl.scriptinfo import get_script_name
 
 from .kicad_writer import KicadSchematicWriter, SchematicSymbolInstance
@@ -251,4 +252,56 @@ def gen_schematic(
         active_logger.info(f"Added sheet symbols to main schematic at {main_sch_path}")
     except Exception as e:
         active_logger.error(f"Error saving main schematic: {str(e)}")
+        raise
+
+    # 6) Update project files
+    try:
+        # Rename project files
+        old_files = {
+            "kicad_blank_project.kicad_pro": f"{project_name}.kicad_pro",
+            "kicad_blank_project.kicad_pcb": f"{project_name}.kicad_pcb",
+            "kicad_blank_project.kicad_prl": f"{project_name}.kicad_prl"
+        }
+        
+        for old_name, new_name in old_files.items():
+            old_path = os.path.join(project_dir, old_name)
+            new_path = os.path.join(project_dir, new_name)
+            if os.path.exists(old_path):
+                os.rename(old_path, new_path)
+                active_logger.info(f"Renamed {old_name} to {new_name}")
+        
+        # Update project configuration
+        project_path = os.path.join(project_dir, f"{project_name}.kicad_pro")
+        if os.path.exists(project_path):
+            import json
+            with open(project_path, 'r') as f:
+                project_config = json.load(f)
+            
+            # Update meta filename
+            project_config['meta']['filename'] = f"{project_name}.kicad_pro"
+            
+            # Update sheets configuration
+            project_config['sheets'] = [
+                {
+                    "path": f"{project_name}.kicad_sch",
+                    "sheet_name": "",  # Root sheet has no name
+                    "id": str(uuid.uuid4())
+                }
+            ]
+            
+            # Add hierarchical sheets
+            for subcircuit_path in subcircuits:
+                subcircuit_name = subcircuit_path.split('.')[-1]
+                project_config['sheets'].append({
+                    "path": f"{subcircuit_name}.kicad_sch",
+                    "sheet_name": subcircuit_name,
+                    "id": str(uuid.uuid4())
+                })
+            
+            # Write updated configuration
+            with open(project_path, 'w') as f:
+                json.dump(project_config, f, indent=2)
+            active_logger.info(f"Updated project configuration in {project_path}")
+    except Exception as e:
+        active_logger.error(f"Error updating project files: {str(e)}")
         raise
