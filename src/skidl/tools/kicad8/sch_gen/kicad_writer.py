@@ -314,5 +314,9 @@ class KicadSchematicWriter:
         s.append(f"  (property \"Reference\" \"{inst.reference}\" (at {inst.x+2.0:.2f} {inst.y:.2f} 0))")
         s.append(f"  (property \"Value\" \"{inst.value}\" (at {inst.x+2.0:.2f} {inst.y+2.0:.2f} 0))")
 
+        # Add footprint property if available
+        if inst.footprint:
+            s.append(f"  (property \"Footprint\" \"{inst.footprint}\" (at {inst.x+2.0:.2f} {inst.y+4.0:.2f} 0))")
+
         s.append(")")
         return "\n".join(s)
