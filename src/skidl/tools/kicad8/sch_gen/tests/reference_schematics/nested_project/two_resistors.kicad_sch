@@ -129,76 +129,6 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 10.16 0 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "760b97b4-8051-4ffb-b4cd-8d10efff6139")
-		(property "Reference" "R3"
-			(at 12.7 -1.2701 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "R"
-			(at 12.7 1.2699 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" ""
-			(at 8.382 0 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 10.16 0 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Resistor"
-			(at 10.16 0 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "2"
-			(uuid "782e278d-693b-42a0-a012-4de9a4dda3c8")
-		)
-		(pin "1"
-			(uuid "f495f17d-5c48-4c55-8fde-ec4153df8aea")
-		)
-		(instances
-			(project "nested_project"
-				(path "/3a480dbf-5a3c-4b90-9d48-bbf5b4cbfeef/9b0b90fc-8973-429f-9882-50bd45935579/69f71eff-1418-4626-afa2-1afed5fbeb27"
-					(reference "R3")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:R")
 		(at 0 0 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -206,7 +136,7 @@
 		(on_board yes)
 		(dnp no)
 		(fields_autoplaced yes)
-		(uuid "8e160524-d547-4dde-bf9c-add9e732b355")
+		(uuid "d7b9b7c7-3419-4484-b1e8-c7f843b944fb")
 		(property "Reference" "R2"
 			(at 2.54 -1.2701 0)
 			(effects
@@ -216,7 +146,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "R"
+		(property "Value" "10k"
 			(at 2.54 1.2699 0)
 			(effects
 				(font
@@ -225,7 +155,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at -1.778 0 90)
 			(effects
 				(font
@@ -253,15 +183,85 @@
 			)
 		)
 		(pin "2"
-			(uuid "9a6a2801-fc5d-4599-8166-052d06b66b7e")
+			(uuid "d301d15c-85e7-4466-970f-016eea153e82")
 		)
 		(pin "1"
-			(uuid "f367a06e-538a-418e-a621-19791c4ab122")
+			(uuid "a35e92a8-76db-46e4-b87b-8d3252820d19")
 		)
 		(instances
 			(project "nested_project"
 				(path "/3a480dbf-5a3c-4b90-9d48-bbf5b4cbfeef/9b0b90fc-8973-429f-9882-50bd45935579/69f71eff-1418-4626-afa2-1afed5fbeb27"
 					(reference "R2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 12.7 0 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "fd38a92e-d695-4081-9cbb-d9f111cad301")
+		(property "Reference" "R3"
+			(at 15.24 -1.2701 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "10k"
+			(at 15.24 1.2699 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+			(at 10.922 0 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 12.7 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 12.7 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "991fb6c8-3655-4f62-af0b-eea0df736b9f")
+		)
+		(pin "1"
+			(uuid "b1bf98fc-943b-45a8-b18d-0f89c390980e")
+		)
+		(instances
+			(project "nested_project"
+				(path "/3a480dbf-5a3c-4b90-9d48-bbf5b4cbfeef/9b0b90fc-8973-429f-9882-50bd45935579/69f71eff-1418-4626-afa2-1afed5fbeb27"
+					(reference "R3")
 					(unit 1)
 				)
 			)
