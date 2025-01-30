@@ -1,0 +1,51 @@
+(kicad_sch
+	(version 20231120)
+	(generator "eeschema")
+	(generator_version "8.0")
+	(uuid "3a480dbf-5a3c-4b90-9d48-bbf5b4cbfeef")
+	(paper "A4")
+	(lib_symbols)
+	(sheet
+		(at 125.73 66.04)
+		(size 13.97 15.24)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "9b0b90fc-8973-429f-9882-50bd45935579")
+		(property "Sheetname" "single_resistor"
+			(at 125.73 65.3284 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "single_resistor.kicad_sch"
+			(at 125.73 81.8646 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "nested_project"
+				(path "/3a480dbf-5a3c-4b90-9d48-bbf5b4cbfeef"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+)
