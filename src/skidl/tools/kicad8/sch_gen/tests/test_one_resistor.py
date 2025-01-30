@@ -1,5 +1,7 @@
 import pytest
 import logging
+import json
+import uuid
 from pathlib import Path
 from skidl import *
 from skidl.tools.kicad8.sch_gen.sexpr import SchematicParser, SExpr
@@ -37,6 +39,73 @@ def resistor_circuit():
     r = Part("Device", "R", ref="R1", value="2.2k", 
              footprint="R_0603_1608Metric")
 
+def validate_kicad_pro_structure(project_data):
+    """
+    Validate that a KiCad project file contains all required sections.
+    
+    Args:
+        project_data: Parsed JSON data from .kicad_pro file
+        
+    Raises:
+        AssertionError: If any required section is missing or invalid
+    """
+    # Check required top-level sections
+    required_sections = [
+        "board", "libraries", "meta", "net_settings",
+        "pcbnew", "schematic", "sheets"
+    ]
+    for section in required_sections:
+        assert section in project_data, f"Missing required section: {section}"
+    
+    # Validate meta section
+    assert "version" in project_data["meta"], "Missing version in meta section"
+    assert "filename" in project_data["meta"], "Missing filename in meta section"
+    assert isinstance(project_data["meta"]["version"], int), "Version must be integer"
+    
+    # Validate sheets section
+    assert isinstance(project_data["sheets"], list), "Sheets must be a list"
+    for sheet in project_data["sheets"]:
+        assert "path" in sheet, "Sheet missing path"
+        assert "sheet_name" in sheet, "Sheet missing name"
+        assert "id" in sheet, "Sheet missing id"
+        # Verify UUID is valid
+        try:
+            uuid.UUID(sheet["id"])
+        except ValueError:
+            raise AssertionError(f"Invalid UUID in sheet: {sheet['id']}")
+
+def validate_kicad_pro_content(project_data, project_name):
+    """
+    Validate the content of a KiCad project file matches expected values.
+    
+    Args:
+        project_data: Parsed JSON data from .kicad_pro file
+        project_name: Expected name of the project
+        
+    Raises:
+        AssertionError: If content doesn't match expected values
+    """
+    # Check project filename
+    expected_filename = f"{project_name}.kicad_pro"
+    assert project_data["meta"]["filename"] == expected_filename, \
+        f"Wrong filename in meta: {project_data['meta']['filename']} != {expected_filename}"
+    
+    # Check sheet paths
+    expected_sheets = [
+        f"{project_name}.kicad_sch",
+        "resistor_circuit.kicad_sch"
+    ]
+    actual_sheets = [sheet["path"] for sheet in project_data["sheets"]]
+    assert sorted(actual_sheets) == sorted(expected_sheets), \
+        f"Sheet paths don't match: {actual_sheets} != {expected_sheets}"
+    
+    # Verify default net class exists
+    assert "classes" in project_data["net_settings"], "Missing net classes"
+    net_classes = project_data["net_settings"]["classes"]
+    assert len(net_classes) > 0, "No net classes defined"
+    default_class = net_classes[0]
+    assert default_class["name"] == "Default", "Missing default net class"
+
 def get_property_value(props, prop_name):
     """
     Extract a property value from a list of s-expression properties.
@@ -59,24 +128,45 @@ def get_property_value(props, prop_name):
 def test_schematic_generation(temp_project_dir, schematic_parser):
     """
     Test generating a schematic with one resistor component.
-    Verifies the schematic structure, component placement, and properties.
+    Verifies the schematic structure, component placement, properties,
+    and proper KiCad project file generation.
     """
     # Create the circuit
     resistor_circuit()
 
+    # Use different directory and project names to test naming logic
+    project_name = "test_resistor_alpha"
+    project_dir_name = "resistor_test_beta"
+    
     # Generate schematic
     generate_schematic(
-        filepath=str(temp_project_dir),
-        project_name="resistor",
+        filepath=str(temp_project_dir / project_dir_name),
+        project_name=project_name,
         title="Test One Resistor Schematic"
     )
 
+    # Get project directory path
+    project_dir = temp_project_dir / project_dir_name / project_name
+
     # Verify schematic files
-    schematic_path = temp_project_dir / "resistor" / "resistor_circuit.kicad_sch"
+    schematic_path = project_dir / "resistor_circuit.kicad_sch"
     assert schematic_path.exists(), f"Circuit schematic not generated at {schematic_path}"
 
-    main_schematic = temp_project_dir / "resistor" / "resistor.kicad_sch"
+    main_schematic = project_dir / f"{project_name}.kicad_sch"
     assert main_schematic.exists(), f"Main schematic not generated at {main_schematic}"
+
+    # Verify KiCad project file
+    project_file = project_dir / f"{project_name}.kicad_pro"
+    assert project_file.exists(), f"Project file not generated at {project_file}"
+
+    # Parse and validate project file
+    with open(project_file) as f:
+        project_data = json.loads(f.read())
+        logger.debug("Generated project file content:\n%s", json.dumps(project_data, indent=2))
+
+    # Validate project file structure and content
+    validate_kicad_pro_structure(project_data)
+    validate_kicad_pro_content(project_data, project_name)
         
     # Parse and verify schematic content
     with open(schematic_path) as f:
