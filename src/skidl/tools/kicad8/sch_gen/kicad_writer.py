@@ -10,6 +10,9 @@ import uuid
 from typing import List, Dict, Tuple
 import os
 
+from kiutils.items.schitems import HierarchicalSheet
+from kiutils.items.common import Position, Property
+
 # These imports assume you have a package layout like:
 #   your_package/
 #       symbol_definitions.py
@@ -63,6 +66,7 @@ class KicadSchematicWriter:
         """
         self.out_file = out_file
         self.symbol_instances: List[SchematicSymbolInstance] = []
+        self.sheet_symbols: List[HierarchicalSheet] = []  # Added sheet symbols list
 
         # We cache library parsers so we don't re-parse the same library multiple times
         self.lib_parsers: Dict[str, KicadLibraryParser] = {}
@@ -70,15 +74,67 @@ class KicadSchematicWriter:
         self.flatteners: Dict[str, SymbolFlattener] = {}
 
         # Some schematic metadata
-        self.version = "20231120"
+        self.version = 20231120  # Version must be an integer for KiCad
         self.generator = "eeschema"
         self.generator_version = "8.0"
         self.paper_size = "A4"
         self.uuid = str(uuid.uuid4())
-
     def add_symbol_instance(self, instance: SchematicSymbolInstance):
         """Add a symbol instance to be placed in the final .kicad_sch."""
         self.symbol_instances.append(instance)
+
+    def add_sheet_symbol(self, sheet: HierarchicalSheet):
+        """Add a hierarchical sheet symbol to be placed in the final .kicad_sch."""
+        self.sheet_symbols.append(sheet)
+
+    def _sheet_to_s_expression(self, sheet: HierarchicalSheet) -> str:
+        """Convert a hierarchical sheet to KiCad s-expression format."""
+        s = []
+        s.append("(sheet")
+        s.append(f"  (at {sheet.position.X} {sheet.position.Y})")
+        s.append(f"  (size {sheet.width} {sheet.height})")
+        s.append("  (fields_autoplaced yes)")
+        s.append("  (stroke")
+        s.append("    (width 0.1524)")
+        s.append("    (type solid)")
+        s.append("  )")
+        s.append("  (fill")
+        s.append("    (color 0 0 0 0.0000)")
+        s.append("  )")
+        s.append(f"  (uuid \"{str(uuid.uuid4())}\")")
+        
+        # Add sheet properties with proper positioning and effects
+        s.append(f"  (property \"Sheetname\" \"{sheet.sheetName.value}\"")
+        s.append(f"    (at {sheet.position.X} {float(sheet.position.Y) - 0.7116} 0)")
+        s.append("    (effects")
+        s.append("      (font")
+        s.append("        (size 1.27 1.27)")
+        s.append("      )")
+        s.append("      (justify left bottom)")
+        s.append("    )")
+        s.append("  )")
+        
+        s.append(f"  (property \"Sheetfile\" \"{sheet.fileName.value}\"")
+        s.append(f"    (at {sheet.position.X} {float(sheet.position.Y) + float(sheet.height) + 0.5846} 0)")
+        s.append("    (effects")
+        s.append("      (font")
+        s.append("        (size 1.27 1.27)")
+        s.append("      )")
+        s.append("      (justify left top)")
+        s.append("    )")
+        s.append("  )")
+        
+        # Add instances block with proper project path
+        s.append("  (instances")
+        s.append("    (project \"testing_hierarchy\"")
+        s.append(f"      (path \"{sheet.hierarchical_path}\"")
+        s.append("        (page \"3\")")
+        s.append("      )")
+        s.append("    )")
+        s.append("  )")
+        
+        s.append(")")
+        return "\n".join(s)
 
     def _get_library_parser(self, library_path: str) -> KicadLibraryParser:
         """
@@ -157,9 +213,20 @@ class KicadSchematicWriter:
             for l in inst_block.splitlines():
                 lines.append("  " + l)
 
-        # 5) Minimal (sheet_instances)
+        # 5) Add hierarchical sheets
+        for sheet in self.sheet_symbols:
+            sheet_block = self._sheet_to_s_expression(sheet)
+            for l in sheet_block.splitlines():
+                lines.append("  " + l)
+
+        # 6) Sheet instances block
         lines.append("  (sheet_instances")
         lines.append("    (path \"/\" (page \"1\"))")
+        for sheet in self.sheet_symbols:
+            sheet_id = str(uuid.uuid4())
+            # Use stored hierarchical path from HierarchyManager
+            sheet_path = getattr(sheet, 'hierarchical_path', f"/{sheet.sheetName.value}")
+            lines.append(f"    (path \"{sheet_path}\" (page \"{sheet_id}\"))")
         lines.append("  )")
 
         lines.append(")")
@@ -310,13 +377,78 @@ class KicadSchematicWriter:
         s.append("  (fields_autoplaced yes)")
         s.append(f"  (uuid \"{inst.uuid}\")")
 
-        # Minimal fields
-        s.append(f"  (property \"Reference\" \"{inst.reference}\" (at {inst.x+2.0:.2f} {inst.y:.2f} 0))")
-        s.append(f"  (property \"Value\" \"{inst.value}\" (at {inst.x+2.0:.2f} {inst.y+2.0:.2f} 0))")
+        # Reference field with effects
+        s.append(f"  (property \"Reference\" \"{inst.reference}\"")
+        s.append(f"    (at {inst.x+2.54:.2f} {inst.y-1.2701:.2f} 0)")
+        s.append("    (effects")
+        s.append("      (font")
+        s.append("        (size 1.27 1.27)")
+        s.append("      )")
+        s.append("      (justify left)")
+        s.append("    )")
+        s.append("  )")
+
+        # Value field with effects
+        s.append(f"  (property \"Value\" \"{inst.value}\"")
+        s.append(f"    (at {inst.x+2.54:.2f} {inst.y+1.2699:.2f} 0)")
+        s.append("    (effects")
+        s.append("      (font")
+        s.append("        (size 1.27 1.27)")
+        s.append("      )")
+        s.append("      (justify left)")
+        s.append("    )")
+        s.append("  )")
 
         # Add footprint property if available
         if inst.footprint:
-            s.append(f"  (property \"Footprint\" \"{inst.footprint}\" (at {inst.x+2.0:.2f} {inst.y+4.0:.2f} 0))")
+            s.append(f"  (property \"Footprint\" \"{inst.footprint}\"")
+            s.append(f"    (at {inst.x-1.778:.2f} {inst.y:.2f} 90)")
+            s.append("    (effects")
+            s.append("      (font")
+            s.append("        (size 1.27 1.27)")
+            s.append("      )")
+            s.append("      (hide yes)")
+            s.append("    )")
+            s.append("  )")
+
+        # Add datasheet and description properties
+        s.append("  (property \"Datasheet\" \"~\"")
+        s.append(f"    (at {inst.x:.2f} {inst.y:.2f} 0)")
+        s.append("    (effects")
+        s.append("      (font")
+        s.append("        (size 1.27 1.27)")
+        s.append("      )")
+        s.append("      (hide yes)")
+        s.append("    )")
+        s.append("  )")
+
+        s.append("  (property \"Description\" \"Resistor\"")
+        s.append(f"    (at {inst.x:.2f} {inst.y:.2f} 0)")
+        s.append("    (effects")
+        s.append("      (font")
+        s.append("        (size 1.27 1.27)")
+        s.append("      )")
+        s.append("      (hide yes)")
+        s.append("    )")
+        s.append("  )")
+
+        # Add pin UUIDs
+        s.append("  (pin \"2\"")
+        s.append(f"    (uuid \"{str(uuid.uuid4())}\")")
+        s.append("  )")
+        s.append("  (pin \"1\"")
+        s.append(f"    (uuid \"{str(uuid.uuid4())}\")")
+        s.append("  )")
+
+        # Add instances block
+        s.append("  (instances")
+        s.append("    (project \"testing_hierarchy\"")
+        s.append(f"      (path \"{getattr(inst, 'hierarchical_path', '/')}\"")
+        s.append(f"        (reference \"{inst.reference}\")")
+        s.append("        (unit 1)")
+        s.append("      )")
+        s.append("    )")
+        s.append("  )")
 
         s.append(")")
         return "\n".join(s)

@@ -11,6 +11,7 @@ ROOT_DIRECTORY = "/Users/shanemattner/Desktop/skidl"
 OUTPUT_FILE = "collected_code.txt"
 
 # What files to collect (add or remove filenames as needed)
+# Expanded to include additional test files encountered in the logs.
 TARGET_FILES = [
     # Core Implementation Files
     'gen_schematic_v8.py',      # Main schematic generation logic
@@ -19,6 +20,10 @@ TARGET_FILES = [
     # Test and Example Files
     'test_circuits.py',         # Shows current hierarchical issue
     'test_nested_project.py',   # Reference implementation for proper nesting
+    'test_blank_sch.py',        # Tests blank schematic generation & metadata
+    'test_four_resistors.py',   # Tests a 4-resistor subcircuit
+    'test_one_resistor.py',     # Tests a single resistor subcircuit
+    'test_two_resistors.py',    # Tests a 2-resistor subcircuit
     
     # Generated Schematics Showing Issue
     'testing_hierarchy.kicad_sch',      # Main project schematic
@@ -30,44 +35,55 @@ TARGET_FILES = [
 ]
 
 # Message to add at the start of the output file
-INTRO_MESSAGE = """Hierarchical Schematic Generation Issue Analysis
+INTRO_MESSAGE = """
 
-This collection of files demonstrates an issue with hierarchical schematic generation in SKiDL where parent-child relationships between circuits are not being maintained in the generated KiCad schematics.
+Hierarchical Schematic Generation Issue Analysis - Updated Status
 
-Current Behavior:
-- SKiDL Circuit object correctly tracks hierarchy in group_name_cntr:
-  {
-      'top.single_resistor': 1,
-      'top.single_resistor0.two_resistors_circuit': 1
-  }
-- However, generated KiCad schematics show all circuits at the top level instead of maintaining proper nesting
+Current State:
+We have implemented a HierarchyManager class that correctly:
+- Handles path normalization for sheet naming
+- Creates the top-level schematic with sheet symbols
+- Sets up the basic file structure
 
-Core Implementation Files:
-- gen_schematic_v8.py: Main schematic generation logic that processes circuit hierarchy
-- kicad_writer.py: Handles writing KiCad schematic files and sheet symbols
+However, there are still critical issues:
 
-Test Files:
-- test_circuits.py: Demonstrates the issue with a nested circuit structure:
-  * single_resistor() is the parent circuit
-  * two_resistors_circuit() is called within single_resistor()
-- test_nested_project.py: Reference implementation showing proper hierarchical sheet handling
+1. **Part Assignment Issue**:
+- Parts are not being correctly assigned to their circuit sheets
+- Example: A single resistor circuit generates the sheet but no components appear
+- Key files to examine: `hierarchy_manager.py` (assign_parts_to_circuits method)
+- Path normalization may be failing to match parts to their circuits
 
-Generated Schematics:
-- testing_hierarchy.kicad_sch: Main project schematic
-- single_resistor.kicad_sch: Parent circuit containing one resistor
-- two_resistors_circuit.kicad_sch: Child circuit that should be nested under single_resistor
+2. **Hierarchy Building**:
+- Current paths ['top.single_resistor', 'top.single_resistor0.two_resistors_circuit']
+- Two-resistor circuit should be nested under single_resistor0 but appears missing
+- Key files to examine: 
+  * `hierarchy_manager.py` (build_hierarchy method)
+  * `gen_schematic_v8.py` (hierarchy parsing)
 
-Reference Implementation:
-- nested_project.kicad_sch: Shows correct hierarchical structure with proper sheet paths and instances
+3. **Sheet Generation**:
+- Only generating single_resistor.kicad_sch
+- Missing two_resistors_circuit.kicad_sch generation
+- Key files to examine: `hierarchy_manager.py` (_generate_circuit_schematic method)
 
-Terminal Output:
-[Include the terminal output showing the issue]
+Debugging Priority:
+1. First fix part assignment by debugging the path matching in assign_parts_to_circuits()
+2. Then examine hierarchy building to ensure child circuits are properly nested
+3. Finally verify sheet generation for all circuits in the hierarchy
 
-Key Areas to Analyze:
-1. How circuit hierarchy is tracked in SKiDL's Circuit object
-2. Sheet symbol creation in gen_schematic_v8.py
-3. Project configuration updates for proper sheet paths
-4. KiCad schematic file structure for hierarchical sheets
+Key Methods to Focus On:
+- HierarchyManager.normalize_path_for_matching()
+- HierarchyManager.assign_parts_to_circuits()
+- HierarchyManager._generate_circuit_schematic()
+
+Next Steps:
+1. Add debug logging in assign_parts_to_circuits() to track:
+   - Raw hierarchy path of each part
+   - Normalized paths being compared
+   - Which node matches (or fails to match)
+2. Verify the parent-child relationships in build_hierarchy()
+3. Add checks to ensure _generate_circuit_schematic() is called for all nodes
+
+The core issue appears to be in the path normalization and matching logic, as parts aren't being assigned to their correct circuit nodes despite the sheets being created.
 """
 
 #==============================================================================

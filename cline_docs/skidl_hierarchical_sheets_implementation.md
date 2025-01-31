@@ -1,171 +1,129 @@
-# SKiDL Hierarchical Sheet Implementation Guide
+# SKiDL Hierarchical Sheets Implementation Status
 
-## Current Implementation Analysis
+## Current Progress
 
-After analyzing the reference implementation and current code, here are the key findings:
+1. Circuit Object Structure
+- Successfully logging circuit attributes and hierarchy
+- Group name counter tracking subcircuits
+- Parts and nets properly tracked
 
-### Reference Implementation (test_nested_project.py)
+2. Hierarchy Building
+- Parent-child relationships established
+- Sheet names and paths correctly mapped
+- Debug logging added for hierarchy structure
 
-1. Sheet Structure:
-```kicad_sch
-(sheet
-    (at 125.73 66.04)
-    (size 13.97 15.24)
-    (property "Sheetname" "single_resistor")
-    (property "Sheetfile" "single_resistor.kicad_sch")
-    (instances
-        (project "nested_project"
-            (path "/3a480dbf-5a3c-4b90-9d48-bbf5b4cbfeef"
-                (page "2")
-            )
-        )
-    )
-)
-```
+## Current Issues
 
-2. Sheet Instances:
-```kicad_sch
-(sheet_instances
-    (path "/"
-        (page "1")
-    )
-)
-```
+1. Test Failures
+- Blank schematic version mismatch (20211014 vs 20231120)
+- Sheet name format incorrect (includes full path instead of base name)
+- Missing KicadSchematicWriter.add_symbol_instance method
 
-### Current Implementation Issues
+2. Part Assignment
+- Parts now correctly assigned to matching nodes
+- Base path matching working for numeric suffixes
 
-1. Hierarchy Tracking:
-   - SKiDL correctly tracks hierarchy in group_name_cntr:
-     ```python
-     {
-         'top.single_resistor': 1,
-         'top.single_resistor0.two_resistors_circuit': 1
-     }
-     ```
-   - But gen_schematic_v8.py doesn't use this hierarchy when creating sheets
+3. Sheet Symbol Generation
+- Sheet symbols added but not properly formatted
+- Need to update sheet name handling
 
-2. Sheet Creation (gen_schematic_v8.py):
-   ```python
-   # Current code places all sheets at top level
-   for subcircuit_path in subcircuits:
-       subcircuit_name = subcircuit_path.split('.')[-1]
-       # Creates sheet without considering parent-child relationship
-   ```
+## Required Fixes
 
-## Required Changes
-
-1. Hierarchy Parsing in gen_schematic_v8.py:
+1. KicadSchematicWriter Updates
 ```python
-def parse_circuit_hierarchy(subcircuits):
-    """Convert flat subcircuit paths into nested hierarchy dict."""
-    hierarchy = {}
-    for path in subcircuits:
-        parts = path.split('.')
-        current = hierarchy
-        for i, part in enumerate(parts[1:]):  # Skip 'top'
-            if i == len(parts[1:]) - 1:
-                current[part] = None  # Leaf node
-            else:
-                if part not in current:
-                    current[part] = {}
-                current = current[part]
-    return hierarchy
+# Need to add missing method:
+def add_symbol_instance(self, instance: SchematicSymbolInstance):
+    """Add a symbol instance to be placed in the final .kicad_sch."""
+    self.symbol_instances.append(instance)
 ```
 
-2. Sheet Creation:
-```python
-def create_sheet_hierarchy(hierarchy, parent_path="/"):
-    """Create hierarchical sheets recursively."""
-    sheets = []
-    for name, children in hierarchy.items():
-        sheet = HierarchicalSheet()
-        sheet.sheetName = Property(key="Sheetname", value=name)
-        sheet.fileName = Property(key="Sheetfile", value=f"{name}.kicad_sch")
-        
-        # Set sheet path based on parent
-        sheet_path = f"{parent_path}/{name}"
-        sheet.instances = [
-            {
-                "path": sheet_path,
-                "page": str(len(sheets) + 2)  # Start from page 2
-            }
-        ]
-        
-        # Recursively handle children
-        if children:
-            child_sheets = create_sheet_hierarchy(children, sheet_path)
-            sheets.extend(child_sheets)
-            
-        sheets.append(sheet)
-    return sheets
+2. Version Update
+- Update schematic version to match KiCad 8 format (20231120)
+- Update generator version string
+
+3. Sheet Name Handling
+- Strip parent path from sheet names
+- Use base name for sheet file references
+- Update sheet property formatting
+
+4. Test Suite Updates
+- Update reference files for new version
+- Fix sheet name expectations
+- Add hierarchy validation tests
+
+## Implementation Plan
+
+1. Fix KicadSchematicWriter
+- Add missing add_symbol_instance method
+- Update version constants
+- Fix sheet name formatting
+
+2. Update HierarchyManager
+- Modify sheet name generation
+- Update parent-child tracking
+- Fix sheet symbol placement
+
+3. Update Test Suite
+- Update reference files
+- Fix test expectations
+- Add new test cases
+
+## Debug Output Analysis
+
+1. Circuit Structure
+```
+Circuit object attributes:
+- group_name_cntr shows correct hierarchy
+- parts properly created
+- nets initialized
 ```
 
-3. Project Configuration:
-```python
-def update_project_config(config, hierarchy, parent_path="/"):
-    """Update project config with hierarchical sheet paths."""
-    sheets = []
-    for name, children in hierarchy.items():
-        sheet_path = f"{parent_path}/{name}"
-        sheets.append({
-            "path": f"{name}.kicad_sch",
-            "sheet_name": name,
-            "id": str(uuid.uuid4()),
-            "parent_path": parent_path
-        })
-        if children:
-            sheets.extend(update_project_config(config, children, sheet_path))
-    return sheets
+2. Hierarchy Building
+```
+Node: top.single_resistor
+  Sheet name: single_resistor
+  Parent: top
+  Children: []
+  Parts: []
+
+Node: top.single_resistor0.two_resistors_circuit
+  Sheet name: two_resistors_circuit
+  Parent: top.single_resistor0
+  Children: []
+  Parts: []
 ```
 
-## Implementation Steps
+3. Part Assignment
+```
+Part R1:
+  Instance path: top.single_resistor0
+  Assigned to: top.single_resistor
+  Sheet file: single_resistor.kicad_sch
 
-1. Modify gen_schematic_v8.py:
-   - Add hierarchy parsing function
-   - Update sheet creation to use hierarchy
-   - Modify project configuration update
+Parts R2, R3:
+  Instance path: top.single_resistor0.two_resistors_circuit0
+  Assigned to: top.single_resistor0.two_resistors_circuit
+  Sheet file: two_resistors_circuit.kicad_sch
+```
 
-2. Update KicadSchematicWriter:
-   - Add support for sheet instances with proper paths
-   - Include parent-child relationships in sheet properties
+## Next Steps
 
-3. Testing:
-   - Use test_circuits.py as test case
-   - Verify sheet hierarchy in KiCad
-   - Check sheet paths and navigation
+1. Fix Critical Issues
+- Add missing add_symbol_instance method
+- Update schematic version
+- Fix sheet name formatting
 
-## Expected Result
+2. Update Documentation
+- Document version requirements
+- Update sheet naming conventions
+- Add debug logging guide
 
-1. Main Schematic (testing_hierarchy.kicad_sch):
-   - Contains single_resistor sheet
-   - Proper sheet path and instance configuration
+3. Enhance Testing
+- Add hierarchy validation
+- Test sheet symbol generation
+- Verify version handling
 
-2. Single Resistor Sheet (single_resistor.kicad_sch):
-   - Contains two_resistors_circuit sheet
-   - Maintains parent-child relationship
-
-3. Project Configuration:
-   - Correct sheet paths reflecting hierarchy
-   - Proper parent-child relationships
-   - Working sheet navigation in KiCad
-
-## Verification Steps
-
-1. Generate test schematic:
-   ```python
-   single_resistor()  # Creates nested hierarchy
-   generate_schematic(
-       filepath="hierarchy_test",
-       project_name="testing_hierarchy"
-   )
-   ```
-
-2. Check KiCad schematic:
-   - Open in KiCad
-   - Verify sheet hierarchy
-   - Test navigation between sheets
-
-3. Verify file structure:
-   - Check sheet paths in .kicad_pro
-   - Verify sheet instance configurations
-   - Confirm parent-child relationships
+4. Future Improvements
+- Add sheet symbol positioning options
+- Enhance debug logging
+- Add error recovery mechanisms

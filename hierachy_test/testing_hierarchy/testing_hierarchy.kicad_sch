@@ -1,0 +1,15 @@
+(kicad_sch (version 20231120) (generator eeschema)
+  (paper "A4")
+  (lib_symbols)
+
+  (sheet (at 100 50) (size 30 20)
+    (stroke (width 0.0))
+    (fill (color 0 0 0 0))
+    (property "Sheetname" "single_resistor" (at 115.0 45 0))
+    (property "Sheetfile" "single_resistor.kicad_sch" (at 115.0 48 0))
+  )
+
+  (sheet_instances
+    (path "/" (page "1"))
+  )
+)

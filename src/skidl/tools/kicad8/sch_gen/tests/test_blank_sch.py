@@ -68,18 +68,28 @@ def test_blank_schematic_generation(temp_project_dir, schematic_parser):
     reference_tree = schematic_parser.parse(reference_content)
     
     # Compare key elements using normalized attribute values
-    version_match = (generated_tree.find('version').get_attribute_value() == 
-                    reference_tree.find('version').get_attribute_value())
-    assert version_match, "Generated schematic version does not match reference version"
+    generated_version = generated_tree.find('version').get_attribute_value()
+    reference_version = reference_tree.find('version').get_attribute_value()
+    logger.debug(f"Generated version: {generated_version}")
+    logger.debug(f"Reference version: {reference_version}")
+    version_match = (generated_version == reference_version)
+    assert version_match, f"Version mismatch: generated={generated_version}, reference={reference_version}"
             
-    generator_match = (generated_tree.find('generator').get_attribute_value() == 
-                      reference_tree.find('generator').get_attribute_value())
-    assert generator_match, "Generated schematic generator does not match reference generator"
+    # Compare generator
+    generated_generator = generated_tree.find('generator').get_attribute_value()
+    reference_generator = reference_tree.find('generator').get_attribute_value()
+    generator_match = (generated_generator == reference_generator)
+    if not generator_match:
+        logger.error(f"Generator mismatch: generated={generated_generator}, reference={reference_generator}")
+    assert generator_match, f"Generator mismatch: generated={generated_generator}, reference={reference_generator}"
             
     # Compare paper size
-    paper_match = (generated_tree.find('paper').get_attribute_value() == 
-                  reference_tree.find('paper').get_attribute_value())
-    assert paper_match, "Generated schematic paper size does not match reference"
+    generated_paper = generated_tree.find('paper').get_attribute_value()
+    reference_paper = reference_tree.find('paper').get_attribute_value()
+    paper_match = (generated_paper == reference_paper)
+    if not paper_match:
+        logger.error(f"Paper size mismatch: generated={generated_paper}, reference={reference_paper}")
+    assert paper_match, f"Paper size mismatch: generated={generated_paper}, reference={reference_paper}"
             
     # Verify lib_symbols exists and is empty
     gen_libs = generated_tree.find('lib_symbols')
@@ -109,12 +119,20 @@ def test_schematic_metadata(temp_project_dir):
         content = f.read()
     tree = SchematicParser().parse(content)
     
-    assert str(tree.find('version').get_attribute_value()) == "20231120", \
-        "Incorrect schematic version"
-    assert tree.find('generator').get_attribute_value() == "eeschema", \
-        "Incorrect generator"
-    assert tree.find('paper').get_attribute_value() == "A4", \
-        "Incorrect paper size"
+    version = str(tree.find('version').get_attribute_value())
+    if version != "20231120":
+        logger.error(f"Metadata version mismatch: got {version}, expected 20231120")
+    assert version == "20231120", f"Incorrect schematic version: got {version}, expected 20231120"
+
+    generator = tree.find('generator').get_attribute_value()
+    if generator != "eeschema":
+        logger.error(f"Metadata generator mismatch: got {generator}, expected eeschema")
+    assert generator == "eeschema", f"Incorrect generator: got {generator}, expected eeschema"
+
+    paper = tree.find('paper').get_attribute_value()
+    if paper != "A4":
+        logger.error(f"Metadata paper size mismatch: got {paper}, expected A4")
+    assert paper == "A4", f"Incorrect paper size: got {paper}, expected A4"
 
 def test_project_directory_structure(temp_project_dir):
     """
