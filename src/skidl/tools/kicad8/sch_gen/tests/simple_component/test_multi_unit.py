@@ -36,8 +36,8 @@ def temp_project_dir(tmp_path):
 
 @SubCircuit
 def multi_unit_circuit():
-    """Create a test circuit with a multi-unit component."""
-    # Create a multi-unit component (example: 74LS00 quad NAND gate)
+    """Create a test circuit with a multi-unit component and standard parameters."""
+    # Create a 74LS00 quad NAND gate with standard parameters
     nand_gate = Part("74xx", "74LS00", 
                     ref="U1",
                     footprint="Package_DIP:DIP-14_W7.62mm")
@@ -52,57 +52,79 @@ def multi_unit_circuit():
     nand_gate[2].B += Net('B2')
     nand_gate[2].Y += Net('Y2')
 
-def get_multi_unit_properties(instance_sexpr):
+def get_property_value(props, prop_name):
     """
-    Extract multi-unit component properties from a symbol instance s-expression.
+    Extract a property value from a list of s-expression properties.
     
     Args:
-        instance_sexpr: SExpr node representing a symbol instance
+        props: List of SExpr nodes representing properties
+        prop_name: Name of the property to find
         
     Returns:
-        Dictionary of property name-value pairs
+        String value of the property or None if not found
     """
-    properties = {}
-    for child in instance_sexpr.attributes:
-        if isinstance(child, SExpr) and child.token == 'property':
-            prop_name = child.get_attribute_value()
-            if len(child.attributes) > 1:
-                prop_value = child.attributes[1].strip('"')
-                properties[prop_name] = prop_value
-                logger.debug("Found property: %s = %s", prop_name, prop_value)
-    return properties
+    for prop in props:
+        if isinstance(prop, SExpr) and prop.token == 'property':
+            if prop.get_attribute_value() == prop_name:
+                value = prop.attributes[1] if len(prop.attributes) > 1 else None
+                if value:
+                    return value.strip('"')
+    return None
 
-def verify_multi_unit_properties(properties, ref, expected_value):
+def validate_kicad_pro_structure(project_data):
     """
-    Verify that a multi-unit component's properties match expected values.
-    
-    Args:
-        properties: Dictionary of property name-value pairs
-        ref: Expected reference designator
-        expected_value: Expected component value
-    
-    Raises:
-        AssertionError if properties don't match expectations
+    Validate that a KiCad project file contains all required sections.
     """
-    logger.debug("Verifying properties for %s: %s", ref, properties)
+    required_sections = [
+        "board", "libraries", "meta", "net_settings",
+        "pcbnew", "schematic", "sheets"
+    ]
+    for section in required_sections:
+        assert section in project_data, f"Missing required section: {section}"
     
-    assert properties['Reference'] == ref, \
-        f"Reference mismatch for {ref}: got {properties['Reference']}"
-    assert properties['Value'] == expected_value, \
-        f"Value mismatch for {ref}: expected {expected_value}, got {properties['Value']}"
+    assert "version" in project_data["meta"], "Missing version in meta section"
+    assert "filename" in project_data["meta"], "Missing filename in meta section"
+    assert isinstance(project_data["meta"]["version"], int), "Version must be integer"
     
-    if 'Footprint' in properties:
-        footprint = properties['Footprint']
-        expected_footprint = "Package_DIP:DIP-14_W7.62mm"
-        assert footprint == expected_footprint, \
-            f"Footprint mismatch for {ref}: expected '{expected_footprint}', got '{footprint}'"
+    assert isinstance(project_data["sheets"], list), "Sheets must be a list"
+    for sheet in project_data["sheets"]:
+        assert "path" in sheet, "Sheet missing path"
+        assert "sheet_name" in sheet, "Sheet missing name"
+        assert "id" in sheet, "Sheet missing id"
+        try:
+            uuid.UUID(sheet["id"])
+        except ValueError:
+            raise AssertionError(f"Invalid UUID in sheet: {sheet['id']}")
+
+def validate_kicad_pro_content(project_data, project_name):
+    """
+    Validate the content of a KiCad project file matches expected values.
+    """
+    expected_filename = f"{project_name}.kicad_pro"
+    assert project_data["meta"]["filename"] == expected_filename, \
+        f"Wrong filename in meta: {project_data['meta']['filename']} != {expected_filename}"
+    
+    expected_sheets = [
+        f"{project_name}.kicad_sch",
+        "multi_unit_circuit.kicad_sch"
+    ]
+    actual_sheets = [sheet["path"] for sheet in project_data["sheets"]]
+    assert sorted(actual_sheets) == sorted(expected_sheets), \
+        f"Sheet paths don't match: {actual_sheets} != {expected_sheets}"
+    
+    assert "classes" in project_data["net_settings"], "Missing net classes"
+    net_classes = project_data["net_settings"]["classes"]
+    assert len(net_classes) > 0, "No net classes defined"
+    default_class = net_classes[0]
+    assert default_class["name"] == "Default", "Missing default net class"
 
 def test_multi_unit_schematic(temp_project_dir, schematic_parser):
     """
     Test generating a schematic with a multi-unit component.
-    Verifies schematic structure and component instance.
+    Verifies the schematic structure, component placement, properties,
+    and proper KiCad project file generation.
     """
-    # Create circuit with @SubCircuit decorator
+    # Create the circuit
     multi_unit_circuit()
     
     # Generate schematic
@@ -112,12 +134,18 @@ def test_multi_unit_schematic(temp_project_dir, schematic_parser):
         title="Multi-Unit Test"
     )
 
-    # Verify schematic path
-    schematic_path = temp_project_dir / TEST_PROJECT_NAME / "multi_unit_circuit.kicad_sch"
+    # Get project directory path
+    project_dir = temp_project_dir / TEST_PROJECT_NAME
+    
+    # Verify schematic files
+    schematic_path = project_dir / "multi_unit_circuit.kicad_sch"
     assert schematic_path.exists(), f"Circuit schematic not generated at {schematic_path}"
 
+    main_schematic = project_dir / f"{TEST_PROJECT_NAME}.kicad_sch"
+    assert main_schematic.exists(), f"Main schematic not generated at {main_schematic}"
+
     # Verify KiCad project file
-    project_file = temp_project_dir / TEST_PROJECT_NAME / f"{TEST_PROJECT_NAME}.kicad_pro"
+    project_file = project_dir / f"{TEST_PROJECT_NAME}.kicad_pro"
     assert project_file.exists(), f"Project file not generated at {project_file}"
 
     # Parse and validate project file
@@ -137,52 +165,75 @@ def test_multi_unit_schematic(temp_project_dir, schematic_parser):
     # Parse into s-expression tree
     generated_tree = schematic_parser.parse(generated_content)
     
-    # Verify lib_symbols section exists and contains 74xx:74LS00
+    # Verify lib_symbols section exists
     gen_libs = generated_tree.find('lib_symbols')
     assert gen_libs is not None, "Missing lib_symbols section in generated schematic"
     
-    # Find the 74LS00 symbol definition
-    gen_nand_symbol = None
-    for child in gen_libs.attributes:
-        if isinstance(child, SExpr) and child.token == 'symbol':
-            symbol_name = child.get_attribute_value().strip('"')
-            if symbol_name == '74xx:74LS00':
-                gen_nand_symbol = child
-                break
+    # Find all NAND gate instances
+    symbol_instances = [child for child in generated_tree.attributes 
+                       if isinstance(child, SExpr) and child.token == 'symbol']
+    assert len(symbol_instances) == 1, "Expected exactly 1 component (74LS00)"
     
-    assert gen_nand_symbol is not None, "74xx:74LS00 symbol definition missing from lib_symbols"
+    # Expected component properties
+    expected_components = {
+        'U1': {
+            'lib_id': '74xx:74LS00',
+            'value': '74LS00',
+            'footprint': 'Package_DIP:DIP-14_W7.62mm',
+            'MFG': 'Texas Instruments'
+        }
+    }
     
-    # Find 74LS00 instances
-    nand_instances = {}  # ref: properties mapping
+    # Verify net connections
+    expected_nets = {'A1', 'B1', 'Y1', 'A2', 'B2', 'Y2'}
+    found_nets = set()
     
+    # Find all net declarations
     for child in generated_tree.attributes:
-        if not isinstance(child, SExpr) or child.token != 'symbol':
-            continue
-            
-        # Check if it's 74LS00
-        is_nand = False
-        for prop in child.attributes:
-            if (isinstance(prop, SExpr) and 
-                prop.token == 'lib_id' and 
-                prop.get_attribute_value().strip('"') == '74xx:74LS00'):
-                is_nand = True
-                break
-                
-        if is_nand:
-            properties = get_multi_unit_properties(child)
-            if 'Reference' in properties:
-                nand_instances[properties['Reference']] = properties
-
-    # Verify 74LS00 was found
-    expected_refs = {"U1"}
-    found_refs = set(nand_instances.keys())
-    assert found_refs == expected_refs, \
-        f"Missing 74LS00: expected {expected_refs}, found {found_refs}"
+        if isinstance(child, SExpr) and child.token == 'net':
+            net_name = child.get_attribute_value().strip('"')
+            found_nets.add(net_name)
     
-    # Verify properties of 74LS00
-    for ref in expected_refs:
-        assert ref in nand_instances, f"74LS00 {ref} not found in schematic"
-        verify_multi_unit_properties(nand_instances[ref], ref, "74LS00")
+    # Verify all expected nets are present
+    assert found_nets >= expected_nets, \
+        f"Missing nets: {expected_nets - found_nets}"
+    
+    # Verify NAND gate component
+    found_components = set()
+    for instance in symbol_instances:
+        props = [child for child in instance.attributes 
+                if isinstance(child, SExpr) and child.token == 'property']
+        
+        ref = get_property_value(props, 'Reference')
+        assert ref in expected_components, f"Unexpected component reference: {ref}"
+        
+        # Verify lib_id
+        lib_id = None
+        for child in instance.attributes:
+            if isinstance(child, SExpr) and child.token == 'lib_id':
+                lib_id = child.get_attribute_value().strip('"')
+                break
+        assert lib_id == expected_components[ref]['lib_id'], \
+            f"Wrong lib_id for {ref}: expected {expected_components[ref]['lib_id']}, got {lib_id}"
+        
+        # Verify value, footprint, and manufacturer
+        value = get_property_value(props, 'Value')
+        assert value == expected_components[ref]['value'], \
+            f"Wrong value for {ref}: expected {expected_components[ref]['value']}, got {value}"
+        
+        footprint = get_property_value(props, 'Footprint')
+        assert footprint == expected_components[ref]['footprint'], \
+            f"Wrong footprint for {ref}: expected {expected_components[ref]['footprint']}, got {footprint}"
+        
+        mfg = get_property_value(props, 'MFG')
+        assert mfg == expected_components[ref]['MFG'], \
+            f"Wrong manufacturer for {ref}: expected {expected_components[ref]['MFG']}, got {mfg}"
+        
+        found_components.add(ref)
+    
+    # Verify all expected components were found
+    assert found_components == set(expected_components.keys()), \
+        f"Missing components: {set(expected_components.keys()) - found_components}"
 
 def test_error_handling(temp_project_dir):
     """Test error handling for invalid library access."""

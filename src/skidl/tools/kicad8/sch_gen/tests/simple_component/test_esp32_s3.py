@@ -36,63 +36,85 @@ def temp_project_dir(tmp_path):
 
 @SubCircuit
 def esp32_s3_circuit():
-    """Create a test circuit with ESP32-S3 module."""
+    """Create a test circuit with ESP32-S3 module and standard parameters."""
     esp32 = Part("RF_Module", "ESP32-S3-WROOM-1", 
                 ref="U1",
                 footprint="Module:ESP32-S3-WROOM-1")
     esp32.MFG = "Espressif"
-    
-def get_mcu_properties(instance_sexpr):
+
+def get_property_value(props, prop_name):
     """
-    Extract MCU properties from a symbol instance s-expression.
+    Extract a property value from a list of s-expression properties.
     
     Args:
-        instance_sexpr: SExpr node representing a symbol instance
+        props: List of SExpr nodes representing properties
+        prop_name: Name of the property to find
         
     Returns:
-        Dictionary of property name-value pairs
+        String value of the property or None if not found
     """
-    properties = {}
-    for child in instance_sexpr.attributes:
-        if isinstance(child, SExpr) and child.token == 'property':
-            prop_name = child.get_attribute_value()
-            if len(child.attributes) > 1:
-                prop_value = child.attributes[1].strip('"')
-                properties[prop_name] = prop_value
-                logger.debug("Found property: %s = %s", prop_name, prop_value)
-    return properties
+    for prop in props:
+        if isinstance(prop, SExpr) and prop.token == 'property':
+            if prop.get_attribute_value() == prop_name:
+                value = prop.attributes[1] if len(prop.attributes) > 1 else None
+                if value:
+                    return value.strip('"')
+    return None
 
-def verify_mcu_properties(properties, ref, expected_value):
+def validate_kicad_pro_structure(project_data):
     """
-    Verify that an MCU's properties match expected values.
-    
-    Args:
-        properties: Dictionary of property name-value pairs
-        ref: Expected reference designator
-        expected_value: Expected module value
-    
-    Raises:
-        AssertionError if properties don't match expectations
+    Validate that a KiCad project file contains all required sections.
     """
-    logger.debug("Verifying properties for %s: %s", ref, properties)
+    required_sections = [
+        "board", "libraries", "meta", "net_settings",
+        "pcbnew", "schematic", "sheets"
+    ]
+    for section in required_sections:
+        assert section in project_data, f"Missing required section: {section}"
     
-    assert properties['Reference'] == ref, \
-        f"Reference mismatch for {ref}: got {properties['Reference']}"
-    assert properties['Value'] == expected_value, \
-        f"Value mismatch for {ref}: expected {expected_value}, got {properties['Value']}"
+    assert "version" in project_data["meta"], "Missing version in meta section"
+    assert "filename" in project_data["meta"], "Missing filename in meta section"
+    assert isinstance(project_data["meta"]["version"], int), "Version must be integer"
     
-    if 'Footprint' in properties:
-        footprint = properties['Footprint']
-        expected_footprint = "Module:ESP32-S3-WROOM-1"
-        assert footprint == expected_footprint, \
-            f"Footprint mismatch for {ref}: expected '{expected_footprint}', got '{footprint}'"
+    assert isinstance(project_data["sheets"], list), "Sheets must be a list"
+    for sheet in project_data["sheets"]:
+        assert "path" in sheet, "Sheet missing path"
+        assert "sheet_name" in sheet, "Sheet missing name"
+        assert "id" in sheet, "Sheet missing id"
+        try:
+            uuid.UUID(sheet["id"])
+        except ValueError:
+            raise AssertionError(f"Invalid UUID in sheet: {sheet['id']}")
+
+def validate_kicad_pro_content(project_data, project_name):
+    """
+    Validate the content of a KiCad project file matches expected values.
+    """
+    expected_filename = f"{project_name}.kicad_pro"
+    assert project_data["meta"]["filename"] == expected_filename, \
+        f"Wrong filename in meta: {project_data['meta']['filename']} != {expected_filename}"
+    
+    expected_sheets = [
+        f"{project_name}.kicad_sch",
+        "esp32_s3_circuit.kicad_sch"
+    ]
+    actual_sheets = [sheet["path"] for sheet in project_data["sheets"]]
+    assert sorted(actual_sheets) == sorted(expected_sheets), \
+        f"Sheet paths don't match: {actual_sheets} != {expected_sheets}"
+    
+    assert "classes" in project_data["net_settings"], "Missing net classes"
+    net_classes = project_data["net_settings"]["classes"]
+    assert len(net_classes) > 0, "No net classes defined"
+    default_class = net_classes[0]
+    assert default_class["name"] == "Default", "Missing default net class"
 
 def test_esp32_s3_schematic(temp_project_dir, schematic_parser):
     """
     Test generating a schematic with ESP32-S3 module.
-    Verifies schematic structure and module instance.
+    Verifies the schematic structure, component placement, properties,
+    and proper KiCad project file generation.
     """
-    # Create circuit with @SubCircuit decorator
+    # Create the circuit
     esp32_s3_circuit()
     
     # Generate schematic
@@ -102,12 +124,18 @@ def test_esp32_s3_schematic(temp_project_dir, schematic_parser):
         title="ESP32-S3 Test"
     )
 
-    # Verify schematic path
-    schematic_path = temp_project_dir / TEST_PROJECT_NAME / "esp32_s3_circuit.kicad_sch"
+    # Get project directory path
+    project_dir = temp_project_dir / TEST_PROJECT_NAME
+    
+    # Verify schematic files
+    schematic_path = project_dir / "esp32_s3_circuit.kicad_sch"
     assert schematic_path.exists(), f"Circuit schematic not generated at {schematic_path}"
 
+    main_schematic = project_dir / f"{TEST_PROJECT_NAME}.kicad_sch"
+    assert main_schematic.exists(), f"Main schematic not generated at {main_schematic}"
+
     # Verify KiCad project file
-    project_file = temp_project_dir / TEST_PROJECT_NAME / f"{TEST_PROJECT_NAME}.kicad_pro"
+    project_file = project_dir / f"{TEST_PROJECT_NAME}.kicad_pro"
     assert project_file.exists(), f"Project file not generated at {project_file}"
 
     # Parse and validate project file
@@ -127,52 +155,62 @@ def test_esp32_s3_schematic(temp_project_dir, schematic_parser):
     # Parse into s-expression tree
     generated_tree = schematic_parser.parse(generated_content)
     
-    # Verify lib_symbols section exists and contains RF_Module:ESP32-S3-WROOM-1
+    # Verify lib_symbols section exists
     gen_libs = generated_tree.find('lib_symbols')
     assert gen_libs is not None, "Missing lib_symbols section in generated schematic"
     
-    # Find the ESP32-S3 symbol definition
-    gen_esp32_symbol = None
-    for child in gen_libs.attributes:
-        if isinstance(child, SExpr) and child.token == 'symbol':
-            symbol_name = child.get_attribute_value().strip('"')
-            if symbol_name == 'RF_Module:ESP32-S3-WROOM-1':
-                gen_esp32_symbol = child
+    # Find all ESP32 instances
+    symbol_instances = [child for child in generated_tree.attributes 
+                       if isinstance(child, SExpr) and child.token == 'symbol']
+    assert len(symbol_instances) == 1, "Expected exactly 1 component (ESP32-S3)"
+    
+    # Expected component properties
+    expected_components = {
+        'U1': {
+            'lib_id': 'RF_Module:ESP32-S3-WROOM-1',
+            'value': 'ESP32-S3-WROOM-1',
+            'footprint': 'Module:ESP32-S3-WROOM-1',
+            'MFG': 'Espressif'
+        }
+    }
+    
+    # Verify ESP32 component
+    found_components = set()
+    for instance in symbol_instances:
+        props = [child for child in instance.attributes 
+                if isinstance(child, SExpr) and child.token == 'property']
+        
+        ref = get_property_value(props, 'Reference')
+        assert ref in expected_components, f"Unexpected component reference: {ref}"
+        
+        # Verify lib_id
+        lib_id = None
+        for child in instance.attributes:
+            if isinstance(child, SExpr) and child.token == 'lib_id':
+                lib_id = child.get_attribute_value().strip('"')
                 break
+        assert lib_id == expected_components[ref]['lib_id'], \
+            f"Wrong lib_id for {ref}: expected {expected_components[ref]['lib_id']}, got {lib_id}"
+        
+        # Verify value and footprint
+        value = get_property_value(props, 'Value')
+        assert value == expected_components[ref]['value'], \
+            f"Wrong value for {ref}: expected {expected_components[ref]['value']}, got {value}"
+        
+        footprint = get_property_value(props, 'Footprint')
+        assert footprint == expected_components[ref]['footprint'], \
+            f"Wrong footprint for {ref}: expected {expected_components[ref]['footprint']}, got {footprint}"
+        
+        # Verify manufacturer
+        mfg = get_property_value(props, 'MFG')
+        assert mfg == expected_components[ref]['MFG'], \
+            f"Wrong manufacturer for {ref}: expected {expected_components[ref]['MFG']}, got {mfg}"
+        
+        found_components.add(ref)
     
-    assert gen_esp32_symbol is not None, "RF_Module:ESP32-S3-WROOM-1 symbol definition missing from lib_symbols"
-    
-    # Find ESP32-S3 instance
-    mcu_instances = {}  # ref: properties mapping
-    
-    for child in generated_tree.attributes:
-        if not isinstance(child, SExpr) or child.token != 'symbol':
-            continue
-            
-        # Check if it's ESP32-S3
-        is_esp32 = False
-        for prop in child.attributes:
-            if (isinstance(prop, SExpr) and 
-                prop.token == 'lib_id' and 
-                prop.get_attribute_value().strip('"') == 'RF_Module:ESP32-S3-WROOM-1'):
-                is_esp32 = True
-                break
-                
-        if is_esp32:
-            properties = get_mcu_properties(child)
-            if 'Reference' in properties:
-                mcu_instances[properties['Reference']] = properties
-
-    # Verify ESP32-S3 was found
-    expected_refs = {"U1"}
-    found_refs = set(mcu_instances.keys())
-    assert found_refs == expected_refs, \
-        f"Missing MCU: expected {expected_refs}, found {found_refs}"
-    
-    # Verify properties of ESP32-S3
-    for ref in expected_refs:
-        assert ref in mcu_instances, f"MCU {ref} not found in schematic"
-        verify_mcu_properties(mcu_instances[ref], ref, "ESP32-S3-WROOM-1")
+    # Verify all expected components were found
+    assert found_components == set(expected_components.keys()), \
+        f"Missing components: {set(expected_components.keys()) - found_components}"
 
 def test_error_handling(temp_project_dir):
     """Test error handling for invalid library access."""

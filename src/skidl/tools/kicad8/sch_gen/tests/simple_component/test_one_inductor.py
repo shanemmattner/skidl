@@ -1,6 +1,7 @@
 import pytest
 import logging
 import json
+import uuid
 from pathlib import Path
 from skidl import *
 from skidl.tools.kicad8.sch_gen.sexpr import SchematicParser, SExpr
@@ -35,70 +36,175 @@ def temp_project_dir(tmp_path):
 
 @SubCircuit
 def one_inductor_circuit():
-    """Create a test circuit with one inductor."""
-    ind = Part("Device", "L_Small", ref="L1")
+    """Create a test circuit with one inductor with standard parameters."""
+    ind = Part("Device", "L_Small", 
+              ref="L1",
+              value="100uH", 
+              footprint="L_0603_1608Metric")
 
-def get_inductor_properties(instance_sexpr):
-    properties = {}
-    for child in instance_sexpr.attributes:
-        if isinstance(child, SExpr) and child.token == 'property':
-            prop_name = child.get_attribute_value()
-            if len(child.attributes) > 1:
-                prop_value = child.attributes[1].strip('"')
-                properties[prop_name] = prop_value
-                logger.debug("Found property: %s = %s", prop_name, prop_value)
-    return properties
+def get_property_value(props, prop_name):
+    """
+    Extract a property value from a list of s-expression properties.
+    
+    Args:
+        props: List of SExpr nodes representing properties
+        prop_name: Name of the property to find
+        
+    Returns:
+        String value of the property or None if not found
+    """
+    for prop in props:
+        if isinstance(prop, SExpr) and prop.token == 'property':
+            if prop.get_attribute_value() == prop_name:
+                value = prop.attributes[1] if len(prop.attributes) > 1 else None
+                if value:
+                    return value.strip('"')
+    return None
 
-def verify_inductor_properties(properties, ref, expected_value):
-    logger.debug("Verifying properties for %s: %s", ref, properties)
-    assert properties['Reference'] == ref, \
-        f"Reference mismatch for {ref}: got {properties['Reference']}"
-    assert properties['Value'] == expected_value, \
-        f"Value mismatch for {ref}: expected {expected_value}, got {properties['Value']}"
+def validate_kicad_pro_structure(project_data):
+    """
+    Validate that a KiCad project file contains all required sections.
+    """
+    required_sections = [
+        "board", "libraries", "meta", "net_settings",
+        "pcbnew", "schematic", "sheets"
+    ]
+    for section in required_sections:
+        assert section in project_data, f"Missing required section: {section}"
+    
+    assert "version" in project_data["meta"], "Missing version in meta section"
+    assert "filename" in project_data["meta"], "Missing filename in meta section"
+    assert isinstance(project_data["meta"]["version"], int), "Version must be integer"
+    
+    assert isinstance(project_data["sheets"], list), "Sheets must be a list"
+    for sheet in project_data["sheets"]:
+        assert "path" in sheet, "Sheet missing path"
+        assert "sheet_name" in sheet, "Sheet missing name"
+        assert "id" in sheet, "Sheet missing id"
+        try:
+            uuid.UUID(sheet["id"])
+        except ValueError:
+            raise AssertionError(f"Invalid UUID in sheet: {sheet['id']}")
+
+def validate_kicad_pro_content(project_data, project_name):
+    """
+    Validate the content of a KiCad project file matches expected values.
+    """
+    expected_filename = f"{project_name}.kicad_pro"
+    assert project_data["meta"]["filename"] == expected_filename, \
+        f"Wrong filename in meta: {project_data['meta']['filename']} != {expected_filename}"
+    
+    expected_sheets = [
+        f"{project_name}.kicad_sch",
+        "one_inductor_circuit.kicad_sch"
+    ]
+    actual_sheets = [sheet["path"] for sheet in project_data["sheets"]]
+    assert sorted(actual_sheets) == sorted(expected_sheets), \
+        f"Sheet paths don't match: {actual_sheets} != {expected_sheets}"
+    
+    assert "classes" in project_data["net_settings"], "Missing net classes"
+    net_classes = project_data["net_settings"]["classes"]
+    assert len(net_classes) > 0, "No net classes defined"
+    default_class = net_classes[0]
+    assert default_class["name"] == "Default", "Missing default net class"
 
 def test_one_inductor_schematic(temp_project_dir, schematic_parser):
-    """Test generating a schematic with one inductor."""
+    """
+    Test generating a schematic with one inductor component.
+    Verifies the schematic structure, component placement, properties,
+    and proper KiCad project file generation.
+    """
+    # Create the circuit
     one_inductor_circuit()
+    
+    # Generate schematic
     generate_schematic(
         filepath=str(temp_project_dir),
         project_name=TEST_PROJECT_NAME,
         title="One Inductor Test"
     )
-    schematic_path = temp_project_dir / TEST_PROJECT_NAME / "one_inductor_circuit.kicad_sch"
+
+    # Get project directory path
+    project_dir = temp_project_dir / TEST_PROJECT_NAME
+    
+    # Verify schematic files
+    schematic_path = project_dir / "one_inductor_circuit.kicad_sch"
     assert schematic_path.exists(), f"Circuit schematic not generated at {schematic_path}"
-    project_file = temp_project_dir / TEST_PROJECT_NAME / f"{TEST_PROJECT_NAME}.kicad_pro"
+
+    main_schematic = project_dir / f"{TEST_PROJECT_NAME}.kicad_sch"
+    assert main_schematic.exists(), f"Main schematic not generated at {main_schematic}"
+
+    # Verify KiCad project file
+    project_file = project_dir / f"{TEST_PROJECT_NAME}.kicad_pro"
     assert project_file.exists(), f"Project file not generated at {project_file}"
+
+    # Parse and validate project file
     with open(project_file) as f:
         project_data = json.loads(f.read())
         logger.debug("Generated project file content:\n%s", json.dumps(project_data, indent=2))
+
+    # Validate project file structure and content
     validate_kicad_pro_structure(project_data)
     validate_kicad_pro_content(project_data, TEST_PROJECT_NAME)
+        
+    # Parse and verify schematic content
     with open(schematic_path) as f:
         generated_content = f.read()
         logger.debug("Generated schematic content:\n%s", generated_content)
+        
+    # Parse into s-expression tree
     generated_tree = schematic_parser.parse(generated_content)
-    ind_instances = {}
-    for child in generated_tree.attributes:
-        if not isinstance(child, SExpr) or child.token != 'symbol':
-            continue
-        is_ind = False
-        for prop in child.attributes:
-            if (isinstance(prop, SExpr) and
-                prop.token == 'lib_id' and
-                prop.get_attribute_value().strip('"') == 'Device:L_Small'):
-                is_ind = True
+    
+    # Verify lib_symbols section exists
+    gen_libs = generated_tree.find('lib_symbols')
+    assert gen_libs is not None, "Missing lib_symbols section in generated schematic"
+    
+    # Find inductor instances
+    symbol_instances = [child for child in generated_tree.attributes 
+                       if isinstance(child, SExpr) and child.token == 'symbol']
+    assert len(symbol_instances) == 1, "Expected exactly 1 component (inductor)"
+    
+    # Expected component properties
+    expected_components = {
+        'L1': {
+            'lib_id': 'Device:L_Small',
+            'value': '100uH',
+            'footprint': 'L_0603_1608Metric'
+        }
+    }
+    
+    # Verify inductor component
+    found_components = set()
+    for instance in symbol_instances:
+        props = [child for child in instance.attributes 
+                if isinstance(child, SExpr) and child.token == 'property']
+        
+        ref = get_property_value(props, 'Reference')
+        assert ref in expected_components, f"Unexpected component reference: {ref}"
+        
+        # Verify lib_id
+        lib_id = None
+        for child in instance.attributes:
+            if isinstance(child, SExpr) and child.token == 'lib_id':
+                lib_id = child.get_attribute_value().strip('"')
                 break
-        if is_ind:
-            properties = get_inductor_properties(child)
-            if 'Reference' in properties:
-                ind_instances[properties['Reference']] = properties
-    expected_refs = {"L1"}
-    found_refs = set(ind_instances.keys())
-    assert found_refs == expected_refs, \
-        f"Missing inductor: expected {expected_refs}, found {found_refs}"
-    for ref in expected_refs:
-        assert ref in ind_instances, f"Inductor {ref} not found in schematic"
-        verify_inductor_properties(ind_instances[ref], ref, "L_Small")
+        assert lib_id == expected_components[ref]['lib_id'], \
+            f"Wrong lib_id for {ref}: expected {expected_components[ref]['lib_id']}, got {lib_id}"
+        
+        # Verify value and footprint
+        value = get_property_value(props, 'Value')
+        assert value == expected_components[ref]['value'], \
+            f"Wrong value for {ref}: expected {expected_components[ref]['value']}, got {value}"
+        
+        footprint = get_property_value(props, 'Footprint')
+        assert footprint == expected_components[ref]['footprint'], \
+            f"Wrong footprint for {ref}: expected {expected_components[ref]['footprint']}, got {footprint}"
+        
+        found_components.add(ref)
+    
+    # Verify all expected components were found
+    assert found_components == set(expected_components.keys()), \
+        f"Missing components: {set(expected_components.keys()) - found_components}"
 
 def test_error_handling(temp_project_dir):
     """Test error handling for invalid library access."""
