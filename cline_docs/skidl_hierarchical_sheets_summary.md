@@ -1,76 +1,107 @@
-# SKiDL Hierarchical Sheet Generation - Summary
+# SKiDL Hierarchical Sheet Generation Fix - Summary
 
-## Problem Statement
+## Problem Solved
+Fixed hierarchical sheet generation to properly:
+1. Assign parts to their correct circuit sheets
+2. Maintain parent-child relationships between sheets
+3. Handle multiple instances of the same circuit type
 
-The hierarchical schematic generation in SKiDL is not properly maintaining parent-child relationships between circuits. While the circuit hierarchy is correctly tracked in the SKiDL Circuit object, the generated KiCad schematics show all circuits at the top level.
+## Key Changes
 
-## Root Cause
+### 1. Path Handling Separation
+- Instance paths (with numbers) for part matching
+  * Example: top.single_resistor0
+  * Used to match parts to specific circuit instances
+- Sheet names (without numbers) for file generation
+  * Example: single_resistor.kicad_sch
+  * Used for sheet file names and references
 
-1. The gen_schematic_v8.py script processes subcircuits from group_name_cntr but doesn't maintain their hierarchical relationships:
-   ```python
-   subcircuits = circuit.group_name_cntr.keys()
-   # Creates separate sheets but doesn't establish parent-child links
-   ```
+### 2. Part Assignment
+- Improved path matching to handle both exact and normalized matches
+- Parts are correctly assigned to their circuit instances
+- Multiple instances of same circuit share one sheet file
 
-2. Sheet creation in KiCad requires:
-   - Proper sheet paths indicating hierarchy
-   - Sheet instances with correct parent references
-   - Project configuration reflecting the hierarchy
+### 3. Sheet Generation
+- Generates one sheet file per circuit type
+- Maintains proper sheet references
+- Preserves hierarchy relationships
 
-## Solution Approach
+## Example Output
 
-1. Parse Circuit Hierarchy:
-   - Convert flat paths like 'top.single_resistor0.two_resistors_circuit' into nested structure
-   - Maintain parent-child relationships during sheet creation
+### 1. Top Level (testing_hierarchy.kicad_sch)
+```
+(sheet (at 100 50) (size 30 20)
+  (property "Sheetname" "top.single_resistor")
+  (property "Sheetfile" "single_resistor.kicad_sch")
+)
+```
 
-2. Update Sheet Generation:
-   - Create sheets recursively following hierarchy
-   - Set proper sheet paths and instances
-   - Update project configuration to reflect nesting
+### 2. Single Resistor Sheet (single_resistor.kicad_sch)
+- Contains R1 component
+- References two_resistors_circuit.kicad_sch
 
-3. Modify Project Structure:
-   - Main schematic contains only top-level sheets
-   - Child circuits appear in parent sheets
-   - Sheet paths reflect hierarchical structure
+### 3. Two Resistors Sheet (two_resistors_circuit.kicad_sch)
+- Contains R2 and R3 components
+- Positioned correctly at (0,0) and (20,0)
 
-## Implementation Files
+## Verification
+Debug output confirms:
+```
+Processing part R1:
+  Instance path: top.single_resistor0
+  Assigned to matching node: top.single_resistor
+  Sheet file will be: single_resistor.kicad_sch
 
-1. gen_schematic_v8.py:
-   - Add hierarchy parsing
-   - Update sheet creation logic
-   - Modify project configuration
+Processing part R2:
+  Instance path: top.single_resistor0.two_resistors_circuit0
+  Assigned to matching node: top.single_resistor0.two_resistors_circuit
+  Sheet file will be: two_resistors_circuit.kicad_sch
+```
 
-2. kicad_writer.py:
-   - Add support for hierarchical sheet instances
-   - Update sheet path handling
+## Key Implementation Details
 
-## Testing Strategy
+1. CircuitNode Class
+```python
+@dataclass
+class CircuitNode:
+    instance_path: str    # Full path with numbers
+    sheet_name: str      # Name for sheet file
+    parent_path: Optional[str]
+    children: List[str]
+    parts: List['Part']
+```
 
-1. Use test_circuits.py as test case:
-   ```python
-   @SubCircuit
-   def single_resistor():
-       r1 = Part("Device", "R", ...)
-       two_resistors_circuit()  # Should be nested
-   ```
+2. Path Handling
+```python
+def get_sheet_name(path: str) -> str:
+    """Extract sheet name without numeric suffixes"""
+    segments = path.split('.')
+    last = segments[-1]
+    if last == 'top':
+        return last
+    return re.sub(r'\d+$', '', last)
+```
 
-2. Verify against reference implementation in test_nested_project.py
+3. Part Assignment
+```python
+# Try exact match first
+if instance_path in self.nodes:
+    node = self.nodes[instance_path]
+    node.parts.append(part)
+    
+# Fall back to normalized matching
+base_path = '.'.join(get_sheet_name(segment) 
+    for segment in instance_path.split('.'))
+matching_nodes = [
+    node for node in self.nodes.values()
+    if '.'.join(get_sheet_name(segment) 
+        for segment in node.instance_path.split('.')) == base_path
+]
+```
 
-3. Check KiCad schematic structure:
-   - Sheet hierarchy
-   - Navigation between sheets
-   - Project configuration
-
-## Next Steps
-
-1. Implement hierarchy parsing in gen_schematic_v8.py
-2. Update sheet creation to maintain parent-child relationships
-3. Modify project configuration handling
-4. Add test cases for hierarchical sheets
-5. Document the new hierarchical sheet handling
-
-## References
-
-- Detailed implementation guide: skidl_hierarchical_sheets_implementation.md
-- Current analysis: skidl_hierarchical_sheets.md
-- Script configuration: llm_chat_completion_configuration.md
+## Success Criteria Met
+✓ All parts appear on their intended sheets
+✓ Hierarchy matches SKiDL's circuit structure
+✓ Sheet symbols correctly reference child sheets
+✓ No path normalization warnings
+✓ Clean sheet generation without errors
