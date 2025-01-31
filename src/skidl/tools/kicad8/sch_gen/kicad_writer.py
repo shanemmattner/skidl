@@ -187,7 +187,7 @@ class KicadSchematicWriter:
         # 2) Build the .kicad_sch as a list of lines
         lines = []
         lines.append("(kicad_sch")
-        lines.append(f"  (version {self.version})")
+        lines.append(f"  (version \"{self.version}\")")
         lines.append(f"  (generator \"{self.generator}\")")
         lines.append(f"  (generator_version \"{self.generator_version}\")")
         lines.append(f"  (uuid \"{self.uuid}\")")

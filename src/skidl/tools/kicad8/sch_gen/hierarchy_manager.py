@@ -245,6 +245,11 @@ class HierarchyManager:
         # Create basic schematic
         sch = Schematic.create_new()
         
+        # Set correct version
+        sch.version = "20231120"
+        sch.generator = "eeschema"
+        sch.generator_version = "8.0"
+        
         # Add sheet symbols for immediate children of top
         sheet_x = 100
         for node in self.nodes.values():

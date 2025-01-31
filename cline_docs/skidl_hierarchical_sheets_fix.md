@@ -1,125 +1,70 @@
-# SKiDL Hierarchical Sheet Generation Fix
+# SKiDL Hierarchical Sheets Fix Status
 
-## Current Issue
-The hierarchical sheet generation is failing to properly:
-1. Assign parts to their circuit sheets
-2. Maintain parent-child relationships between sheets
-3. Handle multiple instances of the same circuit type
+## Current Progress
 
-## Key Insight
-Multiple instances of the same circuit type (e.g. single_resistor0, single_resistor1) should:
-- Share a single schematic file (single_resistor.kicad_sch)
-- Maintain unique paths for part assignment
-- Reference the same sheet file in hierarchy symbols
+1. Fixed hierarchical sheet generation:
+   - Sheet symbols are properly added to parent schematics
+   - Sheet names are correctly formatted without full paths
+   - Sheet instances have proper project paths
 
-## Required Changes
+2. Fixed s-expression formatting:
+   - Added quotes around version numbers
+   - Fixed property formatting with effects blocks
+   - Added proper instances blocks
 
-### 1. Separate Path Handling
-We need two distinct path handling mechanisms:
+## Remaining Issues
 
-1. **Part Assignment Paths**
-- Must preserve numeric suffixes (e.g. single_resistor0)
-- Used for matching parts to their specific circuit instance
-- Maintains uniqueness for multiple instances
+1. Test failures in test_blank_sch.py:
+   - Generated version is 20211014
+   - Expected version is 20231120
+   - Issue appears to be with template files or version inheritance
 
-2. **Sheet File Paths**
-- Should strip numeric suffixes (e.g. single_resistor0 -> single_resistor)
-- Used for generating and referencing schematic files
-- Allows multiple instances to share same sheet file
+## Next Steps
 
-### 2. Path Matching Logic
-Update path handling to:
-```python
-def get_sheet_name(path: str) -> str:
-    """Get normalized sheet name without numeric suffixes"""
-    segments = path.split('.')
-    last = segments[-1]
-    return re.sub(r'\d+$', '', last)
+1. Need to investigate why test_blank_sch.py is getting old version:
+   - Check all template files for version numbers
+   - Verify version inheritance in gen_schematic_v8.py
+   - Ensure version is properly set in all test scenarios
 
-def get_instance_path(path: str) -> str:
-    """Get full path with numeric suffixes preserved"""
-    return path  # Keep original path with numbers
+2. Update test suite:
+   - Fix version number mismatches
+   - Update reference files if needed
+   - Add more debug logging to track version inheritance
+
+## Implementation Details
+
+1. Version number locations:
+   - KicadSchematicWriter.version = "20231120"
+   - Reference files have version "20231120"
+   - Tests expect version "20231120"
+   - But test_blank_sch.py gets "20211014"
+
+2. File hierarchy:
+   - src/skidl/tools/kicad8/sch_gen/kicad_writer.py
+   - src/skidl/tools/kicad8/sch_gen/hierarchy_manager.py
+   - src/skidl/tools/kicad8/sch_gen/tests/test_blank_sch.py
+   - src/skidl/tools/kicad8/sch_gen/tests/reference_schematics/
+
+## Debug Notes
+
+1. Test output shows:
+```
+AssertionError: Incorrect schematic version
+assert '20211014' == '20231120'
 ```
 
-### 3. Sheet Generation Logic
-Modify sheet generation to:
-- Generate one sheet file per circuit type
-- Allow multiple references to same sheet
-- Track generated files by normalized name
-
-```python
-def _generate_circuit_schematic(self, node: CircuitNode, writer_class) -> None:
-    """Generate schematic for a circuit node"""
-    # Use normalized name for file
-    sheet_name = get_sheet_name(node.full_path)
-    out_path = self.project_dir / f"{sheet_name}.kicad_sch"
-    
-    if out_path.name in self.generated_files:
-        return  # Sheet already exists
-        
-    # Create sheet with all parts from this instance
-    writer = writer_class(str(out_path))
-    for part in node.parts:
-        writer.add_symbol_instance(...)
-        
-    writer.generate()
-    self.generated_files.add(out_path.name)
+2. Hierarchy is working:
+```
+[HIERARCHY ] Node: top.single_resistor
+[HIERARCHY ]   Sheet name: single_resistor
+[HIERARCHY ]   Parent: top
+[HIERARCHY ]   Children: ['top.single_resistor0.two_resistors_circuit']
 ```
 
-### 4. Sheet Symbol References
-Update sheet symbol creation to:
-- Use normalized names for file references
-- Preserve instance names for labels
-- Handle multiple references to same sheet
+## Next Task
 
-```python
-def _create_sheet_symbol(self, node: CircuitNode) -> None:
-    sheet = HierarchicalSheet()
-    
-    # Use instance path for sheet name display
-    sheet.sheetName = Property("Sheetname", node.full_path)
-    
-    # Use normalized path for file reference
-    sheet_name = get_sheet_name(node.full_path)
-    sheet.fileName = Property("Sheetfile", f"{sheet_name}.kicad_sch")
-```
-
-## Implementation Strategy
-
-1. **Part Assignment**
-- Keep original paths with numbers for matching
-- Match parts to specific circuit instances
-- Log detailed path matching information
-
-2. **Sheet Generation**
-- Generate sheets using normalized names
-- Track generated sheets to avoid duplicates
-- Ensure all parts from same circuit type go to same sheet
-
-3. **Hierarchy Management**
-- Maintain instance-specific paths in node structure
-- Use normalized paths for file operations
-- Keep parent-child relationships intact
-
-## Testing Strategy
-
-1. Test Cases:
-- Multiple instances of same circuit type
-- Nested hierarchies with repeated circuits
-- Mixed unique and repeated circuits
-
-2. Validation:
-- Parts appear in correct shared sheets
-- Sheet symbols reference correct files
-- Instance names preserved in hierarchy
-- No duplicate file generation
-
-## Success Criteria
-
-1. Parts correctly assigned to shared sheets
-2. Sheet files generated once per circuit type
-3. Multiple instances reference same sheet file
-4. Hierarchy maintained with proper instance names
-5. Clean sheet generation without errors
-
-This revised approach separates instance path handling from sheet file naming, allowing multiple circuit instances to share schematic files while maintaining their unique identities in the hierarchy.
+Create a new task to:
+1. Find where 20211014 version is coming from
+2. Update all template files to use 20231120
+3. Fix version inheritance in test environment
+4. Update test reference files if needed
