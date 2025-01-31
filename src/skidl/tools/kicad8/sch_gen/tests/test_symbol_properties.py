@@ -15,14 +15,16 @@ def test_regulator_properties(tmp_path):
     # Create schematic writer
     writer = KicadSchematicWriter(str(sch_file))
 
-    # Create a regulator instance
-    inst = SchematicSymbolInstance(
-        lib_id="Regulator_Linear:NCP1117-3.3_SOT223",
-        reference="U1",
-        value="NCP1117-3.3_SOT223",
-        position=(0.0, 0.0),
-        footprint="Package_TO_SOT_SMD:SOT-223-3_TabPin2"
-    )
+    # Create a regulator part
+    regulator = Part(lib="Regulator_Linear", name="NCP1117-3.3_SOT223", tool=KICAD8)
+    regulator.ref = "U1"
+    regulator.value = "NCP1117-3.3_SOT223"
+    regulator.footprint = "Package_TO_SOT_SMD:SOT-223-3_TabPin2"
+    regulator.description = "1A Low drop-out regulator, Fixed Output 3.3V, SOT-223"
+    regulator.ki_keywords = "REGULATOR LDO 3.3V"
+
+    # Create instance from part
+    inst = SchematicSymbolInstance(regulator, position=(0.0, 0.0))
     writer.add_symbol_instance(inst)
 
     # Generate schematic
@@ -49,14 +51,16 @@ def test_resistor_properties(tmp_path):
     # Create schematic writer
     writer = KicadSchematicWriter(str(sch_file))
 
-    # Create a resistor instance
-    inst = SchematicSymbolInstance(
-        lib_id="Device:R",
-        reference="R1",
-        value="10k",
-        position=(0.0, 0.0),
-        footprint="Resistor_SMD:R_0603_1608Metric"
-    )
+    # Create a resistor part
+    resistor = Part(lib="Device", name="R", tool=KICAD8)
+    resistor.ref = "R1"
+    resistor.value = "10k"
+    resistor.footprint = "Resistor_SMD:R_0603_1608Metric"
+    resistor.description = "Resistor"
+    resistor.ki_keywords = "R res resistor"
+
+    # Create instance from part
+    inst = SchematicSymbolInstance(resistor, position=(0.0, 0.0))
     writer.add_symbol_instance(inst)
 
     # Generate schematic
