@@ -30,11 +30,13 @@ class HierarchyManager:
         
     def normalize_circuit_name(self, path: str) -> str:
         """Get normalized name from path (last segment, no numbers unless 'top')"""
-        name = path.split('.')[-1]
-        if name == 'top':
-            return name
-        return re.sub(r'\d+$', '', name)
-        
+        segments = path.split('.')
+        last_segment = segments[-1]
+        if last_segment == 'top':
+            return last_segment
+        return re.sub(r'\d+$', '', last_segment)
+
+
     def build_hierarchy(self, subcircuit_paths: List[str]) -> None:
         """Build hierarchy from subcircuit paths"""
         # First pass: Create nodes
@@ -64,12 +66,28 @@ class HierarchyManager:
         for part in circuit.parts:
             hierarchy = getattr(part, 'hierarchy', None)
             if hierarchy:
-                if hierarchy in self.nodes:
-                    node = self.nodes[hierarchy]
-                    node.parts.append(part)
-                    # Set Sheetname attribute on part
-                    setattr(part, 'Sheetname', node.normalized_name)
+                # Need to find the matching node
+                for node in self.nodes.values():
+                    # Compare the full path but with normalized last segments
+                    if self.normalize_path_for_matching(hierarchy) == self.normalize_path_for_matching(node.full_path):
+                        node.parts.append(part)
+                        # Set Sheetname to normalized name 
+                        setattr(part, 'Sheetname', node.normalized_name)
+                        break
 
+    def normalize_path_for_matching(self, path: str) -> str:
+        """Normalize a path for matching by stripping digits only from last segment"""
+        segments = path.split('.')
+        if len(segments) == 0:
+            return path
+        # Keep all segments except last as-is
+        result = segments[:-1]
+        # Normalize last segment
+        last = segments[-1]
+        if last != 'top':
+            last = re.sub(r'\d+$', '', last)
+        result.append(last)
+        return '.'.join(result)
 
     def _generate_circuit_schematic(self, node: CircuitNode, writer_class) -> None:
         """Generate schematic for a circuit node"""
@@ -145,12 +163,13 @@ class HierarchyManager:
                 
         sch.to_file(str(out_path))
 
-
-
-
-    def _create_symbol_instance(self, part) -> 'SchematicSymbolInstance':
-        """Create symbol instance from part (implement based on your writer)"""
-        # This needs to match your SchematicSymbolInstance implementation
+    def _create_symbol_instance(self, part, position: tuple = (0, 0)) -> 'SchematicSymbolInstance':
+        """Create symbol instance from part 
+        
+        Args:
+            part: The SKiDL Part object
+            position: Tuple of (x,y) coordinates for placement
+        """
         lib_name = getattr(part.lib, 'filename', "Device")
         lib_id = f"{lib_name}:{part.name}"
         
@@ -158,6 +177,6 @@ class HierarchyManager:
             lib_id=lib_id,
             reference=part.ref,
             value=part.value,
-            position=(0, 0),  # You may want better positioning logic
+            position=position,  # Use passed position
             footprint=getattr(part, 'footprint', None)
         )
