@@ -2,7 +2,7 @@
   (version 20231120)
   (generator "eeschema")
   (generator_version "8.0")
-  (uuid "ba1fc3b4-35b7-4e57-9aac-434d102970ab")
+  (uuid "7a6cff2d-8095-4867-bfc5-0298d3da1ed0")
   (paper "A4")
   (title_block
     (date "2025-01-30")
@@ -139,7 +139,7 @@
     (on_board yes)
     (dnp no)
     (fields_autoplaced yes)
-    (uuid "475fd87c-c31f-417a-845d-9979966f21a8")
+    (uuid "75e0c663-2211-4b3e-969b-a71eee43a195")
     (property "Reference" "R1"
       (at 2.54 -1.27 0)
       (effects
@@ -186,10 +186,10 @@
       )
     )
     (pin "2"
-      (uuid "0ad07a13-76c6-417c-bbeb-f4e40d50f0a8")
+      (uuid "0ac361f5-86ef-44d0-a36c-186f056b3e79")
     )
     (pin "1"
-      (uuid "33c9e603-1cdc-4cde-8965-dcfbddb9868b")
+      (uuid "5eabd8a1-699f-42f8-91f3-e15ed2eec1da")
     )
     (instances
       (project "testing_hierarchy"
@@ -211,7 +211,7 @@
     (fill
       (color 0 0 0 0.0000)
     )
-    (uuid "2d4619ff-48bb-4c70-a736-7628b6f7d1ff")
+    (uuid "93394eef-0923-40ef-9123-566b446f8328")
     (property "Sheetname" "two_resistors_circuit"
       (at 100 49.2884 0)
       (effects
@@ -240,6 +240,6 @@
   )
   (sheet_instances
     (path "/" (page "1"))
-    (path "/single_resistor/two_resistors_circuit" (page "0b856017-f205-49ce-abad-4f8850151966"))
+    (path "/single_resistor/two_resistors_circuit" (page "5c787c25-4883-4645-97b5-09285b77bf1e"))
   )
 )
