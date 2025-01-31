@@ -245,8 +245,8 @@ class HierarchyManager:
         # Create basic schematic
         sch = Schematic.create_new()
         
-        # Set correct version
-        sch.version = "20231120"
+        # Set correct version (as integer)
+        sch.version = 20231120
         sch.generator = "eeschema"
         sch.generator_version = "8.0"
         

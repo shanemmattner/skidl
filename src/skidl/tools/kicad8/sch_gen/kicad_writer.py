@@ -74,7 +74,7 @@ class KicadSchematicWriter:
         self.flatteners: Dict[str, SymbolFlattener] = {}
 
         # Some schematic metadata
-        self.version = "20231120"
+        self.version = 20231120  # Version must be an integer for KiCad
         self.generator = "eeschema"
         self.generator_version = "8.0"
         self.paper_size = "A4"
@@ -187,7 +187,7 @@ class KicadSchematicWriter:
         # 2) Build the .kicad_sch as a list of lines
         lines = []
         lines.append("(kicad_sch")
-        lines.append(f"  (version \"{self.version}\")")
+        lines.append(f"  (version {self.version})")
         lines.append(f"  (generator \"{self.generator}\")")
         lines.append(f"  (generator_version \"{self.generator_version}\")")
         lines.append(f"  (uuid \"{self.uuid}\")")
