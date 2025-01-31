@@ -1,0 +1,8 @@
+(export (version D)
+  (design
+    (source "/opt/homebrew/Cellar/python@3.13/3.13.1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/case.py")
+    (date "01/31/2025 08:10 AM")
+    (tool "SKiDL (2.0.1)"))
+  (components)
+  (nets)
+)

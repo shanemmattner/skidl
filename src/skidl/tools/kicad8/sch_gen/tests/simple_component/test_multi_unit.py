@@ -1,5 +1,7 @@
 import pytest
 import logging
+import json
+import uuid
 from pathlib import Path
 from skidl import *
 from skidl.tools.kicad8.sch_gen.sexpr import SchematicParser, SExpr
@@ -11,7 +13,7 @@ logger = logging.getLogger(__name__)
 # Constants
 TESTS_DIR = Path(__file__).parent
 REFERENCE_DIR = TESTS_DIR / "reference_schematics"
-TEST_PROJECT_NAME = "test_two_resistors"
+TEST_PROJECT_NAME = "test_multi_unit"
 
 @pytest.fixture(autouse=True)
 def setup_circuit():
@@ -33,23 +35,26 @@ def temp_project_dir(tmp_path):
     return project_dir
 
 @SubCircuit
-def two_resistors_circuit():
-    """Create a test circuit with two resistors with standard parameters."""
-    r4 = Part("Device", "R", 
-              ref="R4",
-              value="10k", 
-              footprint="Resistor_SMD:R_0603_1608Metric")
-    r4.MFG = "0603WAF1002T5E"
+def multi_unit_circuit():
+    """Create a test circuit with a multi-unit component."""
+    # Create a multi-unit component (example: 74LS00 quad NAND gate)
+    nand_gate = Part("74xx", "74LS00", 
+                    ref="U1",
+                    footprint="Package_DIP:DIP-14_W7.62mm")
+    nand_gate.MFG = "Texas Instruments"
     
-    r5 = Part("Device", "R", 
-              ref="R5",
-              value="10k", 
-              footprint="Resistor_SMD:R_0603_1608Metric")
-    r5.MFG = "0603WAF1002T5E"
+    # Connect inputs and outputs for testing
+    nand_gate[1].A += Net('A1')
+    nand_gate[1].B += Net('B1')
+    nand_gate[1].Y += Net('Y1')
+    
+    nand_gate[2].A += Net('A2')
+    nand_gate[2].B += Net('B2')
+    nand_gate[2].Y += Net('Y2')
 
-def get_resistor_properties(instance_sexpr):
+def get_multi_unit_properties(instance_sexpr):
     """
-    Extract resistor properties from a symbol instance s-expression.
+    Extract multi-unit component properties from a symbol instance s-expression.
     
     Args:
         instance_sexpr: SExpr node representing a symbol instance
@@ -67,14 +72,14 @@ def get_resistor_properties(instance_sexpr):
                 logger.debug("Found property: %s = %s", prop_name, prop_value)
     return properties
 
-def verify_resistor_properties(properties, ref, expected_value):
+def verify_multi_unit_properties(properties, ref, expected_value):
     """
-    Verify that a resistor's properties match expected values.
+    Verify that a multi-unit component's properties match expected values.
     
     Args:
         properties: Dictionary of property name-value pairs
         ref: Expected reference designator
-        expected_value: Expected resistance value
+        expected_value: Expected component value
     
     Raises:
         AssertionError if properties don't match expectations
@@ -88,67 +93,96 @@ def verify_resistor_properties(properties, ref, expected_value):
     
     if 'Footprint' in properties:
         footprint = properties['Footprint']
-        expected_footprint = "Resistor_SMD:R_0603_1608Metric"
+        expected_footprint = "Package_DIP:DIP-14_W7.62mm"
         assert footprint == expected_footprint, \
             f"Footprint mismatch for {ref}: expected '{expected_footprint}', got '{footprint}'"
 
-def test_two_resistors_schematic(temp_project_dir, schematic_parser):
+def test_multi_unit_schematic(temp_project_dir, schematic_parser):
     """
-    Test generating a schematic with two resistors.
-    Verifies schematic structure and both resistor instances.
+    Test generating a schematic with a multi-unit component.
+    Verifies schematic structure and component instance.
     """
     # Create circuit with @SubCircuit decorator
-    two_resistors_circuit()
+    multi_unit_circuit()
     
     # Generate schematic
     generate_schematic(
         filepath=str(temp_project_dir),
         project_name=TEST_PROJECT_NAME,
-        title="Two Resistors Test"
+        title="Multi-Unit Test"
     )
 
     # Verify schematic path
-    schematic_path = temp_project_dir / TEST_PROJECT_NAME / "two_resistors_circuit.kicad_sch"
+    schematic_path = temp_project_dir / TEST_PROJECT_NAME / "multi_unit_circuit.kicad_sch"
     assert schematic_path.exists(), f"Circuit schematic not generated at {schematic_path}"
 
-    # Load and parse schematic
+    # Verify KiCad project file
+    project_file = temp_project_dir / TEST_PROJECT_NAME / f"{TEST_PROJECT_NAME}.kicad_pro"
+    assert project_file.exists(), f"Project file not generated at {project_file}"
+
+    # Parse and validate project file
+    with open(project_file) as f:
+        project_data = json.loads(f.read())
+        logger.debug("Generated project file content:\n%s", json.dumps(project_data, indent=2))
+
+    # Validate project file structure and content
+    validate_kicad_pro_structure(project_data)
+    validate_kicad_pro_content(project_data, TEST_PROJECT_NAME)
+        
+    # Parse and verify schematic content
     with open(schematic_path) as f:
         generated_content = f.read()
         logger.debug("Generated schematic content:\n%s", generated_content)
-
+        
+    # Parse into s-expression tree
     generated_tree = schematic_parser.parse(generated_content)
-
-    # Find all resistor instances
-    resistor_instances = {}  # ref: properties mapping
+    
+    # Verify lib_symbols section exists and contains 74xx:74LS00
+    gen_libs = generated_tree.find('lib_symbols')
+    assert gen_libs is not None, "Missing lib_symbols section in generated schematic"
+    
+    # Find the 74LS00 symbol definition
+    gen_nand_symbol = None
+    for child in gen_libs.attributes:
+        if isinstance(child, SExpr) and child.token == 'symbol':
+            symbol_name = child.get_attribute_value().strip('"')
+            if symbol_name == '74xx:74LS00':
+                gen_nand_symbol = child
+                break
+    
+    assert gen_nand_symbol is not None, "74xx:74LS00 symbol definition missing from lib_symbols"
+    
+    # Find 74LS00 instances
+    nand_instances = {}  # ref: properties mapping
     
     for child in generated_tree.attributes:
         if not isinstance(child, SExpr) or child.token != 'symbol':
             continue
             
-        # Check if it's a resistor
-        is_resistor = False
+        # Check if it's 74LS00
+        is_nand = False
         for prop in child.attributes:
             if (isinstance(prop, SExpr) and 
                 prop.token == 'lib_id' and 
-                prop.get_attribute_value().strip('"') == 'Device:R'):
-                is_resistor = True
+                prop.get_attribute_value().strip('"') == '74xx:74LS00'):
+                is_nand = True
                 break
                 
-        if is_resistor:
-            properties = get_resistor_properties(child)
+        if is_nand:
+            properties = get_multi_unit_properties(child)
             if 'Reference' in properties:
-                resistor_instances[properties['Reference']] = properties
+                nand_instances[properties['Reference']] = properties
 
-    # Verify both resistors were found
-    expected_refs = {"R4", "R5"}
-    found_refs = set(resistor_instances.keys())
+    # Verify 74LS00 was found
+    expected_refs = {"U1"}
+    found_refs = set(nand_instances.keys())
     assert found_refs == expected_refs, \
-        f"Missing resistors: expected {expected_refs}, found {found_refs}"
+        f"Missing 74LS00: expected {expected_refs}, found {found_refs}"
     
-    # Verify properties of each resistor
+    # Verify properties of 74LS00
     for ref in expected_refs:
-        assert ref in resistor_instances, f"Resistor {ref} not found in schematic"
-        verify_resistor_properties(resistor_instances[ref], ref, "10k")
+        assert ref in nand_instances, f"74LS00 {ref} not found in schematic"
+        verify_multi_unit_properties(nand_instances[ref], ref, "74LS00")
 
 def test_error_handling(temp_project_dir):
     """Test error handling for invalid library access."""
