@@ -140,6 +140,18 @@ class HierarchyManager:
                 position=(x, y)
             ))
         
+        # Add sheet symbols for child circuits
+        if node.children:
+            logging.debug(f"  Adding sheet symbols for {len(node.children)} children:")
+            sheet_x = 100
+            for child_path in node.children:
+                child = self.nodes[child_path]
+                logging.debug(f"    Adding sheet symbol for: {child.instance_path}")
+                sheet = self._create_sheet_symbol(child, sheet_x, 50)
+                writer.add_sheet_symbol(sheet)
+                sheet_x += 50  # Space between sheets
+                logging.debug(f"    Sheet symbol added at x={sheet_x}")
+
         writer.generate()
         self.generated_files.add(out_path.name)
         logging.debug("  Sheet generated successfully")
@@ -153,8 +165,8 @@ class HierarchyManager:
         sheet.width = 30
         sheet.height = 20
         
-        # Use instance path for display name
-        sheet.sheetName = Property("Sheetname", node.instance_path)
+        # Use sheet name without path for display name
+        sheet.sheetName = Property("Sheetname", node.sheet_name)
         sheet.sheetName.position = Position(f"{x + sheet.width/2}", f"{y - 5}", "0")
         
         # Use sheet name (without numbers) for file reference

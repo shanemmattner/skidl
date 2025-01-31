@@ -73,11 +73,26 @@ def gen_schematic(
     if not subcircuit_paths:
         # If no subcircuits defined, create top-level only
         subcircuit_paths = ['top']
-        
+    
+    # Debug print circuit object structure
+    debug_print("CIRCUIT", "Circuit object attributes:", vars(circuit))
+    debug_print("CIRCUIT", "Group name counter:", circuit.group_name_cntr)
+    debug_print("CIRCUIT", "Parts:", [f"{p.ref}: {p.name}" for p in circuit.parts])
+    debug_print("CIRCUIT", "Nets:", [f"{n.name}: {[p.ref for p in n.pins]}" for n in circuit.nets])
+    
     debug_print("HIERARCHY", "All subcircuit paths:", subcircuit_paths)
     
     # Build the hierarchy tree
     hierarchy.build_hierarchy(subcircuit_paths)
+    
+    # Debug print hierarchy structure
+    debug_print("HIERARCHY", "Hierarchy tree structure:")
+    for path, node in hierarchy.nodes.items():
+        debug_print("HIERARCHY", f"Node: {path}")
+        debug_print("HIERARCHY", f"  Sheet name: {node.sheet_name}")
+        debug_print("HIERARCHY", f"  Parent: {node.parent_path}")
+        debug_print("HIERARCHY", f"  Children: {node.children}")
+        debug_print("HIERARCHY", f"  Parts: {[p.ref for p in node.parts]}")
     
     # Assign parts to their circuits and set Sheetname attributes
     hierarchy.assign_parts_to_circuits(circuit)

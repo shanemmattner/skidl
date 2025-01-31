@@ -10,6 +10,9 @@ import uuid
 from typing import List, Dict, Tuple
 import os
 
+from kiutils.items.schitems import HierarchicalSheet
+from kiutils.items.common import Position, Property
+
 # These imports assume you have a package layout like:
 #   your_package/
 #       symbol_definitions.py
@@ -63,6 +66,7 @@ class KicadSchematicWriter:
         """
         self.out_file = out_file
         self.symbol_instances: List[SchematicSymbolInstance] = []
+        self.sheet_symbols: List[HierarchicalSheet] = []  # Added sheet symbols list
 
         # We cache library parsers so we don't re-parse the same library multiple times
         self.lib_parsers: Dict[str, KicadLibraryParser] = {}
@@ -75,10 +79,35 @@ class KicadSchematicWriter:
         self.generator_version = "8.0"
         self.paper_size = "A4"
         self.uuid = str(uuid.uuid4())
-
     def add_symbol_instance(self, instance: SchematicSymbolInstance):
         """Add a symbol instance to be placed in the final .kicad_sch."""
         self.symbol_instances.append(instance)
+
+    def add_sheet_symbol(self, sheet: HierarchicalSheet):
+        """Add a hierarchical sheet symbol to be placed in the final .kicad_sch."""
+        self.sheet_symbols.append(sheet)
+
+    def _sheet_to_s_expression(self, sheet: HierarchicalSheet) -> str:
+        """Convert a hierarchical sheet to KiCad s-expression format."""
+        s = []
+        s.append("(sheet")
+        s.append(f"  (at {sheet.position.X} {sheet.position.Y} {sheet.position.angle})")
+        s.append(f"  (size {sheet.width} {sheet.height})")
+        s.append(f"  (uuid \"{str(uuid.uuid4())}\")")
+        
+        # Add sheet properties
+        s.append(f"  (property \"Sheetname\" \"{sheet.sheetName.value}\"")
+        s.append(f"    (at {sheet.sheetName.position.X} {sheet.sheetName.position.Y} {sheet.sheetName.position.angle})")
+        s.append("    (effects (font (size 1.27 1.27)))")
+        s.append("  )")
+        
+        s.append(f"  (property \"Sheetfile\" \"{sheet.fileName.value}\"")
+        s.append(f"    (at {sheet.fileName.position.X} {sheet.fileName.position.Y} {sheet.fileName.position.angle})")
+        s.append("    (effects (font (size 1.27 1.27)))")
+        s.append("  )")
+        
+        s.append(")")
+        return "\n".join(s)
 
     def _get_library_parser(self, library_path: str) -> KicadLibraryParser:
         """
@@ -157,9 +186,18 @@ class KicadSchematicWriter:
             for l in inst_block.splitlines():
                 lines.append("  " + l)
 
-        # 5) Minimal (sheet_instances)
+        # 5) Add hierarchical sheets
+        for sheet in self.sheet_symbols:
+            sheet_block = self._sheet_to_s_expression(sheet)
+            for l in sheet_block.splitlines():
+                lines.append("  " + l)
+
+        # 6) Sheet instances block
         lines.append("  (sheet_instances")
         lines.append("    (path \"/\" (page \"1\"))")
+        for sheet in self.sheet_symbols:
+            sheet_id = str(uuid.uuid4())
+            lines.append(f"    (path \"/{sheet.sheetName.value}\" (page \"{sheet_id}\"))")
         lines.append("  )")
 
         lines.append(")")

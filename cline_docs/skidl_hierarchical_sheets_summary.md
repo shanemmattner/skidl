@@ -1,34 +1,25 @@
-# SKiDL Hierarchical Sheet Generation Fix - Summary
+# SKiDL Hierarchical Sheet Generation - Current Status
 
-## Problem Solved
-Fixed hierarchical sheet generation to properly:
-1. Assign parts to their correct circuit sheets
-2. Maintain parent-child relationships between sheets
-3. Handle multiple instances of the same circuit type
+## Progress Made
+Fixed several aspects of hierarchical sheet generation:
 
-## Key Changes
+1. Part Assignment
+- R1 correctly appears in single_resistor.kicad_sch
+- R2 and R3 correctly appear in two_resistors_circuit.kicad_sch
+- Parts are positioned properly within their sheets
 
-### 1. Path Handling Separation
-- Instance paths (with numbers) for part matching
-  * Example: top.single_resistor0
-  * Used to match parts to specific circuit instances
-- Sheet names (without numbers) for file generation
-  * Example: single_resistor.kicad_sch
-  * Used for sheet file names and references
+2. File Generation
+- Generates separate sheets for each circuit type
+- Preserves component properties and positions
+- Creates proper sheet symbols in top-level schematic
 
-### 2. Part Assignment
-- Improved path matching to handle both exact and normalized matches
-- Parts are correctly assigned to their circuit instances
-- Multiple instances of same circuit share one sheet file
+## Remaining Issue: Missing Sheet Symbol
 
-### 3. Sheet Generation
-- Generates one sheet file per circuit type
-- Maintains proper sheet references
-- Preserves hierarchy relationships
+The hierarchy is not complete because single_resistor.kicad_sch does not contain a sheet symbol referencing two_resistors_circuit.kicad_sch.
 
-## Example Output
+### Current Output
 
-### 1. Top Level (testing_hierarchy.kicad_sch)
+1. Top Level (testing_hierarchy.kicad_sch)
 ```
 (sheet (at 100 50) (size 30 20)
   (property "Sheetname" "top.single_resistor")
@@ -36,72 +27,81 @@ Fixed hierarchical sheet generation to properly:
 )
 ```
 
-### 2. Single Resistor Sheet (single_resistor.kicad_sch)
-- Contains R1 component
-- References two_resistors_circuit.kicad_sch
+2. Single Resistor Sheet (single_resistor.kicad_sch)
+- Contains R1 component ✓
+- Missing sheet symbol for two_resistors_circuit ✗
 
-### 3. Two Resistors Sheet (two_resistors_circuit.kicad_sch)
-- Contains R2 and R3 components
-- Positioned correctly at (0,0) and (20,0)
+3. Two Resistors Sheet (two_resistors_circuit.kicad_sch)
+- Contains R2 and R3 components ✓
+- Positioned correctly at (0,0) and (20,0) ✓
 
-## Verification
-Debug output confirms:
+### Required Fix
+
+Need to modify _generate_circuit_schematic() to:
+1. Check for child circuits
+2. Add sheet symbols for each child circuit
+3. Update the schematic to include these sheet symbols
+
+Example of missing sheet symbol that should be in single_resistor.kicad_sch:
+```kicad
+(sheet (at 100 50) (size 30 20)
+  (property "Sheetname" "two_resistors_circuit")
+  (property "Sheetfile" "two_resistors_circuit.kicad_sch")
+)
 ```
-Processing part R1:
-  Instance path: top.single_resistor0
-  Assigned to matching node: top.single_resistor
-  Sheet file will be: single_resistor.kicad_sch
 
-Processing part R2:
-  Instance path: top.single_resistor0.two_resistors_circuit0
-  Assigned to matching node: top.single_resistor0.two_resistors_circuit
-  Sheet file will be: two_resistors_circuit.kicad_sch
-```
+## Next Steps
 
-## Key Implementation Details
+1. Update HierarchyManager to:
+- Track parent-child relationships properly
+- Add sheet symbols for child circuits
+- Update schematic files with sheet symbols
 
-1. CircuitNode Class
+2. Modify sheet generation to:
+- Check for child circuits
+- Create and position sheet symbols
+- Update parent schematic files
+
+3. Add debug logging for:
+- Parent-child relationships
+- Sheet symbol creation
+- Schematic updates
+
+## Implementation Notes
+
+The fix will require changes to:
+
+1. CircuitNode class
 ```python
 @dataclass
 class CircuitNode:
-    instance_path: str    # Full path with numbers
-    sheet_name: str      # Name for sheet file
+    instance_path: str
+    sheet_name: str
     parent_path: Optional[str]
-    children: List[str]
+    children: List[str]  # Need to properly populate this
     parts: List['Part']
 ```
 
-2. Path Handling
+2. Sheet Generation
 ```python
-def get_sheet_name(path: str) -> str:
-    """Extract sheet name without numeric suffixes"""
-    segments = path.split('.')
-    last = segments[-1]
-    if last == 'top':
-        return last
-    return re.sub(r'\d+$', '', last)
+def _generate_circuit_schematic(self, node: CircuitNode, writer_class) -> None:
+    # Current: Adds parts correctly
+    # Need to add: Sheet symbol creation for children
+    for child_path in node.children:
+        child = self.nodes[child_path]
+        sheet = self._create_sheet_symbol(child, x, y)
+        # Add sheet to parent schematic
 ```
 
-3. Part Assignment
+3. Hierarchy Building
 ```python
-# Try exact match first
-if instance_path in self.nodes:
-    node = self.nodes[instance_path]
-    node.parts.append(part)
-    
-# Fall back to normalized matching
-base_path = '.'.join(get_sheet_name(segment) 
-    for segment in instance_path.split('.'))
-matching_nodes = [
-    node for node in self.nodes.values()
-    if '.'.join(get_sheet_name(segment) 
-        for segment in node.instance_path.split('.')) == base_path
-]
+def build_hierarchy(self, subcircuit_paths: List[str]) -> None:
+    # Current: Creates nodes correctly
+    # Need to improve: Parent-child relationship tracking
+    for path in subcircuit_paths:
+        parts = path.split('.')
+        parent = '.'.join(parts[:-1]) if len(parts) > 1 else None
+        # Ensure proper parent-child linking
 ```
 
-## Success Criteria Met
-✓ All parts appear on their intended sheets
-✓ Hierarchy matches SKiDL's circuit structure
-✓ Sheet symbols correctly reference child sheets
-✓ No path normalization warnings
-✓ Clean sheet generation without errors
+This documentation will be used to guide the implementation of the remaining fixes in a new task.

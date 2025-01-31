@@ -2,7 +2,7 @@
   (version 20231120)
   (generator "eeschema")
   (generator_version "8.0")
-  (uuid "592aa95c-c275-438d-a7c4-94deca58d136")
+  (uuid "239fd921-2888-47c7-a4fc-e9aa0cec5415")
   (paper "A4")
   (title_block
     (date "2025-01-30")
@@ -139,7 +139,7 @@
     (on_board yes)
     (dnp no)
     (fields_autoplaced yes)
-    (uuid "5fc04a06-de3e-4b28-b2d6-962d4ee7c04c")
+    (uuid "ee4c00e9-a236-428f-b433-a786d163b636")
     (property "Reference" "R1" (at 2.00 0.00 0))
     (property "Value" "10k" (at 2.00 2.00 0))
     (property "Footprint" "Resistor_SMD:R_0603_1608Metric" (at 2.00 4.00 0))
