@@ -2,7 +2,7 @@
 
 import os
 import pytest
-from ..kicad_writer import KicadSchematicWriter, SchematicSymbolInstance
+from ...kicad_writer import KicadSchematicWriter, SchematicSymbolInstance
 from skidl import Part, KICAD8
 
 def test_regulator_properties(tmp_path):
