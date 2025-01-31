@@ -39,6 +39,7 @@ def two_resistors_circuit():
 logging.debug("\nStarting circuit creation")
 single_resistor()
 
+
 logging.debug("\nGenerating schematic")
 generate_schematic(
     filepath="hierachy_test",

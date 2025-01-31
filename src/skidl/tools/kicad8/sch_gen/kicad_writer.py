@@ -1,64 +1,94 @@
 """
 kicad_writer.py
 
-A robust generator for .kicad_sch schematics using a parse + flatten approach.
-Parses .kicad_sym libraries, merges inherited symbols, and writes out a schematic file.
+A robust generator for .kicad_sch schematics using SKiDL's Part objects.
 """
 
 import datetime
 import uuid
+import re
 from typing import List, Dict, Tuple
 import os
 
 from kiutils.items.schitems import HierarchicalSheet
 from kiutils.items.common import Position, Property
 
-# These imports assume you have a package layout like:
-#   your_package/
-#       symbol_definitions.py
-#       kicad_library_parser.py
-#       symbol_flatten.py
-#
-# Adjust the relative or absolute imports as needed.
-from .symbol_definitions import SymbolDefinition
-from .kicad_library_parser import KicadLibraryParser
-from .symbol_flatten import SymbolFlattener
+from skidl import Part
+from skidl.tools.kicad8.lib import load_sch_lib, parse_lib_part
+
+
+def escape_property_value(value: str) -> str:
+    """Escape a property value for use in KiCad s-expressions"""
+    if not isinstance(value, str):
+        value = str(value)
+    # Replace newlines with spaces
+    value = value.replace('\n', ' ')
+    # Escape quotes
+    value = value.replace('"', '\\"')
+    # Remove any control characters
+    value = ''.join(char for char in value if ord(char) >= 32 or char == '\\"')
+    return value
+
+
+def get_pin_type(pin) -> str:
+    """Convert SKiDL pin type to KiCad pin type"""
+    pin_type_map = {
+        'INPUT': 'input',
+        'OUTPUT': 'output',
+        'BIDIR': 'bidirectional',
+        'TRISTATE': 'tri_state',
+        'PASSIVE': 'passive',
+        'UNSPEC': 'unspecified',
+        'PWRIN': 'power_in',
+        'PWROUT': 'power_out',
+        'OPENCOLL': 'open_collector',
+        'OPENEMIT': 'open_emitter',
+        'NOCONNECT': 'no_connect'
+    }
+    return pin_type_map.get(pin.func, 'passive')
 
 
 class SchematicSymbolInstance:
     """
     Represents a single placed symbol in the schematic. The symbol is identified by:
-      - lib_id: e.g. "Regulator_Linear:NCP1117-3.3_SOT223"
-      - reference: e.g. "U1"
-      - value: e.g. "NCP1117-3.3_SOT223"
+      - lib_id: e.g. "Device:R"
+      - reference: e.g. "R1"
+      - value: e.g. "10k"
       - x, y: coordinates in mm in the schematic
     """
-    def __init__(self, lib_id: str, reference: str, value: str, position: Tuple[float, float], rotation: int = 0, footprint: str = None):
-        self.lib_id = lib_id    # "LibraryName:SymbolName"
-        self.reference = reference    # e.g. "U1"
-        self.value = value        # e.g. "NCP1117-3.3_SOT223"
+    def __init__(self, part: Part, position: Tuple[float, float], rotation: int = 0):
+        """Initialize from a SKiDL Part object"""
+        self.part = part  # Store reference to original part
+        self.lib_id = f"{part.lib.filename}:{part.name}"
+        self.reference = part.ref
+        self.value = part.value
         self.x = position[0]
         self.y = position[1]
         self.uuid = str(uuid.uuid4())
         self.rotation = rotation
-        self.footprint = footprint
+        self.footprint = getattr(part, 'footprint', '')
+        self.description = getattr(part, 'description', '')
+        self.datasheet = getattr(part, 'datasheet', '~')
+        self.hierarchical_path = getattr(part, 'hierarchy', '/')
+        
+        # Get additional properties
+        self.properties = {}
+        for key, value in vars(part).items():
+            if not key.startswith('_') and isinstance(value, str):
+                self.properties[key] = value
 
     def __repr__(self):
         return (f"<SchematicSymbolInstance lib_id='{self.lib_id}' ref='{self.reference}' "
                 f"value='{self.value}' x={self.x} y={self.y} uuid={self.uuid}>")
 
 
-
 class KicadSchematicWriter:
     """
     Writes a .kicad_sch file with:
-      1) Flattened symbol definitions in (lib_symbols ...)
-      2) Symbol instance placements in (symbol ...) sections
-      3) Minimal (sheet_instances) block
-
-    The actual parse+flatten logic is done by:
-      - KicadLibraryParser: parse .kicad_sym => raw SymbolDefinition(s)
-      - SymbolFlattener: merges inheritance (extends) => final single definition
+      1) Symbol definitions in lib_symbols section
+      2) Symbol instance placements
+      3) Hierarchical sheets
+      4) Sheet instances block
     """
     def __init__(self, out_file: str):
         """
@@ -66,19 +96,15 @@ class KicadSchematicWriter:
         """
         self.out_file = out_file
         self.symbol_instances: List[SchematicSymbolInstance] = []
-        self.sheet_symbols: List[HierarchicalSheet] = []  # Added sheet symbols list
+        self.sheet_symbols: List[HierarchicalSheet] = []
 
-        # We cache library parsers so we don't re-parse the same library multiple times
-        self.lib_parsers: Dict[str, KicadLibraryParser] = {}
-        # Flatteners also cached per library
-        self.flatteners: Dict[str, SymbolFlattener] = {}
-
-        # Some schematic metadata
+        # Schematic metadata
         self.version = 20231120  # Version must be an integer for KiCad
         self.generator = "eeschema"
         self.generator_version = "8.0"
         self.paper_size = "A4"
         self.uuid = str(uuid.uuid4())
+
     def add_symbol_instance(self, instance: SchematicSymbolInstance):
         """Add a symbol instance to be placed in the final .kicad_sch."""
         self.symbol_instances.append(instance)
@@ -86,6 +112,155 @@ class KicadSchematicWriter:
     def add_sheet_symbol(self, sheet: HierarchicalSheet):
         """Add a hierarchical sheet symbol to be placed in the final .kicad_sch."""
         self.sheet_symbols.append(sheet)
+
+    def _collect_symbols(self) -> Dict[str, Part]:
+        """Collect all unique symbols used in instances"""
+        symbols = {}
+        for inst in self.symbol_instances:
+            if inst.lib_id not in symbols:
+                # Ensure part is parsed
+                if inst.part.part_defn:
+                    parse_lib_part(inst.part, False)
+                symbols[inst.lib_id] = inst.part
+        return symbols
+
+    def _write_symbol_definition(self, lines: List[str], lib_id: str, part: Part):
+        """Write complete symbol definition from part"""
+        lines.append(f'    (symbol "{lib_id}"')
+        
+        # Write standard attributes
+        lines.append('      (pin_numbers hide)')
+        lines.append('      (pin_names')
+        lines.append('        (offset 0)')
+        lines.append('      )')
+        lines.append('      (exclude_from_sim no)')
+        lines.append('      (in_bom yes)')
+        lines.append('      (on_board yes)')
+
+        # Write standard properties
+        self._write_property(lines, "Reference", part.ref_prefix, at=(2.032, 0, 90))
+        self._write_property(lines, "Value", part.name, at=(0, 0, 90))
+        self._write_property(lines, "Footprint", part.footprint or "", at=(-1.778, 0, 90), hide=True)
+        self._write_property(lines, "Datasheet", part.datasheet or "~", hide=True)
+        self._write_property(lines, "Description", part.description or "", hide=True)
+
+        # Write additional properties from part
+        for key, value in vars(part).items():
+            if not key.startswith('_') and isinstance(value, str) and key not in ['ref', 'value', 'footprint', 'datasheet', 'description']:
+                self._write_property(lines, key, value, hide=True)
+
+        # Write shapes from part's draw_cmds
+        for unit, cmds in part.draw_cmds.items():
+            lines.append(f'      (symbol "{part.name}_{unit}_1"')
+            for cmd in cmds:
+                if isinstance(cmd, list):
+                    lines.append('        ' + self._format_draw_cmd(cmd))
+            lines.append('      )')
+
+        # Write pins
+        for pin in part.pins:
+            pin_type = get_pin_type(pin)
+            lines.append(f'      (pin {pin_type} line')
+            lines.append(f'        (at {pin.x} {pin.y} {pin.orientation})')
+            lines.append(f'        (length {pin.length})')
+            lines.append(f'        (name "{escape_property_value(pin.name)}"')
+            lines.append('          (effects')
+            lines.append('            (font')
+            lines.append('              (size 1.27 1.27)')
+            lines.append('            )')
+            lines.append('          )')
+            lines.append('        )')
+            lines.append(f'        (number "{escape_property_value(pin.num)}"')
+            lines.append('          (effects')
+            lines.append('            (font')
+            lines.append('              (size 1.27 1.27)')
+            lines.append('            )')
+            lines.append('          )')
+            lines.append('        )')
+            lines.append('      )')
+
+        lines.append('    )')
+
+    def _write_property(self, lines: List[str], key: str, value: str, at: Tuple[float, float, float] = (0, 0, 0), hide: bool = False):
+        """Write a property with proper formatting"""
+        escaped_value = escape_property_value(value)
+        lines.append(f'      (property "{key}" "{escaped_value}"')
+        lines.append(f'        (at {at[0]} {at[1]} {at[2]})')
+        lines.append('        (effects')
+        lines.append('          (font')
+        lines.append('            (size 1.27 1.27)')
+        lines.append('          )')
+        if hide:
+            lines.append('          (hide yes)')
+        lines.append('        )')
+        lines.append('      )')
+
+    def _format_draw_cmd(self, cmd) -> str:
+        """Format a drawing command as s-expression"""
+        if not cmd:
+            return ""
+        cmd_type = cmd[0].value().lower()
+        if cmd_type == "rectangle":
+            return self._format_rectangle(cmd)
+        elif cmd_type == "polyline":
+            return self._format_polyline(cmd)
+        elif cmd_type == "circle":
+            return self._format_circle(cmd)
+        elif cmd_type == "arc":
+            return self._format_arc(cmd)
+        return ""
+
+    def _format_rectangle(self, cmd) -> str:
+        """Format rectangle command"""
+        # Default resistor dimensions
+        start_x, start_y = -1.016, -2.54
+        end_x, end_y = 1.016, 2.54
+
+        # Try to extract coordinates from command
+        try:
+            if len(cmd) >= 3:
+                if isinstance(cmd[1], list) and len(cmd[1]) >= 2:
+                    # Handle both string/Symbol and numeric values
+                    start_x = float(cmd[1][0].value() if hasattr(cmd[1][0], 'value') else cmd[1][0])
+                    start_y = float(cmd[1][1].value() if hasattr(cmd[1][1], 'value') else cmd[1][1])
+                if isinstance(cmd[2], list) and len(cmd[2]) >= 2:
+                    end_x = float(cmd[2][0].value() if hasattr(cmd[2][0], 'value') else cmd[2][0])
+                    end_y = float(cmd[2][1].value() if hasattr(cmd[2][1], 'value') else cmd[2][1])
+        except (ValueError, AttributeError, IndexError):
+            # If any conversion fails, use default dimensions
+            pass
+
+        return (f'(rectangle (start {start_x} {start_y}) '
+                f'(end {end_x} {end_y}) '
+                '(stroke (width 0.254) (type default)) '
+                '(fill (type none)))')
+
+    def _format_polyline(self, cmd) -> str:
+        """Format polyline command"""
+        points = []
+        for point in cmd[1:]:
+            if isinstance(point, list) and len(point) >= 2:
+                points.append(f'(xy {point[0]} {point[1]})')
+        return f'(polyline (pts {" ".join(points)}) (stroke (width 0.254) (type default)))'
+
+    def _format_circle(self, cmd) -> str:
+        """Format circle command"""
+        center = cmd[1] if len(cmd) > 1 else [0, 0]
+        radius = cmd[2] if len(cmd) > 2 else 1
+        return (f'(circle (center {center[0]} {center[1]}) '
+                f'(radius {radius}) '
+                '(stroke (width 0.254) (type default)) '
+                '(fill (type none)))')
+
+    def _format_arc(self, cmd) -> str:
+        """Format arc command"""
+        start = cmd[1] if len(cmd) > 1 else [0, 0]
+        mid = cmd[2] if len(cmd) > 2 else [1, 1]
+        end = cmd[3] if len(cmd) > 3 else [2, 0]
+        return (f'(arc (start {start[0]} {start[1]}) '
+                f'(mid {mid[0]} {mid[1]}) '
+                f'(end {end[0]} {end[1]}) '
+                '(stroke (width 0.254) (type default)))')
 
     def _sheet_to_s_expression(self, sheet: HierarchicalSheet) -> str:
         """Convert a hierarchical sheet to KiCad s-expression format."""
@@ -104,7 +279,7 @@ class KicadSchematicWriter:
         s.append(f"  (uuid \"{str(uuid.uuid4())}\")")
         
         # Add sheet properties with proper positioning and effects
-        s.append(f"  (property \"Sheetname\" \"{sheet.sheetName.value}\"")
+        s.append(f"  (property \"Sheetname\" \"{escape_property_value(sheet.sheetName.value)}\"")
         s.append(f"    (at {sheet.position.X} {float(sheet.position.Y) - 0.7116} 0)")
         s.append("    (effects")
         s.append("      (font")
@@ -114,7 +289,7 @@ class KicadSchematicWriter:
         s.append("    )")
         s.append("  )")
         
-        s.append(f"  (property \"Sheetfile\" \"{sheet.fileName.value}\"")
+        s.append(f"  (property \"Sheetfile\" \"{escape_property_value(sheet.fileName.value)}\"")
         s.append(f"    (at {sheet.position.X} {float(sheet.position.Y) + float(sheet.height) + 0.5846} 0)")
         s.append("    (effects")
         s.append("      (font")
@@ -127,7 +302,7 @@ class KicadSchematicWriter:
         # Add instances block with proper project path
         s.append("  (instances")
         s.append("    (project \"testing_hierarchy\"")
-        s.append(f"      (path \"{sheet.hierarchical_path}\"")
+        s.append(f"      (path \"{escape_property_value(sheet.hierarchical_path)}\"")
         s.append("        (page \"3\")")
         s.append("      )")
         s.append("    )")
@@ -136,55 +311,14 @@ class KicadSchematicWriter:
         s.append(")")
         return "\n".join(s)
 
-    def _get_library_parser(self, library_path: str) -> KicadLibraryParser:
-        """
-        Return (or create) the KicadLibraryParser for a given .kicad_sym file path.
-        """
-        if library_path not in self.lib_parsers:
-            parser = KicadLibraryParser(library_path)
-            parser.load_library()
-            self.lib_parsers[library_path] = parser
-        return self.lib_parsers[library_path]
-
-    def _flatten_symbol(self, library_path: str, symbol_name: str) -> SymbolDefinition:
-        """
-        Flatten the named symbol from the given .kicad_sym file using SymbolFlattener.
-        """
-        parser = self._get_library_parser(library_path)
-        raw_symbols = parser.get_symbols()   # Dictionary of name => SymbolDefinition
-        if library_path not in self.flatteners:
-            flattener = SymbolFlattener(raw_symbols)
-            self.flatteners[library_path] = flattener
-        else:
-            flattener = self.flatteners[library_path]
-
-        return flattener.get_flattened_symbol(symbol_name)
-
     def generate(self) -> None:
         """
-        Generate the .kicad_sch file at self.out_file:
-          1) Collect all unique symbols from self.symbol_instances,
-          2) Flatten them,
-          3) Write them out as (lib_symbols ...),
-          4) Then place each symbol as (symbol ...) block,
-          5) Then a minimal (sheet_instances).
+        Generate the .kicad_sch file:
+          1) Write schematic header
+          2) Write lib_symbols section with all used symbols
+          3) Write symbol instances
+          4) Write sheet instances
         """
-        # 1) Identify all unique (library_path, symbol_name) combos
-        #    from self.symbol_instances' lib_id, e.g. "LibName:SymbolName"
-        flattened_map = {}
-        for inst in self.symbol_instances:
-            if ":" not in inst.lib_id:
-                # skip invalid
-                continue
-            lib_name, sym_name = inst.lib_id.split(":", 1)
-            # This is naive: we assume the .kicad_sym is ./lib_name.kicad_sym
-            kicad_dir = os.environ.get("KICAD_SYMBOL_DIR", "/usr/share/kicad/symbols")
-            library_path = os.path.join(kicad_dir, f"{lib_name}.kicad_sym")
-
-            flattened = self._flatten_symbol(library_path, sym_name)
-            flattened_map[(library_path, sym_name)] = flattened
-
-        # 2) Build the .kicad_sch as a list of lines
         lines = []
         lines.append("(kicad_sch")
         lines.append(f"  (version {self.version})")
@@ -199,34 +333,32 @@ class KicadSchematicWriter:
         lines.append(f"    (date \"{dt_str}\")")
         lines.append("  )")
 
-        # 3) (lib_symbols ...) block
+        # Write lib_symbols section
         lines.append("  (lib_symbols")
-        for (lib_path, sym_name), sym_def in flattened_map.items():
-            sexpr = self._symbol_to_s_expression(sym_def)
-            for l in sexpr.splitlines():
-                lines.append("    " + l)
+        symbols = self._collect_symbols()
+        for lib_id, part in symbols.items():
+            self._write_symbol_definition(lines, lib_id, part)
         lines.append("  )")
 
-        # 4) Each placed symbol as (symbol ...) instance
+        # Write symbol instances
         for inst in self.symbol_instances:
             inst_block = self._instance_to_s_expression(inst)
             for l in inst_block.splitlines():
                 lines.append("  " + l)
 
-        # 5) Add hierarchical sheets
+        # Write hierarchical sheets
         for sheet in self.sheet_symbols:
             sheet_block = self._sheet_to_s_expression(sheet)
             for l in sheet_block.splitlines():
                 lines.append("  " + l)
 
-        # 6) Sheet instances block
+        # Write sheet instances block
         lines.append("  (sheet_instances")
         lines.append("    (path \"/\" (page \"1\"))")
         for sheet in self.sheet_symbols:
             sheet_id = str(uuid.uuid4())
-            # Use stored hierarchical path from HierarchyManager
             sheet_path = getattr(sheet, 'hierarchical_path', f"/{sheet.sheetName.value}")
-            lines.append(f"    (path \"{sheet_path}\" (page \"{sheet_id}\"))")
+            lines.append(f"    (path \"{escape_property_value(sheet_path)}\" (page \"{sheet_id}\"))")
         lines.append("  )")
 
         lines.append(")")
@@ -235,132 +367,12 @@ class KicadSchematicWriter:
         with open(self.out_file, "w", encoding="utf-8") as f:
             f.write("\n".join(lines) + "\n")
 
-
-    def _symbol_to_s_expression(self, sym_def: SymbolDefinition) -> str:
-        """
-        Convert a single flattened SymbolDefinition into a complete KiCad symbol definition.
-        Ensures library prefix (e.g. "Device:") is included in symbol name.
-        """
-        # Extract library prefix from name if present, otherwise use the default
-        sym_name = sym_def.name
-        if ':' not in sym_name:
-            # Use the library name as prefix if available, otherwise default to "Device"
-            sym_name = f"Device:{sym_name}"
-            
-        lines = []
-        lines.append(f'(symbol "{sym_name}"')
-        
-        # Standard attributes
-        lines.append('  (pin_numbers hide)')
-        lines.append('  (pin_names')
-        lines.append('    (offset 0)')
-        lines.append('  )')
-        lines.append('  (exclude_from_sim no)')
-        lines.append('  (in_bom yes)')
-        lines.append('  (on_board yes)')
-            
-        # Standard properties
-        properties = {
-            'Reference': 'R',
-            'Value': 'R',
-            'Footprint': '',
-            'Datasheet': '~',
-            'Description': 'Resistor',
-            'ki_keywords': 'R res resistor',
-            'ki_fp_filters': 'R_*'
-        }
-        
-        # Override with any custom properties
-        properties.update(sym_def.properties)
-        
-        # Add properties with proper formatting
-        for key, value in properties.items():
-            if key == 'Reference':
-                lines.append(f'  (property "{key}" "{value}"')
-                lines.append('    (at 2.032 0 90)')
-            elif key == 'Value':
-                lines.append(f'  (property "{key}" "{value}"')
-                lines.append('    (at 0 0 90)')
-            else:
-                lines.append(f'  (property "{key}" "{value}"')
-                lines.append('    (at 0 0 0)')
-            
-            lines.append('    (effects')
-            lines.append('      (font')
-            lines.append('        (size 1.27 1.27)')
-            lines.append('      )')
-            if key not in ['Reference', 'Value']:
-                lines.append('      (hide yes)')
-            lines.append('    )')
-            lines.append('  )')
-        
-        # Symbol shape
-        lines.append('  (symbol "R_0_1"')
-        lines.append('    (rectangle')
-        lines.append('      (start -1.016 -2.54)')
-        lines.append('      (end 1.016 2.54)')
-        lines.append('      (stroke')
-        lines.append('        (width 0.254)')
-        lines.append('        (type default)')
-        lines.append('      )')
-        lines.append('      (fill')
-        lines.append('        (type none)')
-        lines.append('      )')
-        lines.append('    )')
-        lines.append('  )')
-        
-        # Pins
-        lines.append('  (symbol "R_1_1"')
-        # Pin 1
-        lines.append('    (pin passive line')
-        lines.append('      (at 0 3.81 270)')
-        lines.append('      (length 1.27)')
-        lines.append('      (name "~"')
-        lines.append('        (effects')
-        lines.append('          (font')
-        lines.append('            (size 1.27 1.27)')
-        lines.append('          )')
-        lines.append('        )')
-        lines.append('      )')
-        lines.append('      (number "1"')
-        lines.append('        (effects')
-        lines.append('          (font')
-        lines.append('            (size 1.27 1.27)')
-        lines.append('          )')
-        lines.append('        )')
-        lines.append('      )')
-        lines.append('    )')
-        # Pin 2
-        lines.append('    (pin passive line')
-        lines.append('      (at 0 -3.81 90)')
-        lines.append('      (length 1.27)')
-        lines.append('      (name "~"')
-        lines.append('        (effects')
-        lines.append('          (font')
-        lines.append('            (size 1.27 1.27)')
-        lines.append('          )')
-        lines.append('        )')
-        lines.append('      )')
-        lines.append('      (number "2"')
-        lines.append('        (effects')
-        lines.append('          (font')
-        lines.append('            (size 1.27 1.27)')
-        lines.append('          )')
-        lines.append('        )')
-        lines.append('      )')
-        lines.append('    )')
-        lines.append('  )')
-        
-        lines.append(')')
-        return '\n'.join(lines)
-
-
     def _instance_to_s_expression(self, inst: SchematicSymbolInstance) -> str:
         """
-        Create the schematic's (symbol) instance referencing the flattened lib_id.
+        Create the schematic's (symbol) instance referencing the lib_id.
         For example:
             (symbol
-              (lib_id "Lib:Symbol")
+              (lib_id "Device:R")
               (at 50.8 63.5 0)
               ...
             )
@@ -368,7 +380,7 @@ class KicadSchematicWriter:
         s = []
         s.append("(symbol")
         s.append(f"  (lib_id \"{inst.lib_id}\")")
-        s.append(f"  (at {inst.x:.2f} {inst.y:.2f} 0)")
+        s.append(f"  (at {inst.x:.2f} {inst.y:.2f} {inst.rotation})")
         s.append("  (unit 1)")
         s.append("  (exclude_from_sim no)")
         s.append("  (in_bom yes)")
@@ -377,73 +389,25 @@ class KicadSchematicWriter:
         s.append("  (fields_autoplaced yes)")
         s.append(f"  (uuid \"{inst.uuid}\")")
 
-        # Reference field with effects
-        s.append(f"  (property \"Reference\" \"{inst.reference}\"")
-        s.append(f"    (at {inst.x+2.54:.2f} {inst.y-1.2701:.2f} 0)")
-        s.append("    (effects")
-        s.append("      (font")
-        s.append("        (size 1.27 1.27)")
-        s.append("      )")
-        s.append("      (justify left)")
-        s.append("    )")
-        s.append("  )")
-
-        # Value field with effects
-        s.append(f"  (property \"Value\" \"{inst.value}\"")
-        s.append(f"    (at {inst.x+2.54:.2f} {inst.y+1.2699:.2f} 0)")
-        s.append("    (effects")
-        s.append("      (font")
-        s.append("        (size 1.27 1.27)")
-        s.append("      )")
-        s.append("      (justify left)")
-        s.append("    )")
-        s.append("  )")
-
-        # Add footprint property if available
+        # Write all properties
+        self._write_property(s, "Reference", inst.reference, at=(inst.x+2.54, inst.y-1.2701, 0))
+        self._write_property(s, "Value", inst.value, at=(inst.x+2.54, inst.y+1.2699, 0))
+        
         if inst.footprint:
-            s.append(f"  (property \"Footprint\" \"{inst.footprint}\"")
-            s.append(f"    (at {inst.x-1.778:.2f} {inst.y:.2f} 90)")
-            s.append("    (effects")
-            s.append("      (font")
-            s.append("        (size 1.27 1.27)")
-            s.append("      )")
-            s.append("      (hide yes)")
-            s.append("    )")
-            s.append("  )")
+            self._write_property(s, "Footprint", inst.footprint, at=(inst.x-1.778, inst.y, 90), hide=True)
+        
+        self._write_property(s, "Datasheet", inst.datasheet, hide=True)
+        self._write_property(s, "Description", inst.description, hide=True)
 
-        # Add datasheet and description properties
-        s.append("  (property \"Datasheet\" \"~\"")
-        s.append(f"    (at {inst.x:.2f} {inst.y:.2f} 0)")
-        s.append("    (effects")
-        s.append("      (font")
-        s.append("        (size 1.27 1.27)")
-        s.append("      )")
-        s.append("      (hide yes)")
-        s.append("    )")
-        s.append("  )")
-
-        s.append("  (property \"Description\" \"Resistor\"")
-        s.append(f"    (at {inst.x:.2f} {inst.y:.2f} 0)")
-        s.append("    (effects")
-        s.append("      (font")
-        s.append("        (size 1.27 1.27)")
-        s.append("      )")
-        s.append("      (hide yes)")
-        s.append("    )")
-        s.append("  )")
-
-        # Add pin UUIDs
-        s.append("  (pin \"2\"")
-        s.append(f"    (uuid \"{str(uuid.uuid4())}\")")
-        s.append("  )")
-        s.append("  (pin \"1\"")
-        s.append(f"    (uuid \"{str(uuid.uuid4())}\")")
-        s.append("  )")
+        # Write additional properties
+        for key, value in inst.properties.items():
+            if key not in ['ref', 'value', 'footprint', 'datasheet', 'description']:
+                self._write_property(s, key, value, hide=True)
 
         # Add instances block
         s.append("  (instances")
         s.append("    (project \"testing_hierarchy\"")
-        s.append(f"      (path \"{getattr(inst, 'hierarchical_path', '/')}\"")
+        s.append(f"      (path \"{escape_property_value(inst.hierarchical_path)}\"")
         s.append(f"        (reference \"{inst.reference}\")")
         s.append("        (unit 1)")
         s.append("      )")

@@ -7,7 +7,10 @@ import logging
 from kiutils.schematic import Schematic
 from kiutils.items.common import Position, Property
 from kiutils.items.schitems import HierarchicalSheet
+
+from skidl import Part
 from .kicad_writer import SchematicSymbolInstance
+
 
 def get_sheet_name(path: str) -> str:
     """Extract sheet name without numeric suffixes for file naming"""
@@ -17,12 +20,14 @@ def get_sheet_name(path: str) -> str:
         return last
     return re.sub(r'\d+$', '', last)
 
-def get_instance_path(part) -> str:
+
+def get_instance_path(part: Part) -> str:
     """Get full hierarchical instance path for part matching"""
     h = getattr(part, 'hierarchy', None)
     if h:
         return h
     return getattr(part, 'Sheetname', "top")
+
 
 @dataclass
 class CircuitNode:
@@ -31,7 +36,8 @@ class CircuitNode:
     sheet_name: str            # Name for sheet file e.g. 'child'
     parent_path: Optional[str]  # Parent's full instance path or None for root
     children: List[str] = field(default_factory=list)  # Child instance paths
-    parts: List['Part'] = field(default_factory=list)  # Parts in this circuit instance
+    parts: List[Part] = field(default_factory=list)  # Parts in this circuit instance
+
 
 class HierarchyManager:
     """Manages schematic hierarchy generation"""
@@ -262,15 +268,6 @@ class HierarchyManager:
         sch.to_file(str(out_path))
         logging.debug("Top schematic generated successfully")
 
-    def _create_symbol_instance(self, part, position: tuple = (0, 0)) -> 'SchematicSymbolInstance':
+    def _create_symbol_instance(self, part: Part, position: tuple = (0, 0)) -> SchematicSymbolInstance:
         """Create symbol instance from part"""
-        lib_name = getattr(part.lib, 'filename', "Device")
-        lib_id = f"{lib_name}:{part.name}"
-        
-        return SchematicSymbolInstance(
-            lib_id=lib_id,
-            reference=part.ref,
-            value=part.value,
-            position=position,
-            footprint=getattr(part, 'footprint', None)
-        )
+        return SchematicSymbolInstance(part, position)
