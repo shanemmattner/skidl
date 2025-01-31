@@ -280,6 +280,21 @@ def generate_subcircuit_schematic(full_path, hierarchy_dict, circuit, project_di
 # Main Entry: gen_schematic
 ###############################################################################
 
+
+# gen_schematic_v8.py
+
+import datetime
+import os
+import os.path
+import shutil
+import uuid
+from pathlib import Path
+from skidl.scriptinfo import get_script_name
+from skidl.logger import active_logger
+
+from .hierarchy_manager import HierarchyManager
+from .kicad_writer import KicadSchematicWriter
+
 def gen_schematic(
     circuit,
     filepath=".",
@@ -292,27 +307,11 @@ def gen_schematic(
 ):
     """
     Create hierarchical KiCad schematic files from a SKiDL Circuit object.
-
-    Steps:
-      1) Copies a blank KiCad project template into <filepath>/<project_name>.
-      2) Reads circuit.group_name_cntr => subcircuit paths => build hierarchy.
-      3) Recursively generates .kicad_sch for each subcircuit (parent->children).
-      4) Renames the first root subcircuit's .kicad_sch => <project_name>.kicad_sch.
-      5) Updates .kicad_pro, .kicad_pcb, etc. with that name.
-
-    :param circuit:        The SKiDL Circuit object with parts & subcircuits
-    :param filepath:       Output directory for the project folder
-    :param top_name:       A default name for the script or top-level (unused here)
-    :param project_name:   The user-provided project folder (and top schematic) name
-    :param title:          Title block text (not heavily used here)
-    :param flatness:       Not used in hierarchical approach
-    :param retries:        Not used in this example
-    :param options:        Catch-all for additional arguments
     """
     debug_print("GENSCM", f"Generating project '{project_name}' in '{filepath}'")
     
     # -------------------------------------------------------------------------
-    # Step 1) Copy a blank KiCad project template into project_dir
+    # Step 1) Copy blank KiCad project template into project_dir
     # -------------------------------------------------------------------------
     try:
         template_dir = os.path.join(
@@ -333,59 +332,40 @@ def gen_schematic(
         raise
     
     # -------------------------------------------------------------------------
-    # Step 2) Build the subcircuit hierarchy from circuit.group_name_cntr
+    # Step 2) Create and setup the hierarchy manager
     # -------------------------------------------------------------------------
+    hierarchy = HierarchyManager(project_dir)
+    
+    # Get subcircuit paths from circuit's group_name_cntr
     subcircuit_paths = list(circuit.group_name_cntr.keys())
-    debug_print("HIERARCHY", "All subcircuit paths:", subcircuit_paths)
-    hierarchy_dict = build_subcircuit_hierarchy(subcircuit_paths)
-    
-    # Find the root subcircuit(s): any node with parent == None
-    root_nodes = [p for p, data in hierarchy_dict.items() if data['parent'] is None]
-    debug_print("HIERARCHY", f"Root subcircuits: {root_nodes}")
-    
-    if not root_nodes:
-        raise RuntimeError("No top-level subcircuit found. (No root in hierarchy.)")
-    
-    # -------------------------------------------------------------------------
-    # Step 3) Recursively generate each root subcircuit and its children
-    # -------------------------------------------------------------------------
-    for i, root_path in enumerate(root_nodes):
-        generate_subcircuit_schematic(
-            full_path=root_path,
-            hierarchy_dict=hierarchy_dict,
-            circuit=circuit,
-            project_dir=project_dir,
-            valid_paths=subcircuit_paths
-        )
-
-    # -------------------------------------------------------------------------
-    # Step 4) Optionally rename the *first* root subcircuit to <project_name>.kicad_sch
-    # -------------------------------------------------------------------------
-    main_sch_path = os.path.join(project_dir, f"{project_name}.kicad_sch")
-    renamed = False
-    
-    for i, root_path in enumerate(root_nodes):
-        root_name = hierarchy_dict[root_path]['name']
-        old_path = os.path.join(project_dir, f"{root_name}.kicad_sch")
+    if not subcircuit_paths:
+        # If no subcircuits defined, create top-level only
+        subcircuit_paths = ['top']
         
-        if i == 0:  # Rename only the first root
-            if os.path.exists(old_path):
-                os.rename(old_path, main_sch_path)
-                debug_print("GENSCM", f"Renamed root subckt {root_name} -> {project_name}.kicad_sch")
-                renamed = True
-        else:
-            # Optionally embed references from the newly renamed main to each additional root
-            pass
+    debug_print("HIERARCHY", "All subcircuit paths:", subcircuit_paths)
     
-    # If we never renamed anything, create a blank main if desired:
-    if not renamed:
-        main_sch = Schematic.create_new()
-        main_sch.to_file(main_sch_path)
-
+    # Build the hierarchy tree
+    hierarchy.build_hierarchy(subcircuit_paths)
+    
+    # Assign parts to their circuits and set Sheetname attributes
+    hierarchy.assign_parts_to_circuits(circuit)
+    
     # -------------------------------------------------------------------------
-    # Step 5) Update the .kicad_pro, .kicad_pcb, etc. to use <project_name> naming
+    # Step 3) Generate all schematics
     # -------------------------------------------------------------------------
     try:
+        
+        # Pass the writer class instead of an instance
+        hierarchy.generate_schematics(KicadSchematicWriter, project_name)
+    except Exception as e:
+        active_logger.error(f"Error generating schematics: {str(e)}")
+        raise
+
+    # -------------------------------------------------------------------------
+    # Step 4) Update project files
+    # -------------------------------------------------------------------------
+    try:
+        # Rename template project files
         old_files = {
             "kicad_blank_project.kicad_pro": f"{project_name}.kicad_pro",
             "kicad_blank_project.kicad_pcb": f"{project_name}.kicad_pcb",
@@ -398,7 +378,7 @@ def gen_schematic(
                 os.rename(old_path, new_path)
                 active_logger.info(f"Renamed {old_name} to {new_name}")
 
-        # If .kicad_pro is JSON-based (KiCad 6/7), update meta + sheets
+        # Update .kicad_pro file contents
         project_path = os.path.join(project_dir, f"{project_name}.kicad_pro")
         if os.path.exists(project_path):
             import json
@@ -407,17 +387,26 @@ def gen_schematic(
 
             # Update meta filename
             project_config['meta']['filename'] = f"{project_name}.kicad_pro"
-            
-            # Minimal approach: set root sheet to <project_name>.kicad_sch
-            project_config['sheets'] = [
+
+            # Add generated sheets to project
+            sheets = [
                 {
-                    "path": f"{project_name}.kicad_sch",
+                    "path": f"{project_name}.kicad_sch",  # Top sheet
                     "sheet_name": "",
                     "id": str(uuid.uuid4())
                 }
             ]
-            # If multiple roots or nested subcircuits, KiCad auto-discovers them 
-            # from hierarchical sheets. No need to list them all.
+            
+            # Add subcircuit sheets (if any)
+            for node in hierarchy.nodes.values():
+                if node.normalized_name != 'top':
+                    sheets.append({
+                        "path": f"{node.normalized_name}.kicad_sch",
+                        "sheet_name": node.normalized_name,
+                        "id": str(uuid.uuid4())
+                    })
+            
+            project_config['sheets'] = sheets
 
             with open(project_path, 'w') as f:
                 json.dump(project_config, f, indent=2)
@@ -426,3 +415,6 @@ def gen_schematic(
     except Exception as e:
         active_logger.error(f"Error updating project files: {str(e)}")
         raise
+        
+    # All done successfully
+    active_logger.info("No errors or warnings found while generating schematic.")
