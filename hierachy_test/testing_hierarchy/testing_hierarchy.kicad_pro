@@ -80,17 +80,17 @@
     {
       "path": "testing_hierarchy.kicad_sch",
       "sheet_name": "",
-      "id": "9c164427-4803-4602-8c39-e11b3a2848b2"
+      "id": "cf36ad68-406e-4c31-8293-12509c28ce08"
     },
     {
       "path": "single_resistor.kicad_sch",
       "sheet_name": "single_resistor",
-      "id": "33645429-d168-490e-9a1a-f940db18ff2a"
+      "id": "6734abdc-d540-415a-90df-290dfd142ae2"
     },
     {
       "path": "two_resistors_circuit.kicad_sch",
       "sheet_name": "two_resistors_circuit",
-      "id": "7809473b-502e-406c-96d1-fdcfb6baf05d"
+      "id": "eb8cc9f7-a6f3-4b48-abe8-04edf48f87a5"
     }
   ],
   "text_variables": {}

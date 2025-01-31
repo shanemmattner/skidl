@@ -2,7 +2,7 @@
   (version 20231120)
   (generator "eeschema")
   (generator_version "8.0")
-  (uuid "239fd921-2888-47c7-a4fc-e9aa0cec5415")
+  (uuid "ba1fc3b4-35b7-4e57-9aac-434d102970ab")
   (paper "A4")
   (title_block
     (date "2025-01-30")
@@ -139,12 +139,107 @@
     (on_board yes)
     (dnp no)
     (fields_autoplaced yes)
-    (uuid "ee4c00e9-a236-428f-b433-a786d163b636")
-    (property "Reference" "R1" (at 2.00 0.00 0))
-    (property "Value" "10k" (at 2.00 2.00 0))
-    (property "Footprint" "Resistor_SMD:R_0603_1608Metric" (at 2.00 4.00 0))
+    (uuid "475fd87c-c31f-417a-845d-9979966f21a8")
+    (property "Reference" "R1"
+      (at 2.54 -1.27 0)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (justify left)
+      )
+    )
+    (property "Value" "10k"
+      (at 2.54 1.27 0)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (justify left)
+      )
+    )
+    (property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+      (at -1.78 0.00 90)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (hide yes)
+      )
+    )
+    (property "Datasheet" "~"
+      (at 0.00 0.00 0)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (hide yes)
+      )
+    )
+    (property "Description" "Resistor"
+      (at 0.00 0.00 0)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (hide yes)
+      )
+    )
+    (pin "2"
+      (uuid "0ad07a13-76c6-417c-bbeb-f4e40d50f0a8")
+    )
+    (pin "1"
+      (uuid "33c9e603-1cdc-4cde-8965-dcfbddb9868b")
+    )
+    (instances
+      (project "testing_hierarchy"
+        (path "/"
+          (reference "R1")
+          (unit 1)
+        )
+      )
+    )
+  )
+  (sheet
+    (at 100 50)
+    (size 30 20)
+    (fields_autoplaced yes)
+    (stroke
+      (width 0.1524)
+      (type solid)
+    )
+    (fill
+      (color 0 0 0 0.0000)
+    )
+    (uuid "2d4619ff-48bb-4c70-a736-7628b6f7d1ff")
+    (property "Sheetname" "two_resistors_circuit"
+      (at 100 49.2884 0)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (justify left bottom)
+      )
+    )
+    (property "Sheetfile" "two_resistors_circuit.kicad_sch"
+      (at 100 70.5846 0)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (justify left top)
+      )
+    )
+    (instances
+      (project "testing_hierarchy"
+        (path "/single_resistor/two_resistors_circuit"
+          (page "3")
+        )
+      )
+    )
   )
   (sheet_instances
     (path "/" (page "1"))
+    (path "/single_resistor/two_resistors_circuit" (page "0b856017-f205-49ce-abad-4f8850151966"))
   )
 )

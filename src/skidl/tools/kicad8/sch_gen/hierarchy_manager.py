@@ -68,12 +68,29 @@ class HierarchyManager:
             )
             self.nodes[path] = node
         
-        # Link children using instance paths
+        # Link children using instance paths, handling numeric suffixes
         for node in self.nodes.values():
-            if node.parent_path and node.parent_path in self.nodes:
+            if not node.parent_path:
+                continue
+                
+            # Try exact match first
+            if node.parent_path in self.nodes:
                 parent = self.nodes[node.parent_path]
                 parent.children.append(node.instance_path)
                 logging.debug(f"Linked child {node.instance_path} to parent {parent.instance_path}")
+                continue
+            
+            # Try matching without numeric suffixes
+            parent_base = '.'.join(get_sheet_name(segment) for segment in node.parent_path.split('.'))
+            matching_parents = [
+                n for n in self.nodes.values()
+                if '.'.join(get_sheet_name(segment) for segment in n.instance_path.split('.')) == parent_base
+            ]
+            
+            if matching_parents:
+                parent = matching_parents[0]  # Use first matching parent
+                parent.children.append(node.instance_path)
+                logging.debug(f"Linked child {node.instance_path} to matching parent {parent.instance_path}")
 
     def assign_parts_to_circuits(self, circuit) -> None:
         """Assign parts to their circuit instances"""
@@ -156,6 +173,24 @@ class HierarchyManager:
         self.generated_files.add(out_path.name)
         logging.debug("  Sheet generated successfully")
 
+    def _get_hierarchical_path(self, node: CircuitNode) -> str:
+        """Get the hierarchical sheet path for KiCad."""
+        if not node.parent_path or node.parent_path == 'top':
+            return f"/{node.sheet_name}"
+        
+        # Get parent node
+        parent_base = '.'.join(get_sheet_name(segment) for segment in node.parent_path.split('.'))
+        matching_parents = [
+            n for n in self.nodes.values()
+            if '.'.join(get_sheet_name(segment) for segment in n.instance_path.split('.')) == parent_base
+        ]
+        
+        if matching_parents:
+            parent = matching_parents[0]
+            parent_path = self._get_hierarchical_path(parent)
+            return f"{parent_path}/{node.sheet_name}"
+        return f"/{node.sheet_name}"
+
     def _create_sheet_symbol(self, node: CircuitNode, x: float, y: float) -> HierarchicalSheet:
         """Create sheet symbol for circuit instance"""
         sheet = HierarchicalSheet()
@@ -173,9 +208,13 @@ class HierarchyManager:
         sheet.fileName = Property("Sheetfile", f"{node.sheet_name}.kicad_sch")
         sheet.fileName.position = Position(f"{x + sheet.width/2}", f"{y - 2}", "0")
         
+        # Store hierarchical path for sheet instances
+        sheet.hierarchical_path = self._get_hierarchical_path(node)
+        
         logging.debug(f"\nCreated sheet symbol:")
         logging.debug(f"  Instance path: {node.instance_path}")
         logging.debug(f"  Sheet file: {node.sheet_name}.kicad_sch")
+        logging.debug(f"  Hierarchical path: {sheet.hierarchical_path}")
         
         return sheet
 

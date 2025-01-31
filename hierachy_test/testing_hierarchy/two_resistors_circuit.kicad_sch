@@ -2,7 +2,7 @@
   (version 20231120)
   (generator "eeschema")
   (generator_version "8.0")
-  (uuid "65cdf0e8-713a-4b1b-9e0f-7de19fbde6f3")
+  (uuid "039519db-25ce-4d1b-b3c5-d8f1edbe7ec8")
   (paper "A4")
   (title_block
     (date "2025-01-30")
@@ -139,10 +139,66 @@
     (on_board yes)
     (dnp no)
     (fields_autoplaced yes)
-    (uuid "38da96b4-f915-45d9-8b72-34c27f377f50")
-    (property "Reference" "R2" (at 2.00 0.00 0))
-    (property "Value" "10k" (at 2.00 2.00 0))
-    (property "Footprint" "Resistor_SMD:R_0603_1608Metric" (at 2.00 4.00 0))
+    (uuid "d9cabf02-dcb6-43f5-8df9-3489b6e0d557")
+    (property "Reference" "R2"
+      (at 2.54 -1.27 0)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (justify left)
+      )
+    )
+    (property "Value" "10k"
+      (at 2.54 1.27 0)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (justify left)
+      )
+    )
+    (property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+      (at -1.78 0.00 90)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (hide yes)
+      )
+    )
+    (property "Datasheet" "~"
+      (at 0.00 0.00 0)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (hide yes)
+      )
+    )
+    (property "Description" "Resistor"
+      (at 0.00 0.00 0)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (hide yes)
+      )
+    )
+    (pin "2"
+      (uuid "d6ab24de-5e92-4dba-a55b-43091bd9b044")
+    )
+    (pin "1"
+      (uuid "d9fc46e2-7270-4d52-8582-296477ff8fdb")
+    )
+    (instances
+      (project "testing_hierarchy"
+        (path "/"
+          (reference "R2")
+          (unit 1)
+        )
+      )
+    )
   )
   (symbol
     (lib_id "Device:R")
@@ -153,10 +209,66 @@
     (on_board yes)
     (dnp no)
     (fields_autoplaced yes)
-    (uuid "25e98b78-cbea-4fc8-9fb6-94e9d7e99f98")
-    (property "Reference" "R3" (at 22.00 0.00 0))
-    (property "Value" "10k" (at 22.00 2.00 0))
-    (property "Footprint" "Resistor_SMD:R_0603_1608Metric" (at 22.00 4.00 0))
+    (uuid "108aa33e-aedd-4128-bf57-0efc0559bae8")
+    (property "Reference" "R3"
+      (at 22.54 -1.27 0)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (justify left)
+      )
+    )
+    (property "Value" "10k"
+      (at 22.54 1.27 0)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (justify left)
+      )
+    )
+    (property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+      (at 18.22 0.00 90)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (hide yes)
+      )
+    )
+    (property "Datasheet" "~"
+      (at 20.00 0.00 0)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (hide yes)
+      )
+    )
+    (property "Description" "Resistor"
+      (at 20.00 0.00 0)
+      (effects
+        (font
+          (size 1.27 1.27)
+        )
+        (hide yes)
+      )
+    )
+    (pin "2"
+      (uuid "ec86ccf5-bff8-4881-9aaf-6ffc7dff2169")
+    )
+    (pin "1"
+      (uuid "9635eaba-d7ec-4af3-bb65-bd93b88123a7")
+    )
+    (instances
+      (project "testing_hierarchy"
+        (path "/"
+          (reference "R3")
+          (unit 1)
+        )
+      )
+    )
   )
   (sheet_instances
     (path "/" (page "1"))

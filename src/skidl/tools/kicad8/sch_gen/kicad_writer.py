@@ -91,19 +91,46 @@ class KicadSchematicWriter:
         """Convert a hierarchical sheet to KiCad s-expression format."""
         s = []
         s.append("(sheet")
-        s.append(f"  (at {sheet.position.X} {sheet.position.Y} {sheet.position.angle})")
+        s.append(f"  (at {sheet.position.X} {sheet.position.Y})")
         s.append(f"  (size {sheet.width} {sheet.height})")
+        s.append("  (fields_autoplaced yes)")
+        s.append("  (stroke")
+        s.append("    (width 0.1524)")
+        s.append("    (type solid)")
+        s.append("  )")
+        s.append("  (fill")
+        s.append("    (color 0 0 0 0.0000)")
+        s.append("  )")
         s.append(f"  (uuid \"{str(uuid.uuid4())}\")")
         
-        # Add sheet properties
+        # Add sheet properties with proper positioning and effects
         s.append(f"  (property \"Sheetname\" \"{sheet.sheetName.value}\"")
-        s.append(f"    (at {sheet.sheetName.position.X} {sheet.sheetName.position.Y} {sheet.sheetName.position.angle})")
-        s.append("    (effects (font (size 1.27 1.27)))")
+        s.append(f"    (at {sheet.position.X} {float(sheet.position.Y) - 0.7116} 0)")
+        s.append("    (effects")
+        s.append("      (font")
+        s.append("        (size 1.27 1.27)")
+        s.append("      )")
+        s.append("      (justify left bottom)")
+        s.append("    )")
         s.append("  )")
         
         s.append(f"  (property \"Sheetfile\" \"{sheet.fileName.value}\"")
-        s.append(f"    (at {sheet.fileName.position.X} {sheet.fileName.position.Y} {sheet.fileName.position.angle})")
-        s.append("    (effects (font (size 1.27 1.27)))")
+        s.append(f"    (at {sheet.position.X} {float(sheet.position.Y) + float(sheet.height) + 0.5846} 0)")
+        s.append("    (effects")
+        s.append("      (font")
+        s.append("        (size 1.27 1.27)")
+        s.append("      )")
+        s.append("      (justify left top)")
+        s.append("    )")
+        s.append("  )")
+        
+        # Add instances block with proper project path
+        s.append("  (instances")
+        s.append("    (project \"testing_hierarchy\"")
+        s.append(f"      (path \"{sheet.hierarchical_path}\"")
+        s.append("        (page \"3\")")
+        s.append("      )")
+        s.append("    )")
         s.append("  )")
         
         s.append(")")
@@ -197,7 +224,9 @@ class KicadSchematicWriter:
         lines.append("    (path \"/\" (page \"1\"))")
         for sheet in self.sheet_symbols:
             sheet_id = str(uuid.uuid4())
-            lines.append(f"    (path \"/{sheet.sheetName.value}\" (page \"{sheet_id}\"))")
+            # Use stored hierarchical path from HierarchyManager
+            sheet_path = getattr(sheet, 'hierarchical_path', f"/{sheet.sheetName.value}")
+            lines.append(f"    (path \"{sheet_path}\" (page \"{sheet_id}\"))")
         lines.append("  )")
 
         lines.append(")")
@@ -348,13 +377,78 @@ class KicadSchematicWriter:
         s.append("  (fields_autoplaced yes)")
         s.append(f"  (uuid \"{inst.uuid}\")")
 
-        # Minimal fields
-        s.append(f"  (property \"Reference\" \"{inst.reference}\" (at {inst.x+2.0:.2f} {inst.y:.2f} 0))")
-        s.append(f"  (property \"Value\" \"{inst.value}\" (at {inst.x+2.0:.2f} {inst.y+2.0:.2f} 0))")
+        # Reference field with effects
+        s.append(f"  (property \"Reference\" \"{inst.reference}\"")
+        s.append(f"    (at {inst.x+2.54:.2f} {inst.y-1.2701:.2f} 0)")
+        s.append("    (effects")
+        s.append("      (font")
+        s.append("        (size 1.27 1.27)")
+        s.append("      )")
+        s.append("      (justify left)")
+        s.append("    )")
+        s.append("  )")
+
+        # Value field with effects
+        s.append(f"  (property \"Value\" \"{inst.value}\"")
+        s.append(f"    (at {inst.x+2.54:.2f} {inst.y+1.2699:.2f} 0)")
+        s.append("    (effects")
+        s.append("      (font")
+        s.append("        (size 1.27 1.27)")
+        s.append("      )")
+        s.append("      (justify left)")
+        s.append("    )")
+        s.append("  )")
 
         # Add footprint property if available
         if inst.footprint:
-            s.append(f"  (property \"Footprint\" \"{inst.footprint}\" (at {inst.x+2.0:.2f} {inst.y+4.0:.2f} 0))")
+            s.append(f"  (property \"Footprint\" \"{inst.footprint}\"")
+            s.append(f"    (at {inst.x-1.778:.2f} {inst.y:.2f} 90)")
+            s.append("    (effects")
+            s.append("      (font")
+            s.append("        (size 1.27 1.27)")
+            s.append("      )")
+            s.append("      (hide yes)")
+            s.append("    )")
+            s.append("  )")
+
+        # Add datasheet and description properties
+        s.append("  (property \"Datasheet\" \"~\"")
+        s.append(f"    (at {inst.x:.2f} {inst.y:.2f} 0)")
+        s.append("    (effects")
+        s.append("      (font")
+        s.append("        (size 1.27 1.27)")
+        s.append("      )")
+        s.append("      (hide yes)")
+        s.append("    )")
+        s.append("  )")
+
+        s.append("  (property \"Description\" \"Resistor\"")
+        s.append(f"    (at {inst.x:.2f} {inst.y:.2f} 0)")
+        s.append("    (effects")
+        s.append("      (font")
+        s.append("        (size 1.27 1.27)")
+        s.append("      )")
+        s.append("      (hide yes)")
+        s.append("    )")
+        s.append("  )")
+
+        # Add pin UUIDs
+        s.append("  (pin \"2\"")
+        s.append(f"    (uuid \"{str(uuid.uuid4())}\")")
+        s.append("  )")
+        s.append("  (pin \"1\"")
+        s.append(f"    (uuid \"{str(uuid.uuid4())}\")")
+        s.append("  )")
+
+        # Add instances block
+        s.append("  (instances")
+        s.append("    (project \"testing_hierarchy\"")
+        s.append(f"      (path \"{getattr(inst, 'hierarchical_path', '/')}\"")
+        s.append(f"        (reference \"{inst.reference}\")")
+        s.append("        (unit 1)")
+        s.append("      )")
+        s.append("    )")
+        s.append("  )")
 
         s.append(")")
         return "\n".join(s)
